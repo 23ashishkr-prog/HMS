@@ -1,0 +1,2 @@
+'use client'
+import {useState} from 'react';import ModuleShell from '@/components/ModuleShell';export default function Page(){const[s,setS]=useState(['Waiting','Vitals','Consultation','Lab']);return <ModuleShell title="Queue" eyebrow="LIVE QUEUE" description="Move patients through care stages."><div className="moduleCards">{s.map((x,i)=><button className="panel moduleCard" key={x} onClick={()=>setS(v=>v.map((a,j)=>j===i?a+' ✓':a))}><b>{x}</b><strong>{[18,5,7,4][i]}</strong><small>Click to acknowledge</small></button>)}</div></ModuleShell>}
