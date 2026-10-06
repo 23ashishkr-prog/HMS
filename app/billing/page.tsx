@@ -1,0 +1,2 @@
+'use client'
+import {useState} from 'react';import ModuleShell from '@/components/ModuleShell';export default function Page(){const[paid,setPaid]=useState(false);return <ModuleShell title="Billing" eyebrow="REVENUE CYCLE" description="Review charges and payment status."><div className="panel modulePanel"><div className="moduleRow"><div><b>INV-2026-1004</b><small>Arjun Kumar</small></div><strong>₹2,450</strong><button onClick={()=>setPaid(!paid)}>{paid?'Paid ✓':'Mark paid'}</button></div></div></ModuleShell>}
