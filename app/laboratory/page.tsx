@@ -1,0 +1,2 @@
+'use client'
+import {useState} from 'react';import ModuleShell from '@/components/ModuleShell';export default function Page(){const[status,setStatus]=useState('Sample pending');return <ModuleShell title="Laboratory" eyebrow="LAB WORKLIST" description="Track orders, samples and results."><div className="panel modulePanel"><div className="moduleRow"><div><b>CBC + Lipid</b><small>Amit Verma · HSP-002104</small></div><span>{status}</span><button onClick={()=>setStatus(status==='Sample pending'?'Sample collected':'Result ready')}>Advance</button></div></div></ModuleShell>}
