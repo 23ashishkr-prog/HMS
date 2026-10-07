@@ -1,0 +1,1 @@
+import ModuleShell from '@/components/ModuleShell';export default function Page(){return <ModuleShell title="Pharmacy" eyebrow="PRESCRIPTION WORKLIST" description="Only prescriptions issued for patients will appear here. Dispensing workflow will be connected to the prescription tables next."><div className="panel modulePanel"><p>No pending prescriptions.</p></div></ModuleShell>}

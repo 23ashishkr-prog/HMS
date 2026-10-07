@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server';import {getSession} from '@/lib/auth';import {getDb} from '@/lib/db';
+export const runtime='nodejs';
+export async function GET(){const s=await getSession();if(!s||!['admin','doctor'].includes(s.role))return NextResponse.json({error:'Forbidden'},{status:403});const db=getDb();const x=await db.query(`select q.id,q.checked_in_at,q.status,p.id patient_id,p.uhid,p.full_name,p.mobile from doctor_queue q join patients p on p.id=q.patient_id join users me on me.id=$1 where q.hospital_id=me.hospital_id and ($2='admin' or q.doctor_user_id=$1) and q.status in ('waiting','called','consultation') order by q.checked_in_at asc`,[s.userId,s.role]);return NextResponse.json({queue:x.rows})}
