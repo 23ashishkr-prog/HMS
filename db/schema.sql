@@ -18,3 +18,9 @@ alter table hospitals add column if not exists sidebar_color text not null defau
 alter table hospitals add column if not exists accent_color text not null default '#8a0303';
 alter table hospitals add column if not exists background_color text not null default '#f5f5f4';
 alter table hospitals add column if not exists updated_at timestamptz not null default now();
+
+create table if not exists doctor_availability(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,doctor_user_id uuid not null references users(id) on delete cascade,day_of_week int not null check(day_of_week between 0 and 6),start_time time not null,end_time time not null,slot_minutes int not null default 30 check(slot_minutes between 5 and 240),active boolean not null default true,created_at timestamptz not null default now(),unique(doctor_user_id,day_of_week));
+create table if not exists doctor_time_off(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,doctor_user_id uuid not null references users(id) on delete cascade,start_at timestamptz not null,end_at timestamptz not null,reason text,created_by uuid not null references users(id),created_at timestamptz not null default now(),check(end_at>start_at));
+create index if not exists idx_doctor_availability on doctor_availability(hospital_id,doctor_user_id,day_of_week);
+create index if not exists idx_doctor_time_off on doctor_time_off(hospital_id,doctor_user_id,start_at,end_at);
+create unique index if not exists idx_appointments_doctor_time on appointments(doctor_user_id,scheduled_at) where status not in ('cancelled');
