@@ -12,3 +12,9 @@ create table if not exists appointments(id uuid primary key default gen_random_u
 create table if not exists prescriptions(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,patient_id uuid not null references patients(id) on delete cascade,doctor_user_id uuid not null references users(id),status text not null default 'pending',created_at timestamptz not null default now(),dispensed_at timestamptz);
 create table if not exists prescription_items(id uuid primary key default gen_random_uuid(),prescription_id uuid not null references prescriptions(id) on delete cascade,medicine_name text not null,dose text,frequency text,duration text,quantity text,instructions text);
 create index if not exists idx_users_email on users(lower(email));create index if not exists idx_patients_uhid on patients(uhid);create index if not exists idx_assignments_doctor on patient_assignments(doctor_user_id,active);create index if not exists idx_lab_reports_patient on lab_reports(patient_id,created_at desc);create index if not exists idx_doctor_queue_fifo on doctor_queue(doctor_user_id,status,checked_in_at);create index if not exists idx_clinical_notes_patient on clinical_notes(patient_id,created_at desc);create index if not exists idx_appointments_patient on appointments(patient_id,scheduled_at desc);create index if not exists idx_prescriptions_patient on prescriptions(patient_id,created_at desc);
+
+alter table hospitals add column if not exists logo_url text;
+alter table hospitals add column if not exists sidebar_color text not null default '#09090a';
+alter table hospitals add column if not exists accent_color text not null default '#8a0303';
+alter table hospitals add column if not exists background_color text not null default '#f5f5f4';
+alter table hospitals add column if not exists updated_at timestamptz not null default now();
