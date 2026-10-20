@@ -1,0 +1,7 @@
+'use client'
+import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call} from '@/lib/client'
+export default function Page(){const[s,setS]=useState<any>(null),[m,setM]=useState('');const load=(b?:any)=>call('/api/settings/self-service',b?'PUT':'GET',b).then(setS).catch(e=>setM(e.message));useEffect(()=>{load()},[])
+ return <ModuleShell title="Self check-in QR" eyebrow="PRINT & PLACE AT RECEPTION" description="Patients scan, enter mobile + date of birth, and get their token. New patients still register at the desk.">{!s?<p>{m||'Loading…'}</p>:<div className="card pad qrCard">
+  <p><b>Self check-in:</b> {s.selfCheckin?'ON':'OFF'} · <b>WhatsApp booking</b> (patients send BOOK): {s.whatsappBooking?'ON':'OFF'}</p>
+  <div className="chips noprint"><button className="chip" onClick={()=>load({selfCheckin:!s.selfCheckin})}>{s.selfCheckin?'Turn off':'Turn on'} self check-in</button><button className="chip" onClick={()=>load({whatsappBooking:!s.whatsappBooking})}>{s.whatsappBooking?'Turn off':'Turn on'} WhatsApp booking</button><button className="chip" onClick={()=>confirm('Old printed QR codes will stop working. Continue?')&&load({rotateKey:true})}>New QR (invalidate old)</button><button className="chip" onClick={()=>print()}>Print</button></div>
+  {s.selfCheckin?<div className="qrPrint"><h2>Scan to check in</h2><div dangerouslySetInnerHTML={{__html:s.qrSvg}}/><small>{s.url.replace(/\?k=.*/,'')}</small></div>:<p className="muted">Turn on self check-in to show the QR.</p>}{m&&<p>{m}</p>}</div>}</ModuleShell>}
