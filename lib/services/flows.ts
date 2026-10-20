@@ -1,0 +1,24 @@
+/** One-screen workflows modelled on Insta/Bahmni front desk and consultation pad: fewer clicks, one API call each. */
+import {Ctx,Db,HttpError,assertPatient,opt,required,requireRole} from './core'
+import {registerPatient} from './patients';import {checkIn,recordVitals,addDiagnosis,prescribe,closeEncounter} from './opd';import {orderTest} from './diagnostics';import {createInvoice,recordPayment,invoiceTotals} from './billing'
+export async function consultationFee(db:Db,ctx:Ctx){return (await db.query("select * from service_catalog where hospital_id=$1 and category='consultation' and active order by price desc limit 1",[ctx.hospitalId])).rows[0]||null}
+/** Unbilled charges for a patient: visit tokens (consultation fee) + diagnostic orders (catalogue price). */
+export async function unbilledCharges(db:Db,ctx:Ctx,patientId:string){requireRole(ctx,['admin','billing','reception']);await assertPatient(db,ctx,patientId);const out:any[]=[];const fee=await consultationFee(db,ctx)
+ if(fee){const v=await db.query("select q.id,q.token_no,q.visit_date,u.full_name doctor from doctor_queue q join users u on u.id=q.doctor_user_id where q.hospital_id=$1 and q.patient_id=$2 and not exists(select 1 from invoice_items i where i.source_type='visit' and i.source_id=q.id) order by q.checked_in_at",[ctx.hospitalId,patientId]);for(const r of v.rows)out.push({sourceType:'visit',sourceId:r.id,serviceId:fee.id,description:`${fee.name} · ${r.doctor} · ${String(r.visit_date).slice(0,10)}`,unitPrice:Number(fee.price)})}
+ const o=await db.query("select o.id,o.test_name,s.id sid,s.price from diagnostic_orders o join service_catalog s on s.id=o.service_id where o.hospital_id=$1 and o.patient_id=$2 and o.status<>'cancelled' and not exists(select 1 from invoice_items i where i.source_type='order' and i.source_id=o.id) order by o.ordered_at",[ctx.hospitalId,patientId]);for(const r of o.rows)out.push({sourceType:'order',sourceId:r.id,serviceId:r.sid,description:r.test_name,unitPrice:Number(r.price)})
+ return out}
+/** Bill everything pending for the patient in one go (adds to their open invoice if any). */
+export async function autoBill(db:Db,ctx:Ctx,patientId:string,only?:'visit'|'order'){const items=(await unbilledCharges(db,ctx,patientId)).filter(i=>!only||i.sourceType===only);if(!items.length)throw new HttpError(409,'Nothing pending to bill for this patient.');let inv=(await db.query("select id from invoices where hospital_id=$1 and patient_id=$2 and status in ('open','partially_paid') order by created_at desc limit 1",[ctx.hospitalId,patientId])).rows[0];if(!inv)inv=await createInvoice(db,ctx,{patientId})
+ for(const i of items)await db.query('insert into invoice_items(invoice_id,service_id,description,quantity,unit_price,source_type,source_id) values($1,$2,$3,1,$4,$5,$6) on conflict do nothing',[inv.id,i.serviceId,i.description,i.unitPrice,i.sourceType,i.sourceId])
+ const t=await invoiceTotals(db,inv.id);if(t.paid>0)await db.query("update invoices set status=case when $2 then 'paid' else 'partially_paid' end where id=$1",[inv.id,t.balance<=0.001]);return {invoiceId:inv.id,items:items.length,...t}}
+/** Front desk: (register new OR pick existing) → token → optional consultation fee collected — one submit. */
+export async function frontDeskVisit(db:Db,ctx:Ctx,b:any){requireRole(ctx,['admin','reception']);const patient=b.patientId?await assertPatient(db,ctx,b.patientId):await registerPatient(db,ctx,b.patient||{});const token=await checkIn(db,ctx,{patientId:patient.id,doctorId:b.doctorId,appointmentId:b.appointmentId});let bill=null
+ const mode=opt(b.collectMode);if(mode){bill=await autoBill(db,ctx,patient.id,'visit');if(bill.balance>0)bill={...bill,...await recordPayment(db,ctx,bill.invoiceId,{amount:bill.balance,mode,reference:b.reference})}}
+ return {patient:{id:patient.id,uhid:patient.uhid,full_name:patient.full_name},token,bill}}
+/** Doctor: save the whole one-page consultation (vitals, diagnoses, Rx, orders, notes) and finish. */
+export async function finishConsultation(db:Db,ctx:Ctx,encounterId:string,b:any){requireRole(ctx,['doctor','admin']);const e=(await db.query('select patient_id from encounters where id=$1 and hospital_id=$2',[required(encounterId,'Encounter'),ctx.hospitalId])).rows[0];if(!e)throw new HttpError(404,'Encounter not found.')
+ const v=b.vitals||{};if(Object.values(v).some(x=>x!==''&&x!=null))await recordVitals(db,ctx,{...v,encounterId})
+ for(const d of b.diagnoses||[])if(opt(d.description))await addDiagnosis(db,ctx,{...d,encounterId})
+ const items=(b.items||[]).filter((i:any)=>opt(i.medicine));if(items.length)await prescribe(db,ctx,{encounterId,items})
+ for(const sid of b.orderServiceIds||[])await orderTest(db,ctx,{patientId:e.patient_id,encounterId,serviceId:sid,priority:b.priority||'routine'})
+ if(b.finish===false)return {saved:true};return {encounter:await closeEncounter(db,ctx,{...b,encounterId})}}

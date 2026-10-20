@@ -1,0 +1,4 @@
+// Creates a platform super-admin (manages all hospitals). Usage: DATABASE_URL=... PLATFORM_ADMIN_EMAIL=... PLATFORM_ADMIN_PASSWORD=... node scripts/create-platform-admin.mjs
+import pg from 'pg';const {DATABASE_URL:u,PLATFORM_ADMIN_EMAIL:e,PLATFORM_ADMIN_PASSWORD:p,PLATFORM_ADMIN_NAME:n}=process.env
+if(!u||!e||!p||p.length<12){console.error('Required: DATABASE_URL, PLATFORM_ADMIN_EMAIL, PLATFORM_ADMIN_PASSWORD (12+ chars)');process.exit(1)}
+const c=new pg.Client({connectionString:u});c.connect().then(()=>c.query("insert into platform_admins(email,full_name,password_hash) values(lower($1),$2,crypt($3,gen_salt('bf',12))) on conflict(email) do update set password_hash=excluded.password_hash,active=true",[e,n||'Platform Admin',p])).then(()=>console.log('platform admin ready:',e)).finally(()=>c.end())

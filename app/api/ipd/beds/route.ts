@@ -1,0 +1,2 @@
+import {api,body,qs} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {addBed,bedBoard} from '@/lib/services/ipd'
+export const GET=api(async(c,db)=>({beds:await bedBoard(db,c),doctors:(await db.query("select id,full_name from users where hospital_id=$1 and role='doctor' and active order by full_name",[c.hospitalId])).rows}),{module:'ipd'});export const POST=api(async(c,db,r)=>({bed:await addBed(db,c,await body(r))}),{module:'ipd'})
