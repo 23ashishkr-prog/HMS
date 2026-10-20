@@ -1,8 +1,8 @@
 'use client'
-import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,formObj,inr,dt} from '@/lib/client'
+import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,formObj,inr,dt,me as whoAmI} from '@/lib/client'
 export default function Page(){const[beds,setBeds]=useState<any[]>([]),[docs,setDocs]=useState<any[]>([]),[adm,setAdm]=useState<any[]>([]),[me,setMe]=useState<any>(null),[bed,setBed]=useState<any>(null),[pq,setPq]=useState(''),[pts,setPts]=useState<any[]>([]),[dis,setDis]=useState<any>(null),[msg,setMsg]=useState('')
  const load=()=>{call('/api/ipd/beds').then(x=>{setBeds(x.beds);setDocs(x.doctors)}).catch(e=>setMsg(e.message));call('/api/ipd/admissions?status=discharged').then(x=>setAdm(x.admissions)).catch(()=>{})}
- useEffect(()=>{load();call('/api/auth/me').then(setMe)},[])
+ useEffect(()=>{load();whoAmI().then(setMe)},[])
  const wrap=(f:(e:React.FormEvent<HTMLFormElement>)=>Promise<any>,ok:string)=>async(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();try{await f(e);setMsg(ok);setBed(null);setDis(null);load()}catch(er:any){setMsg(er.message)}}
  return <ModuleShell title="IPD & beds" eyebrow="INPATIENT" description="Live bed board, admissions with admission number, and discharge summary.">
  <div className="stats"><div className="stat"><small>Beds</small><b>{beds.length}</b></div><div className="stat"><small>Occupied</small><b>{beds.filter(b=>b.admission_id).length}</b></div><div className="stat"><small>Available</small><b>{beds.filter(b=>!b.admission_id).length}</b></div></div>

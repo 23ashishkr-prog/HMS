@@ -1,10 +1,10 @@
 'use client'
-import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import Icon3D from '@/components/Icon3D';import {call,dt} from '@/lib/client';import {toast,toastErr} from '@/lib/toast';import AIPanel from '@/components/AIPanel';import TemplateBar from '@/components/TemplateBar'
+import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import Icon3D from '@/components/Icon3D';import {call,dt,me as whoAmI} from '@/lib/client';import {toast,toastErr} from '@/lib/toast';import AIPanel from '@/components/AIPanel';import TemplateBar from '@/components/TemplateBar'
 const blankRx=()=>({medicine:'',dose:'',frequency:'1-0-1',duration:'5 days',instructions:'After food'})
 const VITALS:[string,string][]=[['temperatureC','Temp °C'],['pulse','Pulse'],['bpSystolic','BP sys'],['bpDiastolic','BP dia'],['spo2','SpO₂ %'],['respRate','RR'],['weightKg','Wt kg'],['heightCm','Ht cm']]
 export default function Page(){const[me,setMe]=useState<any>(null),[queue,setQueue]=useState<any[]>([]),[enc,setEnc]=useState<any>(null),[hist,setHist]=useState<any[]>([]),[tests,setTests]=useState<any[]>([]),[vit,setVit]=useState<any>({}),[dx,setDx]=useState([{icd10Code:'',description:''}]),[rx,setRx]=useState([blankRx()]),[orders,setOrders]=useState<string[]>([]),[notes,setNotes]=useState<any>({}),[busy,setBusy]=useState(false)
  const load=()=>call('/api/queue').then(x=>{setQueue(x.queue);return x.queue as any[]}).catch(e=>{toastErr(e);return []})
- useEffect(()=>{call('/api/auth/me').then(setMe);load();call('/api/catalog').then(x=>setTests(x.services.filter((s:any)=>['lab','radiology'].includes(s.category)))).catch(()=>{})},[])
+ useEffect(()=>{whoAmI().then(setMe);load();call('/api/catalog').then(x=>setTests(x.services.filter((s:any)=>['lab','radiology'].includes(s.category)))).catch(()=>{})},[])
  async function repeatRx(){if(!enc)return;try{const x=await call('/api/patients/'+enc.encounter.patient_id+'/last-rx');if(!x.found){toast('No previous prescription for this patient');return}
   const blocks=x.warnings.filter((w:any)=>w.severity==='block'),warns=x.warnings.filter((w:any)=>w.severity!=='block')
   if(blocks.length&&!confirm('⛔ Safety check:\n'+blocks.map((w:any)=>'• '+w.message).join('\n')+'\n\nI have reviewed these and still want to copy the prescription.'))return

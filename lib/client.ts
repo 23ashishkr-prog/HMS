@@ -9,3 +9,8 @@ export async function call<T=any>(url:string,method='GET',body?:unknown):Promise
 export const formObj=(e:React.FormEvent<HTMLFormElement>)=>Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string,string>
 export const inr=(n:unknown)=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})
 export const dt=(s?:string)=>s?new Date(s).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):'—'
+
+/** Shared, de-duplicated "who am I" lookup: the shell and the page reuse one request (refreshed after 30 s). */
+let meP:Promise<any>|null=null,meAt=0
+export function me():Promise<any>{if(!meP||Date.now()-meAt>30000){meAt=Date.now();meP=fetch('/api/auth/me',{cache:'no-store'}).then(async r=>{if(!r.ok){const e:any=new Error('Unauthenticated');e.status=r.status;throw e}return r.json()});meP.catch(()=>{meP=null})}return meP}
+export function clearMe(){meP=null}

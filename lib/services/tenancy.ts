@@ -2,9 +2,12 @@ import {Ctx,Db,HttpError,audit,opt,required,requireRole} from './core'
 export const MODULES=['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','ai'] as const
 export type Module=typeof MODULES[number]
 import {lifecycleView,TRIAL_MONTHS} from './lifecycle'
+/** Per-request memo so the api() gate and requireModule() share one subscription lookup. */
+const subMemo=new WeakMap<object,any>()
+export function memoSubscription(ctx:object,sub:any){subMemo.set(ctx,sub)}
 export async function getSubscription(db:Db,hospitalId:string){const r=await db.query('select s.*,p.name plan_name,p.modules,p.max_users,p.max_patients from subscriptions s join plans p on p.code=s.plan_code where s.hospital_id=$1',[hospitalId]);const s=r.rows[0];if(!s)return null;const lc=lifecycleView(s)!;return {...s,usable:!lc.onHold&&['active','trialing'].includes(s.status),trialOver:lc.onHold,lifecycle:lc}}
 /** Central feature gate: every module API calls this with the session's hospital. */
-export async function requireModule(db:Db,ctx:Ctx,module:Module){const s=await getSubscription(db,ctx.hospitalId);if(!s||!s.usable)throw new HttpError(402,'Account on hold: subscription inactive or trial ended. Renew to continue.');if(!s.modules.includes(module))throw new HttpError(402,`The ${module} module is not in your ${s.plan_name} plan.`);return s}
+export async function requireModule(db:Db,ctx:Ctx,module:Module){const s=subMemo.has(ctx)?subMemo.get(ctx):await getSubscription(db,ctx.hospitalId);if(!s||!s.usable)throw new HttpError(402,'Account on hold: subscription inactive or trial ended. Renew to continue.');if(!s.modules.includes(module))throw new HttpError(402,`The ${module} module is not in your ${s.plan_name} plan.`);return s}
 export async function assertLimit(db:Db,ctx:Ctx,kind:'users'|'patients'){const s=await getSubscription(db,ctx.hospitalId);const max=kind==='users'?s?.max_users:s?.max_patients;if(max==null)return;const r=await db.query(`select count(*)::int n from ${kind==='users'?'users':'patients'} where hospital_id=$1${kind==='users'?' and active=true':''}`,[ctx.hospitalId]);if(r.rows[0].n>=max)throw new HttpError(402,`Your plan allows ${max} ${kind}. Upgrade to add more.`)}
 const slug=(s:string)=>s.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10)
 /** Public onboarding: creates tenant + first admin + trial subscription. */
