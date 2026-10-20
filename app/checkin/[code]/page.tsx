@@ -1,0 +1,11 @@
+'use client'
+import {use,useEffect,useState} from 'react'
+export default function Page({params}:{params:Promise<{code:string}>}){const {code}=use(params);const[k,setK]=useState(''),[info,setInfo]=useState<any>(null),[err,setErr]=useState(''),[res,setRes]=useState<any>(null),[f,setF]=useState<any>({mobile:'',dob:'',uhid:'',doctorId:''}),[busy,setBusy]=useState(false)
+ useEffect(()=>{const key=new URLSearchParams(location.search).get('k')||'';setK(key);fetch(`/api/public/checkin?h=${encodeURIComponent(code)}&k=${encodeURIComponent(key)}`).then(r=>r.json()).then(j=>j.error?setErr(j.error):setInfo(j))},[code])
+ async function go(e?:any){e?.preventDefault();setBusy(true);setErr('');try{const r=await fetch('/api/public/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({h:code,k,...f})});const j=await r.json();if(!r.ok)setErr(j.error);else setRes(j)}finally{setBusy(false)}}
+ return <main className="selfci"><div className="card pad"><h1>{info?.hospital||'Self check-in'}</h1>
+  {res?.token?<div className="tokenBig"><small>{res.already?'You are already checked in':'Checked in'} · {res.firstName}</small><b>Token {res.token}</b><p>{res.doctor}{res.ahead!=null?` · ${res.ahead} ahead of you`:''}</p><p><small>Please take a seat. Watch the token screen.</small></p></div>
+  :info&&<form onSubmit={go} className="formGrid"><label>Mobile number<input inputMode="numeric" required value={f.mobile} onChange={e=>setF({...f,mobile:e.target.value})}/></label><label>Date of birth<input type="date" value={f.dob} onChange={e=>setF({...f,dob:e.target.value})}/></label><label>or UHID<input value={f.uhid} onChange={e=>setF({...f,uhid:e.target.value})}/></label>
+   {res?.needDoctor&&<label>Which doctor? (no appointment found for today)<select required value={f.doctorId} onChange={e=>setF({...f,doctorId:e.target.value})}><option value="">Choose…</option>{info.doctors.map((d:any)=><option key={d.id} value={d.id}>{d.full_name}</option>)}</select></label>}
+   <button className="primary full" disabled={busy}>{busy?'Checking…':'Check in'}</button><p><small>New patient? Please register at reception.</small></p></form>}
+  {err&&<p className="alert">{err}</p>}</div></main>}

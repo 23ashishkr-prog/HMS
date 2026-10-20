@@ -192,3 +192,7 @@ a{color:var(--sd-navy)}
 .aiPanel .aiWarn{margin:6px 0;display:grid;gap:4px}.aiPanel .aiWarn .block{color:#C62828;font-weight:600}.aiPanel .aiWarn .warn{color:#8A4B00}
 .aiPanel textarea{width:100%}
 :root.dark .aiPanel,[data-theme=dark] .aiPanel{background:#13284A}
+/* self check-in */
+.selfci{max-width:460px;margin:24px auto;padding:0 12px}.selfci h1{font-size:1.4rem}.tokenBig{text-align:center;padding:16px}.tokenBig b{display:block;font-size:3.2rem;color:#104176;margin:8px 0}
+.qrPrint{text-align:center;padding:16px}.qrPrint svg{width:280px;height:280px}
+@media print{.noprint,aside,nav,header{display:none!important}}

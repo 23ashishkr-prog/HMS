@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server';import {getDb} from '@/lib/db';import {fail,body} from '@/lib/api';import {checkinInfo,selfCheckIn} from '@/lib/services/selfservice';import {Db} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export async function GET(req:Request){try{const u=new URL(req.url);return NextResponse.json(await checkinInfo(getDb() as unknown as Db,u.searchParams.get('h')||'',u.searchParams.get('k')||''))}catch(e){return fail(e,{route:'/api/public/checkin'})}}
+export async function POST(req:Request){try{const b:any=await body(req);return NextResponse.json(await selfCheckIn(getDb() as unknown as Db,b.h,b.k,b))}catch(e){return fail(e,{route:'/api/public/checkin'})}}
