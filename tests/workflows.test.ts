@@ -75,3 +75,11 @@ test('subscription gating, limits and provider events', async()=>{
  await applyProviderEvent(db,admin.hospitalId,{type:'subscription.activated',planCode:'pro'},{});const s=await getSubscription(db,admin.hospitalId);assert.equal(s.status,'active');assert.equal(s.plan_code,'pro');await requireModule(db,admin,'ipd')
  assert.equal(normalizeAbha(null),null);assert.throws(()=>normalizeAbha('123'))
 })
+test('dashboard "today" counts use IST calendar day', async()=>{
+ const {freshDb,tenant}=await import('./helpers');const {dashboard}=await import('../lib/services/dashboard')
+ const db=await freshDb();const {admin}=await tenant(db,'TZ Clinic')
+ // 20:00 UTC yesterday-in-UTC is 01:30 IST today → must count as today in India
+ const ist=new Date(Date.now()+330*60000);const d=ist.toISOString().slice(0,10)
+ await db.query("insert into patients(hospital_id,uhid,full_name,created_at) values($1,'TZ-1','TZ Patient',($2::date - interval '1 day' + interval '20 hours 30 minutes') at time zone 'UTC')",[admin.hospitalId,d])
+ assert.equal((await dashboard(db,admin)).registered_today,1)
+})
