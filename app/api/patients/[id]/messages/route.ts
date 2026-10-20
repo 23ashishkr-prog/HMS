@@ -1,0 +1,2 @@
+import {api} from '@/lib/api';import {messageLog} from '@/lib/services/notify';import {assertPatient,requireRole} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export const GET=api(async(c,db,r,p)=>{requireRole(c,['admin','reception','doctor','nurse','billing']);await assertPatient(db,c,p.id);return {messages:await messageLog(db,c.hospitalId,p.id)}},{module:'patients'})

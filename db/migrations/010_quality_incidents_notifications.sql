@@ -1,0 +1,25 @@
+-- 010: idempotency keys, incidents (error capture), patient consent + notification outbox, medicine reminders, follow-up offers.
+create table if not exists idempotency_keys(hospital_id uuid not null references hospitals(id) on delete cascade,key text not null,route text not null,status int,response jsonb,created_at timestamptz not null default now(),primary key(hospital_id,route,key));
+create index if not exists idx_idem_created on idempotency_keys(created_at);
+create table if not exists incidents(id uuid primary key default gen_random_uuid(),fingerprint text not null unique,source text not null,message text not null,route text,hospital_id uuid references hospitals(id) on delete set null,role text,last_request_id text,count int not null default 1,first_seen timestamptz not null default now(),last_seen timestamptz not null default now(),status text not null default 'open' check(status in ('open','acknowledged','resolved','ignored')),github_issue_url text,notified_at timestamptz,notify_error text);
+create index if not exists idx_incidents_seen on incidents(last_seen desc);
+alter table patients add column if not exists consent_whatsapp boolean not null default false;
+alter table patients add column if not exists consent_email boolean not null default false;
+alter table patients add column if not exists consent_sms boolean not null default false;
+alter table patients add column if not exists consent_at timestamptz;
+alter table patients add column if not exists consent_by uuid references users(id) on delete set null;
+alter table hospitals add column if not exists notify_whatsapp boolean not null default false;
+alter table hospitals add column if not exists notify_email boolean not null default false;
+alter table hospitals add column if not exists notify_sms boolean not null default false;
+alter table hospitals add column if not exists reminder_times jsonb not null default '{"morning":"08:00","afternoon":"14:00","night":"21:00"}';
+alter table hospitals add column if not exists food_offset_min int not null default 30;
+alter table hospitals add column if not exists followup_hold_hours int not null default 24;
+alter table hospitals add column if not exists opd_hours jsonb not null default '{"start":"10:00","end":"17:00","slotMin":15}';
+alter table hospitals add column if not exists wa_templates jsonb not null default '{}';
+create table if not exists notification_outbox(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,patient_id uuid references patients(id) on delete cascade,channel text not null check(channel in ('whatsapp','email','sms')),kind text not null,to_address text,subject text,body text not null,buttons jsonb,template text,ref_type text,ref_id uuid,dedupe_key text unique,send_after timestamptz not null default now(),status text not null default 'pending' check(status in ('pending','sending','sent','failed','skipped','not_sent','cancelled')),attempts int not null default 0,last_error text,provider_message_id text,created_at timestamptz not null default now(),sent_at timestamptz);
+create index if not exists idx_outbox_due on notification_outbox(status,send_after);
+create index if not exists idx_outbox_patient on notification_outbox(hospital_id,patient_id,created_at desc);
+create table if not exists medicine_adherence(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,patient_id uuid not null references patients(id) on delete cascade,outbox_id uuid references notification_outbox(id) on delete set null,taken_at timestamptz not null default now(),source text not null default 'whatsapp');
+create table if not exists followup_offers(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,patient_id uuid not null references patients(id) on delete cascade,doctor_user_id uuid not null references users(id),encounter_id uuid references encounters(id) on delete set null,follow_up_date date not null,slots jsonb not null default '[]',held_slot timestamptz,hold_until timestamptz,status text not null default 'proposed' check(status in ('proposed','confirmed','another_time','cancelled','expired','flagged','booked_by_staff')),reminder_sent_at timestamptz,appointment_id uuid references appointments(id) on delete set null,responded_at timestamptz,created_at timestamptz not null default now());
+create index if not exists idx_followup_status on followup_offers(hospital_id,status);
+create unique index if not exists idx_followup_encounter on followup_offers(encounter_id) where encounter_id is not null;

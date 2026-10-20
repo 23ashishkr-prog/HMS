@@ -1,0 +1,6 @@
+'use client'
+import {Suspense,useState} from 'react';import {useSearchParams} from 'next/navigation'
+function F(){const sp=useSearchParams();const a=sp.get('a')||'';const[msg,setMsg]=useState(''),[busy,setBusy]=useState(false)
+ const label:Record<string,string>={confirm:'Confirm my follow-up visit',another:'Show me another time',cancel:'Cancel the follow-up'}
+ return <main className="authPage"><section className="authCard"><span className="overline">FOLLOW-UP VISIT</span><h1>{label[a]||'Follow-up'}</h1>{msg?<p>{msg}</p>:<button className="primary full" disabled={busy||!label[a]} onClick={async()=>{setBusy(true);const r=await fetch('/api/public/followup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({o:sp.get('o'),a,e:sp.get('e'),s:sp.get('s')})});const j=await r.json().catch(()=>({}));setBusy(false);setMsg(!r.ok?j.error||'Something went wrong.':j.status==='confirmed'?'Booked for '+new Date(j.at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+'. You will get a confirmation message.':j.status==='proposed'?'We have sent you new times.':j.status==='flagged'?'Reception will call you to fix a time.':'Done — the follow-up was not booked.')}}>{busy?'Please wait…':label[a]||'Invalid link'}</button>}</section></main>}
+export default function Page(){return <Suspense><F/></Suspense>}

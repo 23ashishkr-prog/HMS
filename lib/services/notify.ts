@@ -1,0 +1,48 @@
+/** Patient notifications: consent-gated outbox + provider interface (WhatsApp Cloud API / Resend e-mail / SMS stub).
+ *  Dry-run when keys are missing: rows end as 'not_sent' with "not sent: provider not configured" — never faked as delivered. */
+import crypto from 'node:crypto'
+import {Db,HttpError} from './core'
+export type Channel='whatsapp'|'email'|'sms'
+export type Button={id:string;title:string}
+export type OutMsg={channel:Channel;to:string;subject?:string|null;body:string;buttons?:Button[]|null;template?:string|null;links?:{label:string;url:string}[]}
+export interface Provider{channel:Channel;name:string;configured():boolean;send(m:OutMsg):Promise<{id:string}>}
+export class ProviderError extends Error{constructor(msg:string,public permanent=false){super(msg)}}
+/** Meta WhatsApp Cloud API. Business-initiated messages need an approved template (hospital wa_templates[kind]);
+ *  without one we send an interactive/text message, which Meta only delivers inside the 24-hour customer-service window. */
+export const whatsappCloud=(f:typeof fetch=fetch):Provider=>({channel:'whatsapp',name:'meta-cloud',configured:()=>!!(process.env.WHATSAPP_TOKEN&&process.env.WHATSAPP_PHONE_NUMBER_ID),async send(m){const to=m.to.replace(/\D/g,'');let payload:any
+ if(m.template)payload={messaging_product:'whatsapp',to,type:'template',template:{name:m.template,language:{code:process.env.WHATSAPP_TEMPLATE_LANG||'en'},components:[{type:'body',parameters:[{type:'text',text:m.body.slice(0,1000)}]},...(m.buttons||[]).slice(0,3).map((b,i)=>({type:'button',sub_type:'quick_reply',index:String(i),parameters:[{type:'payload',payload:b.id}]}))]}}
+ else if(m.buttons?.length)payload={messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'button',body:{text:m.body.slice(0,1024)},action:{buttons:m.buttons.slice(0,3).map(b=>({type:'reply',reply:{id:b.id,title:b.title.slice(0,20)}}))}}}
+ else payload={messaging_product:'whatsapp',to,type:'text',text:{body:m.body.slice(0,4096)}}
+ const r=await f(`https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION||'v21.0'}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,{method:'POST',headers:{authorization:'Bearer '+process.env.WHATSAPP_TOKEN,'content-type':'application/json'},body:JSON.stringify(payload)});const j:any=await r.json().catch(()=>({}));if(!r.ok)throw new ProviderError('whatsapp '+r.status+' '+String(j?.error?.message||'').slice(0,120),r.status>=400&&r.status<500&&r.status!==429);return {id:j?.messages?.[0]?.id||'wa'}}})
+export const resendEmail=(f:typeof fetch=fetch):Provider=>({channel:'email',name:'resend',configured:()=>!!(process.env.RESEND_API_KEY&&process.env.EMAIL_FROM),async send(m){const esc=(s:string)=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]!));const html=`<div style="font-family:Arial,sans-serif;font-size:15px;color:#262626">${esc(m.body).replace(/\n/g,'<br>')}${(m.links||[]).map(l=>`<p><a href="${esc(l.url)}" style="background:#104176;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${esc(l.label)}</a></p>`).join('')}</div>`
+ const r=await f('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+process.env.RESEND_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:process.env.EMAIL_FROM,to:[m.to],subject:m.subject||'Update from your hospital',text:m.body+(m.links||[]).map(l=>`\n${l.label}: ${l.url}`).join(''),html})});const j:any=await r.json().catch(()=>({}));if(!r.ok)throw new ProviderError('email '+r.status+' '+String(j?.message||'').slice(0,120),r.status>=400&&r.status<500&&r.status!==429);return {id:j?.id||'email'}}})
+/** No SMS gateway wired yet (DLT registration needed in India) — always "not configured". Swap in Gupshup/Twilio by implementing Provider. */
+export const smsStub:Provider={channel:'sms',name:'none',configured:()=>false,async send(){throw new ProviderError('sms provider not configured',true)}}
+export const defaultProviders=():Record<Channel,Provider>=>({whatsapp:whatsappCloud(),email:resendEmail(),sms:smsStub})
+export const appUrl=()=>(process.env.APP_BASE_URL||(process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'http://localhost:3000')).replace(/\/$/,'')
+const linkSecret=()=>process.env.LINK_SECRET||process.env.SESSION_SECRET||''
+/** Signed one-time link token (offer id + action + expiry). One-time is enforced by the offer status. */
+export function signLink(id:string,action:string,exp:number){const s=linkSecret();if(!s)throw new HttpError(503,'LINK_SECRET/SESSION_SECRET not configured.');return crypto.createHmac('sha256',s).update(`${id}|${action}|${exp}`).digest('base64url').slice(0,32)}
+export function verifyLink(id:string,action:string,exp:number,sig:string){if(!linkSecret()||!sig||Date.now()>exp)return false;const a=Buffer.from(signLink(id,action,exp)),b=Buffer.from(String(sig));return a.length===b.length&&crypto.timingSafeEqual(a,b)}
+/** Which channels may be used: hospital toggle AND patient consent AND an address. */
+export async function allowedChannels(db:Db,hospitalId:string,patientId:string){const r=(await db.query('select p.mobile,p.email,p.consent_whatsapp,p.consent_email,p.consent_sms,h.notify_whatsapp,h.notify_email,h.notify_sms,h.name hospital,h.wa_templates from patients p join hospitals h on h.id=p.hospital_id where p.id=$1 and p.hospital_id=$2',[patientId,hospitalId])).rows[0];if(!r)return {channels:[] as {channel:Channel;to:string}[],info:null as any}
+ const ch:{channel:Channel;to:string}[]=[];if(r.notify_whatsapp&&r.consent_whatsapp&&r.mobile)ch.push({channel:'whatsapp',to:r.mobile});if(r.notify_email&&r.consent_email&&r.email)ch.push({channel:'email',to:r.email});if(r.notify_sms&&r.consent_sms&&r.mobile)ch.push({channel:'sms',to:r.mobile});return {channels:ch,info:r}}
+export type Enqueue={hospitalId:string;patientId:string;kind:string;subject?:string;body:string;buttons?:Button[];links?:{label:string;url:string}[];refType?:string;refId?:string|null;dedupe?:string;sendAfter?:Date}
+/** Queue one message per permitted channel. Returns what was queued and which channels were skipped for lack of consent. */
+export async function enqueue(db:Db,m:Enqueue){const {channels,info}=await allowedChannels(db,m.hospitalId,m.patientId);if(!info)return {queued:0,skipped:'patient not found'}
+ if(!channels.length)return {queued:0,skipped:'no consented channel (or hospital notifications off)'};let n=0
+ for(const c of channels){const tpl=(info.wa_templates||{})[m.kind]||null;const body=c.channel==='email'&&m.links?.length?m.body:m.body;const r=await db.query(`insert into notification_outbox(hospital_id,patient_id,channel,kind,to_address,subject,body,buttons,template,ref_type,ref_id,dedupe_key,send_after) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) on conflict(dedupe_key) do nothing returning id`,
+  [m.hospitalId,m.patientId,c.channel,m.kind,c.to,m.subject||`${info.hospital}: update`,body,c.channel==='whatsapp'?JSON.stringify(m.buttons||[]):JSON.stringify(m.links||[]),c.channel==='whatsapp'?tpl:null,m.refType||null,m.refId||null,m.dedupe?`${m.dedupe}:${c.channel}`:null,m.sendAfter||new Date()]);n+=r.rows.length}
+ return {queued:n,skipped:null}}
+const LATE_MIN=Number(process.env.REMINDER_LATE_MINUTES||90)
+/** Outbox worker: claims due rows (skip locked), re-checks consent, sends, retries with backoff (2,4,8,16 min; max 5 attempts). */
+export async function runOutbox(db:Db,providers:Record<Channel,Provider>=defaultProviders(),now=new Date(),limit=100){const rows=(await db.query(`update notification_outbox o set status='sending',attempts=o.attempts+1 where o.id in (select id from notification_outbox where status='pending' and send_after<=$1 order by send_after limit $2 for update skip locked) returning o.*`,[now,limit])).rows
+ const res={sent:0,not_sent:0,retry:0,failed:0,skipped:0}
+ for(const o of rows){const fin=async(status:string,err:string|null,pid?:string)=>db.query('update notification_outbox set status=$2,last_error=$3,provider_message_id=coalesce($4,provider_message_id),sent_at=case when $2=\'sent\' then now() else sent_at end where id=$1',[o.id,status,err,pid||null])
+  if(o.kind==='med_reminder'&&now.getTime()-new Date(o.send_after).getTime()>LATE_MIN*60000){await fin('skipped','missed dose window (scheduler ran late)');res.skipped++;continue}
+  if(o.patient_id){const {channels}=await allowedChannels(db,o.hospital_id,o.patient_id);if(!channels.some(c=>c.channel===o.channel)){await fin('cancelled','consent withdrawn or channel disabled');res.skipped++;continue}}
+  const p=providers[o.channel as Channel];if(!p||!p.configured()){await fin('not_sent','not sent: provider not configured');res.not_sent++;continue}
+  try{const btn=Array.isArray(o.buttons)?o.buttons:[];const r=await p.send({channel:o.channel,to:o.to_address,subject:o.subject,body:o.body,buttons:o.channel==='whatsapp'?btn:null,links:o.channel==='email'?btn:undefined,template:o.template});await fin('sent',null,r.id);res.sent++}
+  catch(e:any){const permanent=e instanceof ProviderError&&e.permanent;if(permanent||o.attempts>=5){await fin('failed',String(e?.message||e).slice(0,300));res.failed++}else{await db.query("update notification_outbox set status='pending',last_error=$2,send_after=$3 where id=$1",[o.id,String(e?.message||e).slice(0,300),new Date(now.getTime()+2**o.attempts*60000)]);res.retry++}}}
+ return {...res,claimed:rows.length}}
+export async function messageLog(db:Db,hospitalId:string,patientId:string){return (await db.query('select id,channel,kind,body,status,last_error,attempts,send_after,sent_at,created_at from notification_outbox where hospital_id=$1 and patient_id=$2 order by send_after desc limit 200',[hospitalId,patientId])).rows}

@@ -68,3 +68,73 @@ The project already exists at https://hms-dun-delta.vercel.app, and pushing to a
   Dispensing (stock, lines, receipt) runs in one transaction.
 - **Temporary passwords**: staff created by an admin (or reset by an admin) must set their own password on first login. Until then every page shows the "Set your own password" screen and APIs answer 403 `mustChangePassword`. Endpoint: `POST /api/auth/password {currentPassword,newPassword}`.
 - IPD admission closes the patient's open OPD token for the day. The legacy `/api/admin/users` staff route was removed (use `/api/staff`, which supports all roles).
+
+## Data-quality auto-correction, incident reporting, patient notifications (v3.2)
+**Auto-correction** (`lib/services/normalize.ts`, applied on every patient/vitals/diagnosis/prescription write, API and UI alike):
+- Safe fixes are applied silently and reported back as `corrections` (UI toast "We corrected: …"):
+  - names are trimmed and title-cased;
+  - mobile numbers become +91 E.164;
+  - PIN codes are de-spaced and fill in the state (offline India Post circle table);
+  - DD/MM/YYYY dates become ISO;
+  - ICD-10 codes are formatted (`j029` → `J02.9`) and the description is filled from a common-code table;
+  - dose frequency is standardised (`BD` → `1-0-1`), and so is duration (`2 wks` → `14 days`);
+  - temperatures entered in °F are converted to °C.
+- Unsafe cases come back as `suggestions` ("Please check: …"):
+  - unusual vitals;
+  - a PIN/state mismatch;
+  - an e-mail domain typo;
+  - an unknown frequency;
+  - an ICD-10 suggestion from the diagnosis text.
+- Impossible values are refused (e.g. SpO2 above 100, diastolic ≥ systolic, a DOB in the future).
+- **Duplicate patients:** the same phone plus the same first name (and DOB if known) returns 409 with the matching UHID. Pass `confirmNotDuplicate` to register anyway.
+- Every correction is written to the audit log (`autocorrect`).
+- **Retries:** single statements are retried on transient DB errors (serialisation, connection reset, admin shutdown).
+- **Idempotency:** create and payment endpoints accept `Idempotency-Key`. The browser client derives it from method + URL + body within a 20-second window, so a double submit returns the first response instead of creating twice.
+
+**Incidents** (`lib/services/incidents.ts`):
+- **What is captured:** server 500s (with a request id), the React error boundaries and browser `error`/`unhandledrejection`.
+- **Privacy:** messages are scrubbed of phone numbers, e-mails, UHIDs, ids and tokens. No PHI or passwords are stored.
+- **De-duplication:** incidents are grouped by fingerprint, and a notification goes out once per incident (again after 24 h if it is still open), capped at `INCIDENT_NOTIFY_PER_HOUR` (default 10).
+- **Where notifications go:** a GitHub issue (`GITHUB_ISSUES_TOKEN`, fine-grained with issues:write; `GITHUB_ISSUES_REPO`, default `23ashishkr-prog/HMS`) and/or an e-mail to `TECH_ALERT_EMAIL` via Resend.
+- **Unconfigured:** incidents are still recorded and the notify step is skipped quietly; the reason is shown on /platform.
+- **Where to see them:** /platform → Incidents lists every incident with its status.
+
+**Patient notifications** (`lib/services/notify.ts`, `patientcomms.ts`):
+- **Consent:** per-patient opt-in for WhatsApp, e-mail and SMS, captured at the front desk (who and when are recorded; DPDP-aligned). Settings → Notifications has the hospital-level toggles.
+- **What is sent:**
+  - token, consultation done and next step;
+  - prescription summary;
+  - lab report ready;
+  - payment receipt;
+  - discharge;
+  - medicine reminders;
+  - follow-up offers and confirmations.
+- **How it is sent:** everything goes through `notification_outbox` and the worker `/api/cron/outbox`, which uses skip-locked claims and dedupe keys, retries with backoff (2/4/8/16 min, up to 5 attempts) and re-checks consent at send time.
+- **Dry-run:** when provider keys are missing, rows become `not_sent` with "not sent: provider not configured". Delivery is never faked.
+- **Medicine reminders:** built from each prescription line's frequency (1-0-1, OD/BD/TDS/QID/HS), duration and before/after-food note, using the hospital's dose times (default 08:00/14:00/21:00 IST, plus an optional evening slot) and food offset (default 30 min). One message goes out per due slot listing the medicines due then, and the dose count is preserved.
+  - A reminder more than `REMINDER_LATE_MINUTES` (90) late is skipped, not sent late.
+  - Replying TAKEN logs adherence; replying STOP withdraws WhatsApp consent and cancels pending reminders.
+- **Follow-ups are never auto-booked:**
+  1. The doctor's follow-up date produces an offer that tentatively holds the first free slot (OPD hours minus appointments and other holds) for `followup_hold_hours` (default 24). The hold is not an appointment.
+  2. The patient gets WhatsApp buttons (Confirm / Another time / Cancel) or signed one-time e-mail links (`/followup`, POST-only).
+  3. **Confirm** creates the appointment and sends a confirmation. **Another time** offers the next free slots over 7 days, or flags reception.
+  4. If there is no reply, one reminder goes out at half the hold window, and after that the request is flagged on /followups for reception to book.
+- **Staff view:** a per-patient message log at `/messages?patient=<id>` (assistant → Message log).
+- **Scheduling (important):** Vercel Hobby runs crons at most once a day. `vercel.json` therefore runs the outbox once daily as a safety sweep, which is NOT enough for dose-time reminders. To hit dose slots, call `GET /api/cron/outbox` with `Authorization: Bearer $CRON_SECRET` every 5 minutes, either with Vercel Pro (change the schedule to `*/5 * * * *`) or with an external scheduler (cron-job.org, Upstash QStash, GitHub Actions).
+
+**WhatsApp setup (Meta Cloud API)**
+1. Meta Business Manager → WhatsApp → add a phone number and get `WHATSAPP_PHONE_NUMBER_ID`, then create a permanent System User token (`WHATSAPP_TOKEN`).
+2. Create templates (category *Utility*, language English or Hindi) with a single body variable `{{1}}`. For follow-ups and reminders, add quick-reply buttons: `followup_offer` with Confirm / Another time / Cancel, `med_reminder` with Taken. Submit them for approval (usually minutes to 24 h).
+3. Enter the approved template names in Settings → Notifications. Without a template, Meta delivers only inside the 24-hour customer-service window.
+4. Webhook: set the callback URL to `https://<app>/api/webhooks/whatsapp`, with verify token `WHATSAPP_VERIFY_TOKEN` and app secret `WHATSAPP_APP_SECRET` (signatures are verified; the webhook refuses requests if it is missing). Subscribe to `messages`.
+
+New env vars:
+- `APP_BASE_URL` (link host; defaults to the Vercel production URL)
+- `LINK_SECRET` (signs e-mail links; falls back to SESSION_SECRET)
+- `EMAIL_FROM`
+- `RESEND_API_KEY`
+- `TECH_ALERT_EMAIL`
+- `GITHUB_ISSUES_TOKEN`, `GITHUB_ISSUES_REPO`
+- `INCIDENT_NOTIFY_PER_HOUR`
+- `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_API_VERSION` (v21.0), `WHATSAPP_TEMPLATE_LANG` (en)
+- `REMINDER_LATE_MINUTES`
