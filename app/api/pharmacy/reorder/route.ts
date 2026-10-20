@@ -1,0 +1,3 @@
+import {api,body} from '@/lib/api';import * as R from '@/lib/services/reorder';import {requireRole,audit} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export const GET=api(async(c,db)=>{requireRole(c,['admin','pharmacy']);return {alerts:await R.reorderAlerts(db,c.hospitalId),auto:(await db.query('select auto_reorder from hospitals where id=$1',[c.hospitalId])).rows[0].auto_reorder}},{module:'pharmacy'})
+export const PUT=api(async(c,db,r)=>{requireRole(c,['admin']);const b:any=await body(r);await db.query('update hospitals set auto_reorder=$2 where id=$1',[c.hospitalId,!!b.auto]);await audit(db,c,'auto_reorder','hospital',c.hospitalId,{auto:!!b.auto});return {auto:!!b.auto}},{module:'pharmacy'})
