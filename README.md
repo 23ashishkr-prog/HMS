@@ -7,6 +7,9 @@ See `docs/WORKFLOW_GAP_ANALYSIS.md` for what's built and what's left.
 
 **No demo data.** Every screen reads and writes through `/api/*` against your database. The only seeded rows are subscription plans (master data).
 
+## UI (v2)
+Role-based desks (Front desk, Doctor desk, Billing, Pharmacy, Lab, IPD, Dashboard) with global patient search (`/` or Ctrl K), Alt+1..7 navigation, Ctrl+Enter submit, toasts and 3D-style icons. See `docs/UX_BENCHMARK.md`. Screenshots are in `docs/screenshots/`.
+
 ## Architecture
 - `lib/services/*`: business logic. Every query is scoped by `ctx.hospitalId`.
 - `lib/api.ts`: the central wrapper. It takes the tenant from the signed session cookie only (never from the request), re-checks that the user is active and reads their current role from the DB, applies the plan module gate (HTTP 402), and maps errors.
@@ -30,7 +33,7 @@ The project already exists at https://hms-dun-delta.vercel.app, and pushing to a
 1. Vercel → Project → Settings → Environment Variables:
    - `DATABASE_URL`: Neon / Vercel Postgres connection string (already set if login works today)
    - `SESSION_SECRET`: long random string (already set if login works today)
-   - `RUN_MIGRATIONS=true`: applies `db/migrations` during each build (`vercel-build` script). Or run `npm run db:migrate` yourself once against the database.
+   - Migrations run **automatically on production builds** (`VERCEL_ENV=production`) using `DATABASE_URL`. They're idempotent, and `006` deactivates the legacy `@aegishms.test` demo logins without deleting anything. Preview builds migrate only if `RUN_MIGRATIONS=true`.
    - Optional: `TRIAL_DAYS`, `ALLOW_PUBLIC_SIGNUP`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `WHATSAPP_*`
    - Use a **separate database for Preview** if you don't want preview builds to migrate production.
 2. Redeploy. Then open `/onboarding` to create a hospital, or keep using your existing admin login (existing hospitals are moved to the Enterprise plan).
