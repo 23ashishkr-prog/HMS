@@ -45,5 +45,5 @@ test('rewrite: sending requires acceptance and goes through consent-gated outbox
  await A.decide(s.db,s.doc,r.suggestionId,{decision:'edited',final:{message:'Rest well. Paracetamol 650 mg morning & night, 3 days.'}});const q:any=await A.sendAccepted(s.db,s.doc,r.suggestionId)
  assert.equal(q.queued||0,0);__setLlmFetch(null)})
 test('dictation structured, other tenant cannot use suggestion',async()=>{const s=await setup();await enable(s.db,s.h.hospitalId);env(true);mockLlm(()=>({chiefComplaint:'Fever 3 days',history:'',examination:'Throat congested',advice:'',vitals:{pulse:'96',temperatureC:38.4,spo2:null}}))
- const r:any=await A.structureDictation(s.db,s.doc,s.p.id,'teen din se bukhar hai, pulse 96, temp 38.4');assert.equal(r.vitals.pulse,96);assert.equal(r.vitals.spo2,null)
+ const r:any=await A.structureDictation(s.db,s.doc,s.p.id,'teen din se bukhar hai, pulse 96, temp 38.4');assert.equal(r.vitals.pulse,96);const hc:any=await A.historySummary(s.db,s.doc,s.p.id);assert.ok(Array.isArray(hc.card.lines)&&hc.card.lines[0].includes('Penicillin'));assert.equal(r.vitals.spo2,null)
  const o=await setup();await assert.rejects(A.decide(o.db,o.doc,r.suggestionId,{decision:'accepted'}),(e:any)=>e.status===404);__setLlmFetch(null)})
