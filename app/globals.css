@@ -121,3 +121,6 @@ html.lite body{background:#eef1fb}html.lite .appIcon{filter:none}html.lite *{ani
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .stats{background:transparent!important;border:0!important;box-shadow:none!important;padding:0}
 @media (prefers-color-scheme:dark){.stat3d{background:var(--glass)!important}.stat3d small{color:var(--mut)}.sideFoot button{background:rgba(255,255,255,.07)!important;color:var(--mut)}.hitList button{background:rgba(255,255,255,.05)!important;color:#f1f5f9}}
+
+/* QA: mobile width — nothing may push the page wider than the viewport */
+@media(max-width:760px){html,body{overflow-x:hidden}main,section,.card,.panel,.modulePanel,form{min-width:0;max-width:100%}.who{flex-shrink:0;margin-right:4px}.card.big,.big{padding:14px 12px}.dataTable{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.topbar,header{flex-wrap:wrap;min-width:0}}
