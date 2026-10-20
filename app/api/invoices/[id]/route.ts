@@ -1,0 +1,3 @@
+import {api,body,qs} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {getInvoice,addItem,recordPayment,setDiscount,cancelInvoice} from '@/lib/services/billing';import {HttpError} from '@/lib/services/core'
+export const GET=api(async(c,db,r,p)=>getInvoice(db,c,p.id),{module:'billing'})
+export const POST=api(async(c,db,r,p)=>{const b=await body(r);if(b.action==='item')await addItem(db,c,p.id,b);else if(b.action==='payment')await recordPayment(db,c,p.id,b);else if(b.action==='discount')await setDiscount(db,c,p.id,b);else if(b.action==='cancel')await cancelInvoice(db,c,p.id);else throw new HttpError(400,'Unknown action');return getInvoice(db,c,p.id)},{module:'billing'})

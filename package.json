@@ -9,7 +9,8 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "db:migrate": "node scripts/migrate.mjs",
     "db:create-admin": "node scripts/create-admin.mjs",
-    "vercel-build": "node scripts/vercel-build.mjs"
+    "vercel-build": "node scripts/vercel-build.mjs",
+    "db:create-platform-admin": "node scripts/create-platform-admin.mjs"
   },
   "dependencies": {
     "jose": "^6.1.0",
