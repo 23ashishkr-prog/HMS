@@ -1,0 +1,2 @@
+import {platformApi,body} from '@/lib/api';import {platformExtend,platformSetHospitalStatus} from '@/lib/services/lifecycle';import {HttpError} from '@/lib/services/core';export const runtime='nodejs'
+export const POST=platformApi(async(db,req,p)=>{const b=await body(req);if(b.action==='extend')await platformExtend(db,p.id,b);else if(b.action==='status')await platformSetHospitalStatus(db,p.id,b.status);else throw new HttpError(400,'Unknown action');return {ok:true}})
