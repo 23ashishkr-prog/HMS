@@ -1,0 +1,9 @@
+-- Pharmacy auto-reorder: suppliers, purchase orders, goods receipt
+create table if not exists suppliers(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,name text not null,phone text,email text,gstin text,active boolean not null default true,created_at timestamptz not null default now(),unique(hospital_id,name));
+alter table medicines add column if not exists preferred_supplier_id uuid references suppliers(id) on delete set null;
+alter table medicines add column if not exists reorder_qty int check(reorder_qty is null or reorder_qty>0);
+alter table hospitals add column if not exists auto_reorder boolean not null default false;
+create table if not exists purchase_orders(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,po_no text not null,supplier_id uuid references suppliers(id) on delete set null,status text not null default 'draft' check(status in ('draft','ordered','partially_received','received','cancelled')),auto boolean not null default false,notes text,created_by uuid references users(id) on delete set null,created_at timestamptz not null default now(),ordered_at timestamptz,closed_at timestamptz,unique(hospital_id,po_no));
+create table if not exists purchase_order_items(id uuid primary key default gen_random_uuid(),po_id uuid not null references purchase_orders(id) on delete cascade,medicine_id uuid not null references medicines(id) on delete cascade,quantity int not null check(quantity>0),unit_cost numeric(12,2),received_qty int not null default 0 check(received_qty>=0),unique(po_id,medicine_id));
+alter table medicine_batches add column if not exists po_item_id uuid references purchase_order_items(id) on delete set null;
+alter table medicine_batches add column if not exists unit_cost numeric(12,2);
