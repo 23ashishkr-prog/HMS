@@ -1,0 +1,3 @@
+-- Doctor templates / order sets (owner_user_id null = shared with the hospital)
+create table if not exists doctor_templates(id uuid primary key default gen_random_uuid(),hospital_id uuid not null references hospitals(id) on delete cascade,owner_user_id uuid references users(id) on delete cascade,name text not null,diagnoses jsonb not null default '[]',rx jsonb not null default '[]',order_service_ids uuid[] not null default '{}',advice text,uses int not null default 0,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+create unique index if not exists idx_templates_name on doctor_templates(hospital_id,coalesce(owner_user_id,'00000000-0000-0000-0000-000000000000'::uuid),lower(name));
