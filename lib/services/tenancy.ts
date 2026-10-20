@@ -1,5 +1,5 @@
 import {Ctx,Db,HttpError,audit,opt,required,requireRole} from './core'
-export const MODULES=['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit'] as const
+export const MODULES=['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','ai'] as const
 export type Module=typeof MODULES[number]
 import {lifecycleView,TRIAL_MONTHS} from './lifecycle'
 export async function getSubscription(db:Db,hospitalId:string){const r=await db.query('select s.*,p.name plan_name,p.modules,p.max_users,p.max_patients from subscriptions s join plans p on p.code=s.plan_code where s.hospital_id=$1',[hospitalId]);const s=r.rows[0];if(!s)return null;const lc=lifecycleView(s)!;return {...s,usable:!lc.onHold&&['active','trialing'].includes(s.status),trialOver:lc.onHold,lifecycle:lc}}

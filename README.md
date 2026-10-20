@@ -138,3 +138,12 @@ New env vars:
 - `INCIDENT_NOTIFY_PER_HOUR`
 - `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_API_VERSION` (v21.0), `WHATSAPP_TEMPLATE_LANG` (en)
 - `REMINDER_LATE_MINUTES`
+
+## AI doctor assistant (doctor-in-the-loop)
+Assistive only — **not a diagnostic or treatment device**. Every output is labelled **"AI suggestion – verify"**. Nothing goes into the clinical record or out to a patient until a clinician accepts it: accepting only fills the form; the record is saved when the doctor clicks *Finish*, and patient messages go through the consent-gated outbox only after acceptance.
+
+**Turning it on:** Pro/Enterprise plan → Settings → AI: enable, tick "patients are informed…", set the monthly token cap (default 200,000 tokens per hospital per month; the assistant returns 429 when it is reached). Configure `LLM_PROVIDER`, `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL` (+ `LLM_API_VERSION` for Azure, `LLM_TIMEOUT_MS`). Without a provider, the deterministic parts still work: lab flags and trends, history card, ICD-10 table matching, and prescription safety checks.
+
+**Features** (Doctor desk → AI panel): lab/radiology summary (flags and trends computed in code from reference ranges; the LLM only phrases the text) · history card · Rx suggestions with deterministic safety checks (allergy, duplicate therapy, drug interactions, age/weight dose limits; blocking warnings must be ticked before you can accept) · ICD-10 plus suggested tests · discharge summary draft (`POST /api/ai/discharge`) · voice dictation (Web Speech API, English/Hindi; works in Chrome/Edge) structured into fields · patient-friendly English/Hindi rewrite.
+
+**Privacy and safety:** names, phone numbers, addresses, e-mail and ABHA/Aadhaar are removed, and free text is scrubbed, before any call; the patient's own name is masked. OpenAI-compatible requests send `store:false`. With Azure OpenAI, use a deployment with abuse-monitoring/data-retention opt-out where it is available. Record and report text is wrapped as untrusted data, and the model is told never to follow instructions inside it. Every call is audited (`ai_call`, then `ai_accepted` / `ai_edited` / `ai_rejected`), and token use is tracked in `ai_usage`. The clinician stays responsible for every decision. Check the CDSCO medical-device software guidance before marketing any diagnostic claims.

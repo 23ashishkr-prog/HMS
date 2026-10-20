@@ -1,0 +1,3 @@
+import {api,body} from '@/lib/api';import {aiStatus} from '@/lib/ai/assistant';import {audit,requireRole} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export const GET=api(async(c,db)=>aiStatus(db,c))
+export const PUT=api(async(c,db,r)=>{requireRole(c,['admin']);const b:any=await body(r);const cap=Math.max(0,Math.min(50_000_000,Math.round(Number(b.cap??200000))||0));await db.query('update hospitals set ai_enabled=$2,ai_patient_consent=$3,ai_monthly_token_cap=$4 where id=$1',[c.hospitalId,!!b.enabled,!!b.consent,cap]);await audit(db,c,'ai_settings','hospital',c.hospitalId,{enabled:!!b.enabled,consent:!!b.consent,cap});return aiStatus(db,c)})
