@@ -206,3 +206,4 @@ a{color:var(--sd-navy)}
 .tv .next span{display:inline-block;font-size:2rem;margin-right:16px;font-weight:600}.tvStart{position:fixed;inset:auto 24px 24px auto;padding:14px 22px;font-size:1.1rem;border-radius:12px;border:0;background:#E33737;color:#fff;cursor:pointer;z-index:9}
 .tvErr{color:#FF6B6B}.tvEmpty{font-size:1.6rem;color:#9FB3D1}
 .reorder .po{border:1px solid #D9D9D9;border-radius:10px;padding:8px 10px;margin:6px 0}.reorder .poHead{cursor:pointer}
+.checklist{list-style:none;padding:0;display:grid;gap:4px}.checklist select{min-width:170px}

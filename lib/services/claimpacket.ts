@@ -1,0 +1,58 @@
+/** Insurance auto-fill, document checklist and PDF claim packet. Auto-fill only proposes values; staff confirm by creating the claim. */
+import {Ctx,Db,HttpError,assertPatient,audit,requireRole} from './core'
+import {PDFDocument,StandardFonts,rgb} from 'pdf-lib'
+const R=['admin','billing'] as const
+export const DOCS:{key:string;label:string;stage:'preauth'|'claim';auto?:string}[]=[
+ {key:'id_proof',label:'Patient photo ID (Aadhaar / PAN / Voter ID)',stage:'preauth'},{key:'policy_card',label:'Policy copy / TPA e-card / PM-JAY card',stage:'preauth'},
+ {key:'preauth_form',label:'Pre-authorisation form signed by treating doctor',stage:'preauth'},{key:'investigations',label:'Investigation reports supporting diagnosis',stage:'preauth',auto:'labs'},
+ {key:'discharge_summary',label:'Discharge summary',stage:'claim',auto:'discharge'},{key:'final_bill',label:'Final hospital bill (itemised)',stage:'claim',auto:'invoice'},
+ {key:'payment_receipts',label:'Payment receipts',stage:'claim',auto:'payments'},{key:'pharmacy_bills',label:'Pharmacy bills / medicine list',stage:'claim',auto:'pharmacy'},
+ {key:'claim_form',label:'Claim form (Part A by patient, Part B by hospital)',stage:'claim'},{key:'kyc_cheque',label:'KYC + cancelled cheque (reimbursement only)',stage:'claim'}]
+const age=(d:any)=>d?Math.floor((Date.now()-new Date(d).getTime())/(365.25*864e5)):null
+async function gather(db:Db,hid:string,patientId:string,admissionId:string|null,invoiceId:string|null){
+ const p=(await db.query('select id,uhid,full_name,gender,date_of_birth,mobile,abha_number,address from patients where id=$1 and hospital_id=$2',[patientId,hid])).rows[0]
+ const a=admissionId?(await db.query("select a.*,b.ward,b.bed_no,u.full_name doctor from admissions a join beds b on b.id=a.bed_id join users u on u.id=a.admitting_doctor_id where a.id=$1 and a.hospital_id=$2",[admissionId,hid])).rows[0]:(await db.query("select a.*,b.ward,b.bed_no,u.full_name doctor from admissions a join beds b on b.id=a.bed_id join users u on u.id=a.admitting_doctor_id where a.patient_id=$1 and a.hospital_id=$2 order by a.admitted_at desc limit 1",[patientId,hid])).rows[0]||null
+ const inv=invoiceId?(await db.query('select * from invoices where id=$1 and hospital_id=$2',[invoiceId,hid])).rows[0]:a?(await db.query("select * from invoices where admission_id=$1 and status<>'cancelled' order by created_at desc limit 1",[a.id])).rows[0]:null
+ const items=inv?(await db.query('select description,quantity,unit_price,(quantity*unit_price)::numeric(12,2) amount from invoice_items where invoice_id=$1 order by created_at',[inv.id])).rows:[]
+ const total=items.reduce((s:number,i:any)=>s+Number(i.amount),0)-Number(inv?.discount||0);const paid=inv?Number((await db.query('select coalesce(sum(amount),0) s from payments where invoice_id=$1',[inv.id])).rows[0].s):0
+ const since=a?.admitted_at||new Date(Date.now()-90*864e5);const until=a?.discharged_at||new Date()
+ const dx=(await db.query("select distinct d.icd10_code,d.description from diagnoses d where d.hospital_id=$1 and d.patient_id=$2 and d.created_at between $3::timestamptz - interval '7 days' and $4",[hid,patientId,since,until])).rows
+ const labs=(await db.query("select test_name,result_text,resulted_at from diagnostic_orders where hospital_id=$1 and patient_id=$2 and status='completed' and resulted_at between $3::timestamptz - interval '7 days' and $4 order by resulted_at",[hid,patientId,since,until])).rows
+ const pharm=(await db.query("select description,quantity,unit_price from dispensed_items where hospital_id=$1 and patient_id=$2 and created_at between $3 and $4",[hid,patientId,since,until])).rows
+ const last=(await db.query('select payer_name,tpa_name,policy_number,scheme from insurance_claims where hospital_id=$1 and patient_id=$2 order by created_at desc limit 1',[hid,patientId])).rows[0]||null
+ return {p,a,inv,items,total,paid,dx,labs,pharm,last}}
+export async function prefillClaim(db:Db,ctx:Ctx,patientId:string,admissionId?:string|null){requireRole(ctx,[...R]);await assertPatient(db,ctx,patientId);const g=await gather(db,ctx.hospitalId,patientId,admissionId||null,null)
+ return {patient:{name:g.p.full_name,uhid:g.p.uhid,age:age(g.p.date_of_birth),gender:g.p.gender,abha:g.p.abha_number},payerName:g.last?.payer_name||'',tpaName:g.last?.tpa_name||'',policyNumber:g.last?.policy_number||'',scheme:g.last?.scheme||'',fromPreviousClaim:!!g.last,
+  admissionId:g.a?.id||null,admission:g.a?{no:g.a.admission_no,admitted:g.a.admitted_at,discharged:g.a.discharged_at,doctor:g.a.doctor,ward:`${g.a.ward} / ${g.a.bed_no}`,reason:g.a.reason,diagnosis:g.a.discharge_diagnosis}:null,
+  invoiceId:g.inv?.id||null,claimedAmount:g.total>0?Math.round(g.total*100)/100:null,diagnoses:g.dx.map((d:any)=>`${d.icd10_code?d.icd10_code+' ':''}${d.description}`),labs:g.labs.length}}
+async function claim(db:Db,ctx:Ctx,id:string){requireRole(ctx,[...R]);const c=(await db.query('select * from insurance_claims where id=$1 and hospital_id=$2',[id,ctx.hospitalId])).rows[0];if(!c)throw new HttpError(404,'Claim not found.');return c}
+export async function checklist(db:Db,ctx:Ctx,id:string){const c=await claim(db,ctx,id);const g=await gather(db,ctx.hospitalId,c.patient_id,c.admission_id,c.invoice_id);const have:Record<string,boolean>={labs:g.labs.length>0,discharge:!!g.a?.discharge_summary,invoice:g.items.length>0,payments:g.paid>0,pharmacy:g.pharm.length>0}
+ const stage=['preauth_requested'].includes(c.status)?'preauth':'claim';const docs=c.documents||{}
+ const items=DOCS.filter(d=>stage==='claim'||d.stage==='preauth').map(d=>{const m=docs[d.key]||{};const auto=d.auto?have[d.auto]:false;const status=m.status||(auto?'in_system':'pending');return {...d,status,note:m.note||null,inPacket:!!d.auto&&auto}})
+ return {stage,items,complete:items.every(i=>['received','in_system','na'].includes(i.status)),missing:items.filter(i=>i.status==='pending').map(i=>i.label)}}
+export async function setDocument(db:Db,ctx:Ctx,id:string,b:any){await claim(db,ctx,id);if(!DOCS.some(d=>d.key===b.key))throw new HttpError(400,'Unknown document.');if(!['pending','received','na'].includes(b.status))throw new HttpError(400,'Status must be pending, received or na.')
+ await db.query("update insurance_claims set documents=documents||jsonb_build_object($2::text,jsonb_build_object('status',$3::text,'note',$4::text,'by',$5::text,'at',now())),updated_at=now() where id=$1",[id,b.key,b.status,String(b.note||'').slice(0,200)||null,ctx.userId]);await audit(db,ctx,'claim_doc','claim',id,{key:b.key,status:b.status});return checklist(db,ctx,id)}
+const inr=(n:any)=>'Rs. '+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})
+const ascii=(s:any)=>String(s??'').replace(/₹/g,'Rs.').replace(/[–—]/g,'-').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/µ/g,'u').replace(/×/g,'x').replace(/°/g,' deg').replace(/[^\x20-\x7E\n]/g,'?')
+/** One PDF: cover + claim details, patient, admission, diagnoses, itemised bill, investigations, discharge summary, document checklist. */
+export async function claimPacket(db:Db,ctx:Ctx,id:string){const c=await claim(db,ctx,id);const g=await gather(db,ctx.hospitalId,c.patient_id,c.admission_id,c.invoice_id);const ck=await checklist(db,ctx,id);const h=(await db.query('select name,code,address from hospitals where id=$1',[ctx.hospitalId])).rows[0]||{}
+ const pdf=await PDFDocument.create();pdf.setTitle(`Claim packet ${g.p.uhid}`);pdf.setProducer('HMS');const f=await pdf.embedFont(StandardFonts.Helvetica),fb=await pdf.embedFont(StandardFonts.HelveticaBold)
+ let page=pdf.addPage([595,842]);let y=800;const M=40,W=515
+ const np=()=>{page=pdf.addPage([595,842]);y=800}
+ const wrap=(t:string,size:number,font:any,w:number)=>{const out:string[]=[];for(const para of ascii(t).split('\n')){let line='';for(const word of para.split(/\s+/)){const nx=line?line+' '+word:word;if(font.widthOfTextAtSize(nx,size)>w&&line){out.push(line);line=word}else line=nx}out.push(line)}return out}
+ const text=(t:any,o:{size?:number;bold?:boolean;x?:number;w?:number;color?:any}={})=>{const size=o.size||10,font=o.bold?fb:f;for(const l of wrap(String(t??''),size,font,o.w||W-(o.x||0))){if(y<50)np();page.drawText(l,{x:M+(o.x||0),y,size,font,color:o.color||rgb(0.15,0.15,0.15)});y-=size+4}}
+ const h2=(t:string)=>{y-=6;if(y<80)np();page.drawRectangle({x:M,y:y-4,width:W,height:18,color:rgb(0.063,0.255,0.463)});page.drawText(ascii(t),{x:M+6,y,size:11,font:fb,color:rgb(1,1,1)});y-=22}
+ const kv=(k:string,v:any)=>{if(y<50)np();page.drawText(ascii(k),{x:M,y,size:9,font:fb,color:rgb(0.35,0.35,0.35)});const ls=wrap(String(v??'-')||'-',10,f,W-150);for(const l of ls){if(y<50)np();page.drawText(l,{x:M+150,y,size:10,font:f,color:rgb(0.15,0.15,0.15)});y-=14}}
+ text(h.name||'Hospital',{size:18,bold:true,color:rgb(0.063,0.255,0.463)});if(h.address)text(h.address,{size:9});text('Insurance claim packet',{size:13,bold:true});text(`Generated ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} IST`,{size:8})
+ h2('Claim');kv('Insurer',c.payer_name);kv('TPA',c.tpa_name);kv('Policy / card no.',c.policy_number);kv('Scheme',c.scheme);kv('Status',c.status.replace(/_/g,' '));kv('Claimed amount',inr(c.claimed_amount));if(c.approved_amount!=null)kv('Approved amount',inr(c.approved_amount))
+ h2('Patient');kv('Name',g.p.full_name);kv('UHID',g.p.uhid);kv('Age / gender',`${age(g.p.date_of_birth)??'-'} / ${g.p.gender||'-'}`);kv('ABHA',g.p.abha_number);kv('Mobile',g.p.mobile)
+ if(g.a){h2('Admission');kv('Admission no.',g.a.admission_no);kv('Admitted',new Date(g.a.admitted_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}));kv('Discharged',g.a.discharged_at?new Date(g.a.discharged_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):'Not yet');kv('Ward / bed',`${g.a.ward} / ${g.a.bed_no}`);kv('Treating doctor',g.a.doctor);kv('Reason',g.a.reason);kv('Final diagnosis',g.a.discharge_diagnosis)}
+ h2('Diagnoses (ICD-10)');if(g.dx.length)for(const d of g.dx)text(`- ${d.icd10_code?d.icd10_code+'  ':''}${d.description}`);else text('None recorded',{size:9})
+ h2('Itemised bill'+(g.inv?` - ${g.inv.invoice_no}`:''));if(g.items.length){for(const i of g.items){if(y<50)np();const l=wrap(i.description,9,f,330)[0];page.drawText(l,{x:M,y,size:9,font:f});page.drawText(`${Number(i.quantity)} x ${inr(i.unit_price)}`,{x:M+340,y,size:9,font:f});const a=inr(i.amount);page.drawText(a,{x:M+W-f.widthOfTextAtSize(a,9),y,size:9,font:f});y-=13}
+  if(Number(g.inv.discount))kv('Discount',inr(g.inv.discount));kv('Total',inr(g.total));kv('Paid',inr(g.paid));kv('Balance',inr(g.total-g.paid))}else text('No bill linked',{size:9})
+ if(g.pharm.length){h2('Pharmacy issued');for(const d of g.pharm)text(`- ${d.description} x ${d.quantity}`,{size:9})}
+ h2('Investigations');if(g.labs.length)for(const l of g.labs){text(`${l.test_name} (${new Date(l.resulted_at).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})})`,{bold:true,size:9});text(l.result_text||'',{size:9,x:10})}else text('None in period',{size:9})
+ if(g.a?.discharge_summary){h2('Discharge summary');text(g.a.discharge_summary,{size:9});if(g.a.discharge_advice){text('Advice:',{bold:true,size:9});text(g.a.discharge_advice,{size:9})}}
+ h2('Document checklist');for(const i of ck.items)text(`[${['received','in_system'].includes(i.status)?'x':i.status==='na'?'-':' '}] ${i.label}${i.status==='in_system'?' (included in this packet)':i.status==='na'?' (not applicable)':i.status==='pending'?' - PENDING':''}`,{size:9})
+ y-=20;text('Hospital seal & authorised signatory: ______________________',{size:9})
+ const bytes=await pdf.save();await audit(db,ctx,'claim_packet','claim',id,{pages:pdf.getPageCount()});return {bytes,name:`claim-${g.p.uhid}-${c.policy_number}.pdf`.replace(/[^\w.-]/g,'_')}}
