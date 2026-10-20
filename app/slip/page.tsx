@@ -1,7 +1,7 @@
 'use client'
-import {Suspense,useEffect,useState} from 'react';import {useSearchParams} from 'next/navigation';import {call} from '@/lib/client'
+import {Suspense,useEffect,useState} from 'react';import {useSearchParams} from 'next/navigation';import {call,me as whoAmI} from '@/lib/client'
 function Slip(){const sp=useSearchParams();const[r,setR]=useState<any>(null),[me,setMe]=useState<any>(null),[err,setErr]=useState(''),[copied,setCopied]=useState(false)
- useEffect(()=>{const id=sp.get('patient');call('/api/auth/me').then(setMe).catch(()=>location.replace('/auth/login'));if(id)call('/api/patients/'+id).then(p=>call('/api/assistant?q='+encodeURIComponent(p.patient.uhid))).then(setR).catch(e=>setErr(e.message))},[sp])
+ useEffect(()=>{const id=sp.get('patient');whoAmI().then(setMe).catch(()=>location.replace('/auth/login'));if(id)call('/api/patients/'+id).then(p=>call('/api/assistant?q='+encodeURIComponent(p.patient.uhid))).then(setR).catch(e=>setErr(e.message))},[sp])
  if(err)return <main className="slip"><p>{err}</p></main>;if(!r||!me)return <main className="slip">Loading…</main>
  const url=`${location.origin}/status?h=${me.hospital.code}&id=${encodeURIComponent(r.patient.uhid)}`
  const share=`${me.hospital.name}: ${r.patient.full_name} (${r.patient.uhid}). Next: ${r.journey.nextStep} Where: ${r.journey.where}. Live status: ${url}`

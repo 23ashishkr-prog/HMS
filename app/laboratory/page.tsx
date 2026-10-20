@@ -1,8 +1,8 @@
 'use client'
-import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,dt} from '@/lib/client';import LabImports from '@/components/LabImports'
+import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,dt,me as whoAmI} from '@/lib/client';import LabImports from '@/components/LabImports'
 export default function Page(){const[cat,setCat]=useState('lab'),[status,setStatus]=useState('ordered'),[rows,setRows]=useState<any[]>([]),[msg,setMsg]=useState(''),[me,setMe]=useState<any>(null),[res,setRes]=useState<Record<string,string>>({})
  const load=()=>call(`/api/orders?category=${cat}&status=${status}`).then(x=>setRows(x.orders)).catch(e=>setMsg(e.message))
- useEffect(()=>{load()},[cat,status]);useEffect(()=>{call('/api/auth/me').then(setMe)},[])
+ useEffect(()=>{load()},[cat,status]);useEffect(()=>{whoAmI().then(setMe)},[])
  async function act(o:any,action:string){try{let b:any={action};if(action==='result'){if(!res[o.id]?.trim()){setMsg('Type the result first');return}b.resultText=res[o.id]}await call('/api/orders/'+o.id,'PATCH',b);setMsg('Updated');load()}catch(e:any){setMsg(e.message)}}
  const canAct=me&&['lab','admin'].includes(me.role)
  return <ModuleShell title="Lab & radiology" eyebrow="DIAGNOSTIC WORKLIST" description="Orders placed by doctors flow here. Lab: collect sample → enter result. Radiology: enter report. Results appear in the doctor's encounter."><div className="tabs">{['lab','radiology'].map(c=><button key={c} className={cat===c?'on':''} onClick={()=>setCat(c)}>{c}</button>)}<span style={{width:20}}/>{['ordered','sample_collected','completed','cancelled'].map(s=><button key={s} className={status===s?'on':''} onClick={()=>setStatus(s)}>{s.replace('_',' ')}</button>)}</div>
