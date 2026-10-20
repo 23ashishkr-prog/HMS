@@ -50,6 +50,7 @@ export async function assistantLookup(db:Db,ctx:Ctx,query:string){const matches=
   {label:'Lab worklist',href:'/laboratory',roles:['admin','lab'],module:'lab',when:st.pendingOrders.length>0},
   {label:'Dispense medicines',href:'/pharmacy',roles:['admin','pharmacy'],module:'pharmacy',when:st.pendingRx.length>0},
   {label:'IPD bed board',href:'/ipd',roles:['admin','doctor','nurse','reception','billing'],module:'ipd',when:!!st.admission},
+  {label:'Message log',href:'/messages?patient='+p.id,roles:['admin','reception','doctor','nurse','billing'],module:'patients',when:true},
   {label:'Print next-steps slip',href:'/slip?patient='+p.id,roles:['admin','reception','doctor','nurse','billing','lab','pharmacy'],module:'patients',when:true}]
  out.actions=A.filter(a=>a.when&&a.roles.includes(ctx.role)&&mods.includes(a.module)).map(({label,href})=>({label,href}));return out}
 /** Public patient status: requires hospital code + (UHID or today's token) + matching phone. No clinical data. */

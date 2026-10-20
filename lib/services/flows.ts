@@ -1,6 +1,6 @@
 /** One-screen workflows modelled on Insta/Bahmni front desk and consultation pad: fewer clicks, one API call each. */
 import {Ctx,Db,HttpError,assertPatient,opt,required,requireRole} from './core'
-import {registerPatient} from './patients';import {checkIn,recordVitals,addDiagnosis,prescribe,closeEncounter} from './opd';import {orderTest} from './diagnostics';import {createInvoice,recordPayment,invoiceTotals} from './billing'
+import {registerPatient,setConsent} from './patients';import {checkIn,recordVitals,addDiagnosis,prescribe,closeEncounter} from './opd';import {orderTest} from './diagnostics';import {createInvoice,recordPayment,invoiceTotals} from './billing';import {notifyStage,notifyPrescription,scheduleMedicineReminders,createFollowupOffer} from './patientcomms'
 export async function consultationFee(db:Db,ctx:Ctx){return (await db.query("select * from service_catalog where hospital_id=$1 and category='consultation' and active order by price desc limit 1",[ctx.hospitalId])).rows[0]||null}
 /** Unbilled charges for a patient: visit tokens (consultation fee) + diagnostic orders (catalogue price) + dispensed medicines. */
 export async function unbilledCharges(db:Db,ctx:Ctx,patientId:string){requireRole(ctx,['admin','billing','reception']);await assertPatient(db,ctx,patientId);const out:any[]=[];const fee=await consultationFee(db,ctx)
@@ -16,11 +16,19 @@ export async function autoBill(db:Db,ctx:Ctx,patientId:string,only?:'visit'|'ord
 /** Front desk: (register new OR pick existing) → token → optional consultation fee collected — one submit. */
 export async function frontDeskVisit(db:Db,ctx:Ctx,b:any){requireRole(ctx,['admin','reception']);const patient=b.patientId?await assertPatient(db,ctx,b.patientId):await registerPatient(db,ctx,b.patient||{});const token=await checkIn(db,ctx,{patientId:patient.id,doctorId:b.doctorId,appointmentId:b.appointmentId});let bill=null
  const mode=opt(b.collectMode);if(mode){bill=await autoBill(db,ctx,patient.id,'visit');if(bill.balance>0)bill={...bill,...await recordPayment(db,ctx,bill.invoiceId,{amount:bill.balance,mode,reference:b.reference})}}
- return {patient:{id:patient.id,uhid:patient.uhid,full_name:patient.full_name},token,bill}}
+ if(b.patientId&&b.consent)await setConsent(db,ctx,patient.id,b.consent)
+ await notifyStage(db,ctx.hospitalId,patient.id,'token',{type:'queue',id:token.id})
+ return {patient:{id:patient.id,uhid:patient.uhid,full_name:patient.full_name},token,bill,corrections:(patient as any).corrections||[],suggestions:(patient as any).suggestions||[]}}
 /** Doctor: save the whole one-page consultation (vitals, diagnoses, Rx, orders, notes) and finish. */
 export async function finishConsultation(db:Db,ctx:Ctx,encounterId:string,b:any){requireRole(ctx,['doctor','admin']);const e=(await db.query('select patient_id from encounters where id=$1 and hospital_id=$2',[required(encounterId,'Encounter'),ctx.hospitalId])).rows[0];if(!e)throw new HttpError(404,'Encounter not found.')
- const v=b.vitals||{};if(Object.values(v).some(x=>x!==''&&x!=null))await recordVitals(db,ctx,{...v,encounterId})
- for(const d of b.diagnoses||[])if(opt(d.description))await addDiagnosis(db,ctx,{...d,encounterId})
- const items=(b.items||[]).filter((i:any)=>opt(i.medicine));if(items.length)await prescribe(db,ctx,{encounterId,items})
+ const corr:string[]=[],sug:any[]=[];const take=(x:any)=>{if(x?.corrections)corr.push(...x.corrections);if(x?.suggestions)sug.push(...x.suggestions);return x}
+ const v=b.vitals||{};if(Object.values(v).some(x=>x!==''&&x!=null))take(await recordVitals(db,ctx,{...v,encounterId}))
+ for(const d of b.diagnoses||[])if(opt(d.description)||opt(d.icd10Code))take(await addDiagnosis(db,ctx,{...d,encounterId}))
+ const items=(b.items||[]).filter((i:any)=>opt(i.medicine));let rx:any=null;if(items.length)rx=take(await prescribe(db,ctx,{encounterId,items}))
  for(const sid of b.orderServiceIds||[])await orderTest(db,ctx,{patientId:e.patient_id,encounterId,serviceId:sid,priority:b.priority||'routine'})
- if(b.finish===false)return {saved:true};return {encounter:await closeEncounter(db,ctx,{...b,encounterId})}}
+ if(b.finish===false)return {saved:true,corrections:corr,suggestions:sug};const enc=await closeEncounter(db,ctx,{...b,encounterId})
+ // Patient messages (consent-gated; queued in the outbox, sent by the cron worker)
+ const notices:any={stage:await notifyStage(db,ctx.hospitalId,e.patient_id,'consult_done',{type:'encounter',id:encounterId})}
+ if(rx){notices.prescription=await notifyPrescription(db,ctx.hospitalId,e.patient_id,rx.id);notices.reminders=await scheduleMedicineReminders(db,ctx.hospitalId,e.patient_id,rx.id)}
+ if(enc.follow_up_date){const fu=await createFollowupOffer(db,ctx.hospitalId,{patientId:e.patient_id,doctorId:enc.doctor_user_id,encounterId,date:String(enc.follow_up_date instanceof Date?enc.follow_up_date.toISOString():enc.follow_up_date).slice(0,10)});notices.followup=fu?{status:fu.status,heldSlot:fu.held_slot}:null}
+ return {encounter:enc,corrections:corr,suggestions:sug,notices}}

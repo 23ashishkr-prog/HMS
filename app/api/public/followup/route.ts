@@ -1,0 +1,4 @@
+import {NextResponse} from 'next/server';import {getDb} from '@/lib/db';import {fail,body} from '@/lib/api';import {respondFollowup,verifyLink} from '@/lib/services/patientcomms';import {tx} from '@/lib/services/auth';import {HttpError} from '@/lib/services/core'
+export const runtime='nodejs';export const dynamic='force-dynamic'
+/** Signed one-time e-mail link → patient's answer (POST only, so link scanners cannot book). */
+export async function POST(req:Request){try{const b=await body(req);const a=String(b.a);if(!['confirm','another','cancel'].includes(a))throw new HttpError(400,'Unknown action.');if(!verifyLink(String(b.o),a,Number(b.e),String(b.s)))throw new HttpError(403,'This link has expired or is invalid. Please call reception.');return NextResponse.json(await tx(getDb(),db=>respondFollowup(db,String(b.o),a as any)))}catch(e){return fail(e,{route:'/api/public/followup'})}}

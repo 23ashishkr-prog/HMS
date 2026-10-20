@@ -1,0 +1,5 @@
+import {NextResponse,after} from 'next/server';import {getSession} from '@/lib/auth';import {getDb} from '@/lib/db';import {recordIncident} from '@/lib/services/incidents';import {Db} from '@/lib/services/core'
+export const runtime='nodejs';export const dynamic='force-dynamic'
+/** Browser error boundary / window.onerror / unhandledrejection reports. Signed-in staff only; message is scrubbed server-side. */
+export async function POST(req:Request){const s=await getSession();if(!s)return new NextResponse(null,{status:204});const raw=await req.text();if(raw.length>6000)return new NextResponse(null,{status:413});let b:any={};try{b=JSON.parse(raw)}catch{return new NextResponse(null,{status:400})}
+ const job=async()=>{try{await recordIncident(getDb() as unknown as Db,{source:'client',message:String(b.message||'client error'),stack:String(b.stack||''),route:String(b.route||''),hospitalId:s.hospitalId,role:s.role,requestId:String(b.requestId||'').slice(0,64)||null})}catch{}};try{after(job)}catch{void job()};return new NextResponse(null,{status:204})}

@@ -1,3 +1,6 @@
 {
-  "crons": [{ "path": "/api/cron/lifecycle", "schedule": "30 0 * * *" }]
+  "crons": [
+    { "path": "/api/cron/lifecycle", "schedule": "30 0 * * *" },
+    { "path": "/api/cron/outbox", "schedule": "0 1 * * *" }
+  ]
 }
