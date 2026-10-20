@@ -1,0 +1,59 @@
+/** Role-aware patient assistant: deterministic rules engine over real workflow state (no AI, no fake data). */
+import {Ctx,Db,HttpError,audit,today} from './core';import {getSubscription} from './tenancy'
+export type Stage='registered'|'waiting_doctor'|'in_consultation'|'lab_pending'|'pharmacy_pending'|'billing_pending'|'admitted'|'done'
+export const STAGE_LABEL:Record<Stage,string>={registered:'Registered',waiting_doctor:'Waiting for doctor',in_consultation:'In consultation',lab_pending:'Lab / radiology pending',pharmacy_pending:'Pharmacy pending',billing_pending:'Billing pending',admitted:'Admitted (IPD)',done:'Visit complete'}
+export type State={queue:any|null;ahead:number;admission:any|null;pendingOrders:any[];pendingRx:any[];due:number;unbilled:any[]}
+const rupee=(n:number)=>'₹'+n.toLocaleString('en-IN',{maximumFractionDigits:2})
+/** Pure function: state → stage, next step and where to go. */
+export function journey(s:State){const due=s.due+s.unbilled.reduce((a,c)=>a+Number(c.price||0),0);const q=s.queue
+ if(s.admission)return {stage:'admitted' as Stage,nextStep:`Admitted under ${s.admission.doctor}. Continue inpatient care.`,where:`${s.admission.ward} · Bed ${s.admission.bed_no}`}
+ if(q&&q.status==='waiting')return {stage:'waiting_doctor' as Stage,nextStep:`Wait for ${q.doctor}. Token ${q.token_no}, ${s.ahead===0?'next in line':'~'+s.ahead+' ahead'}.`,where:`${q.doctor}'s OPD room`}
+ if(q&&['called','consultation'].includes(q.status))return {stage:'in_consultation' as Stage,nextStep:`With ${q.doctor} now.`,where:`${q.doctor}'s OPD room`}
+ const lab=s.pendingOrders.filter(o=>o.category==='lab'),rad=s.pendingOrders.filter(o=>o.category==='radiology')
+ if(s.pendingOrders.length){const pay=due>0?`Pay ${rupee(due)} at Billing, then `:'';const toCollect=lab.filter(o=>o.status==='ordered');const step=toCollect.length?`go to the Lab counter for ${toCollect.map(o=>o.test_name).join(', ')} sample`:rad.length?`go to Radiology for ${rad.map(o=>o.test_name).join(', ')}`:`wait for results: ${s.pendingOrders.map(o=>o.test_name).join(', ')}`;return {stage:'lab_pending' as Stage,nextStep:(pay?pay+step:step[0].toUpperCase()+step.slice(1))+'.',where:due>0?'Billing counter → Lab':toCollect.length?'Lab counter':rad.length?'Radiology':'Lab (results)'}}
+ if(s.pendingRx.length)return {stage:'pharmacy_pending' as Stage,nextStep:`${due>0?'Pay '+rupee(due)+' at Billing, then c':'C'}ollect medicines at Pharmacy.`,where:due>0?'Billing → Pharmacy':'Pharmacy'}
+ if(due>0)return {stage:'billing_pending' as Stage,nextStep:`Pay ${rupee(due)} at Billing.`,where:'Billing counter'}
+ if(q&&q.status==='checked')return {stage:'done' as Stage,nextStep:'Visit complete. Follow advice on the prescription.',where:'Exit / Reception for follow-up booking'}
+ return {stage:'registered' as Stage,nextStep:'Check in at Front desk to get a token.',where:'Front desk'}}
+export async function loadState(db:Db,hid:string,pid:string):Promise<State>{const d=today()
+ const q=(await db.query("select q.id,q.token_no,q.status,q.doctor_user_id,q.visit_date,u.full_name doctor from doctor_queue q join users u on u.id=q.doctor_user_id where q.hospital_id=$1 and q.patient_id=$2 and q.visit_date=$3 order by q.checked_in_at desc limit 1",[hid,pid,d])).rows[0]||null
+ const ahead=q&&q.status==='waiting'?(await db.query("select count(*)::int n from doctor_queue where hospital_id=$1 and doctor_user_id=$2 and visit_date=$3 and status='waiting' and token_no<$4",[hid,q.doctor_user_id,d,q.token_no])).rows[0].n:0
+ const admission=(await db.query("select a.id,a.admission_no,b.ward,b.bed_no,u.full_name doctor from admissions a join beds b on b.id=a.bed_id join users u on u.id=a.admitting_doctor_id where a.hospital_id=$1 and a.patient_id=$2 and a.status='admitted'",[hid,pid])).rows[0]||null
+ const pendingOrders=(await db.query("select id,test_name,category,status,priority from diagnostic_orders where hospital_id=$1 and patient_id=$2 and status in ('ordered','sample_collected') order by ordered_at",[hid,pid])).rows
+ const pendingRx=(await db.query("select pr.id,pr.created_at,(select count(*)::int from prescription_items i where i.prescription_id=pr.id) items from prescriptions pr where pr.hospital_id=$1 and pr.patient_id=$2 and pr.status='pending' order by pr.created_at",[hid,pid])).rows
+ const due=Number((await db.query("select coalesce(sum(greatest((select coalesce(sum(quantity*unit_price),0) from invoice_items x where x.invoice_id=i.id)-i.discount-(select coalesce(sum(amount),0) from payments y where y.invoice_id=i.id),0)),0)::float n from invoices i where i.hospital_id=$1 and i.patient_id=$2 and i.status in ('open','partially_paid')",[hid,pid])).rows[0].n)
+ const fee=(await db.query("select price from service_catalog where hospital_id=$1 and category='consultation' and active order by price desc limit 1",[hid])).rows[0]
+ const unbilled=[...(fee?(await db.query("select q.id,'Consultation' description,$3::numeric price from doctor_queue q where q.hospital_id=$1 and q.patient_id=$2 and not exists(select 1 from invoice_items i where i.source_type='visit' and i.source_id=q.id)",[hid,pid,fee.price])).rows:[]),...(await db.query("select o.id,o.test_name description,s.price from diagnostic_orders o join service_catalog s on s.id=o.service_id where o.hospital_id=$1 and o.patient_id=$2 and o.status<>'cancelled' and not exists(select 1 from invoice_items i where i.source_type='order' and i.source_id=o.id)",[hid,pid])).rows]
+ return {queue:q,ahead,admission,pendingOrders,pendingRx,due,unbilled}}
+/** Resolve UHID / phone / today's token number to patients of THIS hospital only. */
+export async function findPatients(db:Db,hid:string,raw:string){const s=raw.trim();if(!s)throw new HttpError(400,'Enter a UHID, token or phone number.');const digits=s.replace(/\D/g,'')
+ if(/^#?\d{1,4}$/.test(s))return (await db.query("select p.id,p.uhid,p.full_name,p.mobile,q.token_no,u.full_name doctor from doctor_queue q join patients p on p.id=q.patient_id join users u on u.id=q.doctor_user_id where q.hospital_id=$1 and q.visit_date=$2 and q.token_no=$3",[hid,today(),Number(digits)])).rows
+ if(digits.length>=10&&digits.length<=12&&!/[a-z]/i.test(s))return (await db.query("select id,uhid,full_name,mobile from patients where hospital_id=$1 and right(regexp_replace(coalesce(mobile,''),'\\D','','g'),10)=$2 limit 10",[hid,digits.slice(-10)])).rows
+ return (await db.query("select id,uhid,full_name,mobile from patients where hospital_id=$1 and upper(uhid)=upper($2)",[hid,s])).rows}
+const ROLE_SECTIONS:Record<string,string[]>={admin:['demographics','visit','billing','clinical','orders','pharmacy','ipd'],reception:['demographics','visit','billing','ipd'],doctor:['demographics','visit','clinical','orders','ipd'],nurse:['demographics','visit','clinical','orders','ipd'],lab:['demographics','orders'],pharmacy:['demographics','pharmacy'],billing:['demographics','billing','ipd']}
+export async function assistantLookup(db:Db,ctx:Ctx,query:string){const matches=await findPatients(db,ctx.hospitalId,query);await audit(db,ctx,'assistant_lookup','patient',matches.length===1?matches[0].id:null,{query:query.slice(0,40),matches:matches.length})
+ if(matches.length!==1)return {matches}
+ const p=(await db.query('select * from patients where id=$1 and hospital_id=$2',[matches[0].id,ctx.hospitalId])).rows[0];const st=await loadState(db,ctx.hospitalId,p.id);const j=journey(st);const secs=ROLE_SECTIONS[ctx.role]||['demographics'];const sub=await getSubscription(db,ctx.hospitalId);const mods:string[]=sub?.usable?sub.modules:[]
+ const out:any={patient:{id:p.id,uhid:p.uhid,full_name:p.full_name,mobile:p.mobile},journey:{...j,label:STAGE_LABEL[j.stage]},sections:{}}
+ if(secs.includes('demographics'))out.sections.demographics={gender:p.gender,date_of_birth:p.date_of_birth,address:p.address,abha_number:secs.includes('clinical')||ctx.role==='admin'||ctx.role==='reception'?p.abha_number:undefined,allergies:secs.includes('clinical')||ctx.role==='pharmacy'?p.allergies:undefined}
+ if(secs.includes('visit'))out.sections.visit=st.queue?{token:st.queue.token_no,doctor:st.queue.doctor,status:st.queue.status,ahead:st.ahead}:null
+ if(secs.includes('billing'))out.sections.billing={balance:st.due,unbilled:st.unbilled.map(u=>({description:u.description,price:Number(u.price)}))}
+ if(secs.includes('orders'))out.sections.orders=st.pendingOrders
+ if(secs.includes('pharmacy'))out.sections.pharmacy=st.pendingRx
+ if(secs.includes('ipd'))out.sections.ipd=st.admission
+ if(secs.includes('clinical')){const v=(await db.query('select temperature_c,pulse,bp_systolic,bp_diastolic,spo2,weight_kg,recorded_at from vitals where hospital_id=$1 and patient_id=$2 order by recorded_at desc limit 1',[ctx.hospitalId,p.id])).rows[0]||null;const dx=(await db.query('select icd10_code,description,diagnosis_type,created_at from diagnoses where hospital_id=$1 and patient_id=$2 order by created_at desc limit 5',[ctx.hospitalId,p.id])).rows;const meds=(await db.query("select i.medicine_name,i.dose,i.frequency,i.duration from prescription_items i join prescriptions pr on pr.id=i.prescription_id where pr.hospital_id=$1 and pr.patient_id=$2 and pr.created_at>now()-interval '30 days' order by pr.created_at desc limit 10",[ctx.hospitalId,p.id])).rows;out.sections.clinical={vitals:v,diagnoses:dx,activeMeds:meds}}
+ const A:{label:string;href:string;roles:string[];module:string;when:boolean}[]=[
+  {label:'Check in / issue token',href:'/frontdesk?patient='+p.id,roles:['admin','reception'],module:'queue',when:!st.queue||st.queue.status==='checked'},
+  {label:`Collect payment${st.due>0?' ₹'+st.due:''}`,href:'/billing?patient='+p.id,roles:['admin','reception','billing'],module:'billing',when:st.due>0||st.unbilled.length>0},
+  {label:'Open consultation',href:'/opd',roles:['admin','doctor'],module:'opd',when:!!st.queue&&st.queue.status!=='checked'&&(ctx.role==='admin'||st.queue.doctor_user_id===ctx.userId)},
+  {label:'Record vitals',href:'/opd',roles:['nurse'],module:'opd',when:!!st.queue&&st.queue.status!=='checked'},
+  {label:'Lab worklist',href:'/laboratory',roles:['admin','lab'],module:'lab',when:st.pendingOrders.length>0},
+  {label:'Dispense medicines',href:'/pharmacy',roles:['admin','pharmacy'],module:'pharmacy',when:st.pendingRx.length>0},
+  {label:'IPD bed board',href:'/ipd',roles:['admin','doctor','nurse','reception','billing'],module:'ipd',when:!!st.admission},
+  {label:'Print next-steps slip',href:'/slip?patient='+p.id,roles:['admin','reception','doctor','nurse','billing','lab','pharmacy'],module:'patients',when:true}]
+ out.actions=A.filter(a=>a.when&&a.roles.includes(ctx.role)&&mods.includes(a.module)).map(({label,href})=>({label,href}));return out}
+/** Public patient status: requires hospital code + (UHID or today's token) + matching phone. No clinical data. */
+export async function publicStatus(db:Db,b:any){const code=String(b.hospitalCode||'').trim().toUpperCase(),id=String(b.id||'').trim(),phone=String(b.phone||'').replace(/\D/g,'').slice(-10);if(!code||!id||phone.length!==10)throw new HttpError(400,'Enter hospital code, UHID or token, and your 10-digit phone.')
+ const h=(await db.query("select id,name from hospitals where code=$1 and coalesce(status,'active')='active'",[code])).rows[0];const nf=new HttpError(404,'No matching visit found. Check the details or ask at the Front desk.');if(!h)throw nf
+ const ms=(await findPatients(db,h.id,id)).filter((m:any)=>String(m.mobile||'').replace(/\D/g,'').slice(-10)===phone);if(ms.length!==1)throw nf
+ const st=await loadState(db,h.id,ms[0].id);st.pendingOrders=st.pendingOrders.map(o=>({...o,test_name:o.category==='lab'?'your tests':'your scan'}));const j=journey(st);return {hospital:h.name,firstName:String(ms[0].full_name).split(' ')[0],stage:STAGE_LABEL[j.stage],nextStep:j.nextStep,where:j.where}}

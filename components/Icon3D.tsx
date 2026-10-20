@@ -1,8 +1,8 @@
-/* Original 3D-style glossy icons (authored for this project, no third-party assets; MIT with the repo).
-   Each icon = gradient tile + soft drop shadow + top gloss + white glyph with subtle depth. */
+/* Original glass app-icon set (authored for this project; no third-party assets; same licence as the repo).
+   Each icon = iOS-like squircle tile, 3-stop gradient, radial glass sheen, rim highlight, glyph with tinted shadow. */
 import React from 'react'
 export type IconName='dashboard'|'frontdesk'|'doctor'|'billing'|'pharmacy'|'lab'|'ipd'|'patients'|'calendar'|'insurance'|'settings'|'audit'|'search'|'money'|'queue'|'beds'
-const C:Record<IconName,[string,string]>={dashboard:['#7c5cff','#4f46e5'],frontdesk:['#38bdf8','#0369a1'],doctor:['#34d399','#047857'],billing:['#fbbf24','#d97706'],pharmacy:['#f472b6','#be185d'],lab:['#a78bfa','#6d28d9'],ipd:['#fb7185','#be123c'],patients:['#60a5fa','#1d4ed8'],calendar:['#2dd4bf','#0f766e'],insurance:['#94a3b8','#475569'],settings:['#a1a1aa','#3f3f46'],audit:['#cbd5e1','#64748b'],search:['#60a5fa','#2563eb'],money:['#4ade80','#15803d'],queue:['#fdba74','#ea580c'],beds:['#f9a8d4','#db2777']}
+const C:Record<IconName,[string,string,string]>={dashboard:['#a78bfa','#6366f1','#4338ca'],frontdesk:['#67e8f9','#3b82f6','#1d4ed8'],doctor:['#6ee7b7','#10b981','#047857'],billing:['#fde68a','#f59e0b','#c2410c'],pharmacy:['#f9a8d4','#ec4899','#9d174d'],lab:['#c4b5fd','#8b5cf6','#5b21b6'],ipd:['#fda4af','#f43f5e','#9f1239'],patients:['#93c5fd','#3b82f6','#1e3a8a'],calendar:['#99f6e4','#14b8a6','#115e59'],insurance:['#cbd5e1','#64748b','#334155'],settings:['#e4e4e7','#71717a','#27272a'],audit:['#e2e8f0','#94a3b8','#475569'],search:['#bfdbfe','#60a5fa','#2563eb'],money:['#bbf7d0','#22c55e','#166534'],queue:['#fed7aa','#fb923c','#c2410c'],beds:['#fbcfe8','#f472b6','#be185d']}
 const G:Record<IconName,React.ReactNode>={
  dashboard:<><rect x="15" y="15" width="14" height="18" rx="3"/><rect x="35" y="15" width="14" height="10" rx="3"/><rect x="35" y="31" width="14" height="18" rx="3"/><rect x="15" y="39" width="14" height="10" rx="3"/></>,
  frontdesk:<><circle cx="32" cy="22" r="8"/><path d="M16 48c0-9 7-14 16-14s16 5 16 14z"/></>,
@@ -20,4 +20,14 @@ const G:Record<IconName,React.ReactNode>={
  audit:<><rect x="16" y="12" width="32" height="40" rx="5"/><rect x="22" y="22" width="20" height="4" rx="2" fill="#0003"/><rect x="22" y="30" width="20" height="4" rx="2" fill="#0003"/><rect x="22" y="38" width="12" height="4" rx="2" fill="#0003"/></>,
  search:<><circle cx="28" cy="28" r="13" fill="none" stroke="#fff" strokeWidth="6"/><rect x="38" y="36" width="8" height="18" rx="3" transform="rotate(-45 42 45)"/></>,
  queue:<><rect x="14" y="14" width="36" height="36" rx="18"/><text x="32" y="40" textAnchor="middle" fontSize="20" fontWeight="800" fill="#0005" fontFamily="system-ui">#</text></>}
-export default function Icon3D({name,size=28}:{name:IconName;size?:number}){const id='g'+name,[a,b]=C[name];return <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" style={{flex:'none',filter:'drop-shadow(0 3px 4px rgba(15,23,42,.25))'}}><defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={a}/><stop offset="1" stopColor={b}/></linearGradient><linearGradient id={id+'s'} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity=".55"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></linearGradient><filter id={id+'d'}><feDropShadow dx="0" dy="1.5" stdDeviation="1" floodColor="#000" floodOpacity=".3"/></filter></defs><rect x="2" y="2" width="60" height="60" rx="16" fill={`url(#${id})`}/><rect x="2" y="2" width="60" height="60" rx="16" fill="none" stroke="#fff" strokeOpacity=".25"/><path d="M6 18C6 10 10 6 18 6h28c8 0 12 4 12 12v2C44 28 20 28 6 22z" fill={`url(#${id}s)`}/><g fill="#fff" filter={`url(#${id}d)`}>{G[name]}</g></svg>}
+/* iOS-style continuous-corner squircle (superellipse approximation) */
+const SQ='M32 2C9.5 2 2 9.5 2 32s7.5 30 30 30 30-7.5 30-30S54.5 2 32 2z'
+export default function Icon3D({name,size=28}:{name:IconName;size?:number}){const id='i'+name,[a,b,c]=C[name];return <svg className="appIcon" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true"><defs>
+ <linearGradient id={id} x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stopColor={a}/><stop offset=".55" stopColor={b}/><stop offset="1" stopColor={c}/></linearGradient>
+ <radialGradient id={id+'g'} cx=".3" cy=".15" r=".9"><stop offset="0" stopColor="#fff" stopOpacity=".55"/><stop offset=".45" stopColor="#fff" stopOpacity=".08"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></radialGradient>
+ <linearGradient id={id+'r'} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity=".9"/><stop offset=".5" stopColor="#fff" stopOpacity=".15"/><stop offset="1" stopColor="#fff" stopOpacity=".45"/></linearGradient>
+ <filter id={id+'d'} x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.2" floodColor={c} floodOpacity=".55"/></filter></defs>
+ <path d={SQ} fill={`url(#${id})`}/><path d={SQ} fill={`url(#${id}g)`}/>
+ <ellipse cx="32" cy="14" rx="22" ry="9" fill="#fff" opacity=".22"/>
+ <path d={SQ} fill="none" stroke={`url(#${id}r)`} strokeWidth="1.4" opacity=".8"/>
+ <g fill="#fff" fillOpacity=".96" filter={`url(#${id}d)`} transform="translate(32 33) scale(.82) translate(-32 -32)">{G[name]}</g></svg>}
