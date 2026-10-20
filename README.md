@@ -60,3 +60,11 @@ The project already exists at https://hms-dun-delta.vercel.app, and pushing to a
 
 ## WhatsApp
 `/api/whatsapp/send` sends through Meta WhatsApp Cloud API. Get patient consent and use approved templates.
+
+## Pharmacy billing mode, first-login password change (v3.1)
+- **Settings → Hospital → Pharmacy charges** (per hospital, default *Add dispensed medicines to the patient's bill*):
+  - `patient_bill`: each dispensed line becomes an unbilled charge; Billing's auto-bill adds it to the patient's open visit/IPD invoice (unique source link → never billed twice).
+  - `cash_sale`: the pharmacy counter must pick a payment mode; dispensing creates its own paid receipt (`<PREFIX>/PH/<year>/000001`) and nothing is left for Billing.
+  Dispensing (stock, lines, receipt) runs in one transaction.
+- **Temporary passwords**: staff created by an admin (or reset by an admin) must set their own password on first login. Until then every page shows the "Set your own password" screen and APIs answer 403 `mustChangePassword`. Endpoint: `POST /api/auth/password {currentPassword,newPassword}`.
+- IPD admission closes the patient's open OPD token for the day. The legacy `/api/admin/users` staff route was removed (use `/api/staff`, which supports all roles).
