@@ -210,3 +210,4 @@ a{color:var(--sd-navy)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:10px 0}.kpi{background:var(--panel,#F2F2F2);border-radius:12px;padding:10px 12px}.kpi small{display:block;color:#595959}.kpi b{font-size:1.3rem}
 .closeoutText{white-space:pre-wrap;font-family:inherit;font-size:.95rem;margin:0}
 .offlineBar{padding:8px 12px;border-radius:10px;margin:0 0 10px;font-size:.92rem}.offlineBar.offline{background:#FFF4E5;color:#8A4B00;border:1px solid #F0C27A}.offlineBar.online{background:#E6ECF5;color:#104176}.offFail{color:#C62828;margin-top:4px}.offDone{color:#1B5E20;margin-top:2px}
+.tv header{background:none!important;box-shadow:none!important;position:static}
