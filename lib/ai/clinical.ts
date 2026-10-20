@@ -75,7 +75,9 @@ export async function patientContext(db:Db,hid:string,pid:string){const p=(await
 /** Deterministic history card (works without any LLM). */
 export function historyCard(c:NonNullable<Awaited<ReturnType<typeof patientContext>>>){const dx=new Map<string,{code:string|null;text:string;count:number;last:string}>()
  for(const v of c.visits)for(const d of v.diagnoses as any[]){const k=(d.code||d.text||'').toUpperCase();const x=dx.get(k);if(x){x.count++}else dx.set(k,{code:d.code,text:d.text,count:1,last:v.date})}
- return {age:c.ageYears,sex:c.sex,allergies:c.allergies||'None recorded',visits:c.visits.length,lastVisit:c.visits[0]?.date||null,diagnoses:[...dx.values()],activeMeds:c.activeMeds,latestVitals:c.vitals[0]||null}}
+ const diagnoses=[...dx.values()],v:any=c.vitals[0]||null
+ const lines=[`${c.ageYears??'?'} y ${c.sex||''} · Allergies: ${c.allergies||'None recorded'}`,`${c.visits.length} visit(s)${c.visits[0]?' · last '+c.visits[0].date:''}`,...diagnoses.slice(0,6).map(d=>`${d.code?d.code+' ':''}${d.text||''}${d.count>1?' ×'+d.count:''} (last ${d.last})`),c.activeMeds.length?'Active medicines: '+c.activeMeds.join(', '):'No active medicines',...(v?[`Latest vitals: ${Object.entries(v).filter(([k,x])=>x!=null&&k!=='date'&&k!=='recorded_at').map(([k,x])=>k+' '+x).join(', ')}`]:[])]
+ return {age:c.ageYears,sex:c.sex,allergies:c.allergies||'None recorded',visits:c.visits.length,lastVisit:c.visits[0]?.date||null,diagnoses,activeMeds:c.activeMeds,latestVitals:v,lines}}
 const PII=/^(full_?name|name|patient_?name|phone|mobile|alt_?phone|address|abha.*|email|aadhaar.*|guardian.*|emergency.*|kin.*|contact.*)$/i
 /** Recursively drop identifier fields and scrub free text before anything leaves for an LLM. */
 export function deidentify(v:any):any{if(Array.isArray(v))return v.map(deidentify);if(v&&typeof v==='object'){const o:any={};for(const [k,x] of Object.entries(v))if(!PII.test(k))o[k]=deidentify(x);return o}return typeof v==='string'?scrub(v,600):v}
