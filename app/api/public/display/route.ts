@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {getDb} from '@/lib/db';import {fail} from '@/lib/api';import {displayBoard} from '@/lib/services/display';import {Db} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export async function GET(req:Request){try{const u=new URL(req.url);return NextResponse.json(await displayBoard(getDb() as unknown as Db,u.searchParams.get('h')||'',u.searchParams.get('k')||''),{headers:{'cache-control':'no-store'}})}catch(e){return fail(e,{route:'/api/public/display'})}}

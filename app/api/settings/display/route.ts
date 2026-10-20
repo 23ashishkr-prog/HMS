@@ -1,0 +1,3 @@
+import {api,body} from '@/lib/api';import {displayLink} from '@/lib/services/display';import {audit,requireRole} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export const GET=api(async(c,db)=>{requireRole(c,['admin','reception']);return displayLink(db,c.hospitalId)})
+export const PUT=api(async(c,db,r)=>{requireRole(c,['admin']);const b:any=await body(r);if(b.nearTurnAhead!=null)await db.query('update hospitals set near_turn_ahead=$2 where id=$1',[c.hospitalId,Math.max(1,Math.min(10,Math.round(Number(b.nearTurnAhead))||2))]);await audit(db,c,'display_settings','hospital',c.hospitalId,{rotate:!!b.rotate,nearTurnAhead:b.nearTurnAhead});return displayLink(db,c.hospitalId,!!b.rotate)})
