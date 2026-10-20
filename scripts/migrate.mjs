@@ -1,0 +1,6 @@
+// Applies db/migrations/*.sql in order, tracking them in schema_migrations.
+// Usage: DATABASE_URL=postgres://... node scripts/migrate.mjs
+import {readdirSync,readFileSync} from 'node:fs';import {join,dirname} from 'node:path';import {fileURLToPath} from 'node:url';import pg from 'pg';
+const dir=join(dirname(fileURLToPath(import.meta.url)),'..','db','migrations');
+export async function migrate(client){await client.query('create table if not exists schema_migrations(name text primary key,applied_at timestamptz not null default now())');const done=new Set((await client.query('select name from schema_migrations')).rows.map(r=>r.name));for(const f of readdirSync(dir).filter(f=>f.endsWith('.sql')).sort()){if(done.has(f))continue;await client.exec?await client.exec(readFileSync(join(dir,f),'utf8')):await client.query(readFileSync(join(dir,f),'utf8'));await client.query('insert into schema_migrations(name) values($1)',[f]);console.log('applied',f)}}
+if(process.argv[1]===fileURLToPath(import.meta.url)){(async()=>{if(!process.env.DATABASE_URL){console.error('DATABASE_URL is required');process.exit(1)}const c=new pg.Client({connectionString:process.env.DATABASE_URL});await c.connect();try{await migrate(c);console.log('migrations up to date')}finally{await c.end()}})().catch(e=>{console.error(e);process.exit(1)})}
