@@ -176,3 +176,10 @@ a{color:var(--sd-navy)}
 .appIcon{filter:none!important}
 @media (prefers-color-scheme:dark){.banner.warn{background:#3A2A0F!important;color:#FFD9A0!important;border-color:#7A5A1F!important}.banner.danger,.err{background:#3A1418!important;color:#FFC2C2!important}.chip{color:#C9D6EA!important}.authPage{background:var(--sd-bg)!important}a{color:#9FC1F0}}
 @media print{.side,.top{display:none!important}body{background:#fff!important;color:#000}}
+/* v4 polish: sidebar items flat on navy, coral assistant button, readable pills in dark mode */
+.side a,.side nav button,.side .sec,.side .moreBtn,.side li>button{background:transparent!important;border:1px solid transparent!important;box-shadow:none!important;color:#E6ECF5!important}
+.side a.act,.side .act{background:rgba(255,255,255,.14)!important;color:#fff!important}
+.side .moreBtn{border-color:rgba(255,255,255,.2)!important}
+.fab{background:var(--sd-coral)!important;color:#fff!important;border:0!important;box-shadow:0 6px 18px rgba(227,55,55,.35)!important}
+.pill{background:var(--sd-tint)!important;color:var(--sd-navy)!important;font-weight:600}
+@media (prefers-color-scheme:dark){.pill{background:#24406B!important;color:#E6ECF5!important}}
