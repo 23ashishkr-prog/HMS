@@ -1,0 +1,2 @@
+import {api} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {staffInvoicePdf} from '@/lib/services/invoicepdf'
+export const GET=api(async(c,db,r,p)=>{const pdf=await staffInvoicePdf(db,c,p.id);return new Response(new Uint8Array(pdf),{headers:{'content-type':'application/pdf','content-disposition':`inline; filename="invoice-${p.id.slice(0,8)}.pdf"`,'cache-control':'private, no-store'}})})
