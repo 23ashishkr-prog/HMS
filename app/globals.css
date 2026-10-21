@@ -293,12 +293,103 @@ html body button.fab:not(#_){background:linear-gradient(160deg,#E33737,#C62828)!
 /* mobile */
 @media (max-width:760px){h1{font-size:1.4rem}.card,.panel,.modulePanel{padding:14px 14px}.moduleRow{grid-template-columns:minmax(0,1fr) auto;}.moduleRow .pill{grid-row:2;grid-column:1}.moduleRow>button{grid-row:1/3;grid-column:2}.formGrid{grid-template-columns:1fr}.actionRow>input,.actionRow>.moduleInput{flex-basis:100%}.actionRow>button{flex:1 1 auto}.tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.tabs button:not(#_){flex:0 0 auto}.dataTable{font-size:.88rem}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media (max-width:1000px){html body .app{display:block!important;grid-template-columns:none!important}
- html body .app>.side{position:sticky!important;top:0;left:0;z-index:30;width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:0!important;transform:none!important;display:flex!important;flex-direction:row!important;align-items:center;gap:10px;padding:8px 12px!important;overflow-x:auto;overflow-y:hidden;border-radius:0!important}
- html body .app>.side .sideBrand{flex:0 0 auto;border:0!important;padding:0!important;margin:0!important}html body .app>.side .sideBrand small,html body .app>.side .sideBrand b{display:none}
- html body .app>.side nav{display:flex!important;flex-direction:row!important;gap:6px;flex:1 1 auto;margin:0!important;padding:0!important}
- html body .app>.side nav button:not(#_){flex:0 0 auto;width:auto!important;padding:6px 12px!important;min-height:36px;white-space:nowrap}
- html body .app>.side nav kbd,html body .app>.side .sideFoot,html body .app>.side .moreBtn{display:none!important}
- html body .app>.side details,html body .app>.side .navMore{flex:0 0 auto}
- .mainCol{min-width:0}.top{position:sticky;top:52px}}
-@media (max-width:760px){html body .stats{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px}html body .stats .stat3d{padding:14px!important;flex-direction:column;align-items:flex-start}}
+
+/* ===== v6 soft base + responsive shell (phone bottom tabs, tablet rail) ===== */
+:root{--p-bg:#ECEFF4;--p-line:#DCE1EA;--p-glass:rgba(247,248,251,.92);--p-card:#F7F8FB;--p-shadow:0 1px 2px rgba(16,40,80,.05),0 6px 18px rgba(16,40,80,.06)}
+html,body{background:#ECEFF4!important}
+.top{background:rgba(236,239,244,.85)!important;border-bottom:1px solid var(--p-line)!important}
+.card,.panel,.modulePanel,.stat3d,.drawer,.whoMenu,.assist,.authCard,.kpi,.po,.aiOut{background:var(--p-glass)!important;border:1px solid var(--p-line)!important}
+.moduleRow,html body .moduleRow{background:#FBFCFD!important;border-color:var(--p-line)!important}
+input:not([type=checkbox]):not([type=radio]),select,textarea{background:#FBFCFD!important;border-color:#CFD6E2!important}
+.dataTable tbody tr:hover{background:rgba(16,65,118,.04)}.dataTable td{border-bottom-color:#E2E6EE!important}
+.modalBackdrop .modal{background:#F7F8FB!important}
+.emptyState{background:rgba(247,248,251,.6)!important}
+html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs button.on:not(#_){background:var(--p-navy)!important}
+.chip{background:#F7F8FB!important}
+.mBrand,.mSearchBtn,.btabs,.railToggle,.railScrim{display:none!important}
+/* ---- tablet: icon rail, expandable drawer (768-1199) ---- */
+@media (min-width:768px) and (max-width:1199px){
+ html body .app{display:grid!important;grid-template-columns:76px minmax(0,1fr)!important}
+ html body .app>.side{position:sticky!important;top:0;height:100vh!important;width:76px!important;min-width:0!important;padding:10px 8px!important;display:flex!important;flex-direction:column!important;overflow:visible;z-index:50;transition:width .2s ease}
+ html body .app>.side .railToggle{display:grid!important;place-items:center;width:44px;height:44px;margin:0 auto 8px;border-radius:12px;background:rgba(255,255,255,.1)!important;color:#fff!important;border:0!important;font-size:1.1rem}
+ html body .app:not(.railOpen)>.side .sideBrand>div,html body .app:not(.railOpen)>.side nav span,html body .app:not(.railOpen)>.side nav kbd,html body .app:not(.railOpen)>.side .sideFoot{display:none!important}
+ html body .app:not(.railOpen)>.side .sideBrand{justify-content:center;padding:6px 0!important}
+ html body .app:not(.railOpen)>.side nav button:not(#_){justify-content:center;padding:0!important;width:56px!important;height:52px;min-height:52px;margin:2px auto}
+ html body .app:not(.railOpen)>.side nav .moreBtn:not(#_){font-size:0;width:56px!important;height:36px;min-height:36px}html body .app:not(.railOpen)>.side nav .moreBtn::before{content:"⋯";font-size:1.2rem}
+ html body .app.railOpen>.side{position:fixed!important;left:0;width:272px!important;box-shadow:8px 0 40px rgba(11,46,85,.35)!important}
+ html body .app.railOpen>.side nav button:not(#_){min-height:46px}
+ html body .app.railOpen .railScrim{display:block!important;position:fixed;inset:0;background:rgba(11,46,85,.3);z-index:45}
+ html body .app.railOpen .mainCol{grid-column:2}
+ .page{padding:20px 22px!important}
+ .formGrid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))!important}
+ button:not(.fab),input:not([type=checkbox]):not([type=radio]),select{min-height:44px!important}
+}
+/* ---- phone (<768) ---- */
+@media (max-width:767px){
+ html,body{overflow-x:hidden;font-size:16px}
+ html body .app{display:block!important}
+ html body .app>.side{display:none!important}
+ html body .mainCol{min-width:0;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+ html body header.top{position:sticky!important;top:0;z-index:40;display:flex!important;align-items:center;gap:8px;height:60px!important;padding:8px 12px!important;background:linear-gradient(180deg,#104176,#0F3D7A)!important;border:0!important;box-shadow:0 2px 12px rgba(11,46,85,.25)!important}
+ html body header.top .mBrand{display:flex!important;align-items:center;gap:10px;flex:1 1 auto;min-width:0;color:#fff}
+ .mBrand img{width:28px;height:28px;border-radius:8px;object-fit:cover}
+ .mBrand span{display:flex;flex-direction:column;min-width:0}.mBrand b{font:600 .95rem/1.2 var(--font-heading),Poppins,sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mBrand small{font-size:.72rem;color:#B9C8DE;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ html body header.top .mSearchBtn:not(#_){display:grid!important;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;border-radius:12px;background:rgba(255,255,255,.12)!important;border:0!important;color:#fff!important;padding:0}
+ html body header.top .gsearch{display:none!important}
+ html body header.top.searching .mBrand{display:none!important}
+ html body header.top.searching .gsearch{display:flex!important;flex:1 1 auto;min-width:0;background:#fff!important;border-radius:12px;padding:0 8px;height:44px;align-items:center}
+ html body header.top.searching .gsearch input{border:0!important;box-shadow:none!important;min-height:40px;width:100%;font-size:16px}
+ html body header.top .ghits{position:fixed!important;left:8px;right:8px;top:64px;max-height:60vh;overflow:auto;z-index:60;border-radius:14px;background:#F7F8FB;box-shadow:0 16px 40px rgba(11,46,85,.25)}
+ html body header.top .ghits button{min-height:52px;width:100%;text-align:left}
+ html body header.top .who{flex:0 0 auto}html body header.top .avatarBtn{width:40px;height:40px;background:#fff!important;color:#104176!important}
+ .whoMenu{position:fixed!important;right:8px;top:64px;left:auto;width:min(300px,calc(100vw - 16px));z-index:70}.whoMenu button{min-height:44px;width:100%}
+ /* bottom tab bar */
+ html body .btabs{display:grid!important;grid-auto-flow:column;grid-auto-columns:1fr;position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(247,248,251,.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--p-line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(16,40,80,.08)}
+ html body .btabs button:not(#_){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;padding:4px 2px;background:transparent!important;border:0!important;box-shadow:none!important;color:#595959!important;border-radius:12px;font-size:.7rem;font-weight:600;line-height:1.1}
+ .btabs button span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ html body .btabs button.act:not(#_){color:#104176!important;background:#E6ECF5!important}
+ .moreDots{font-size:1.5rem;line-height:24px;height:24px}
+ html body .fab{bottom:calc(84px + env(safe-area-inset-bottom))!important;right:14px!important;width:52px!important;height:52px!important}
+ .toasts{bottom:calc(84px + env(safe-area-inset-bottom))!important}
+ /* bottom sheets */
+ html body .modalBackdrop{place-items:end stretch!important;padding:0!important}
+ html body .modalBackdrop .modal{width:100%!important;max-width:none;max-height:88vh;border-radius:22px 22px 0 0!important;padding:10px 16px calc(18px + env(safe-area-inset-bottom))!important;animation:psheet .22s ease}
+ @keyframes psheet{from{transform:translateY(100%)}}
+ .sheetGrip{width:40px;height:5px;border-radius:3px;background:#C9D1DD;margin:2px auto 10px}
+ .sheetHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.sheetHead b{font:600 1.05rem var(--font-heading),Poppins,sans-serif;color:#0B2E55}
+ .sheetGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+ html body .sheetGrid button:not(#_){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:92px;padding:10px 6px;background:#FBFCFD!important;border:1px solid var(--p-line)!important;border-radius:16px;color:#0B2E55!important;font-size:.8rem;font-weight:600;text-align:center;box-shadow:none!important}
+ html body .sheetGrid button.act:not(#_){border-color:#104176!important;background:#E6ECF5!important}
+ .sheetFoot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--p-line);color:#595959;font-size:.85rem;text-transform:capitalize}
+ /* page */
+ .page{padding:14px 12px 20px!important}
+ .pageHead{flex-direction:column;align-items:stretch!important;gap:10px}.pageHead p{font-size:.92rem}
+ h1{font-size:1.35rem!important}
+ .card,.panel,.modulePanel{padding:14px!important;border-radius:14px!important}
+ /* forms */
+ html body .formGrid{grid-template-columns:1fr!important;gap:12px}
+ input:not([type=checkbox]):not([type=radio]),select,textarea{min-height:46px!important;font-size:16px!important;width:100%}
+ input[type=checkbox],input[type=radio]{width:22px;height:22px}
+ button:not(.fab):not(.sheetGrip){min-height:44px!important}
+ .formGrid>button.primary,form>button.primary:last-child,.stickyAct{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:20;width:100%;min-height:50px!important;box-shadow:0 8px 24px rgba(16,65,118,.3)!important}
+ .actionRow>input,.actionRow>.moduleInput,.actionRow>select{flex:1 1 100%!important}.actionRow>button{flex:1 1 auto}
+ /* tabs wrap into a segmented grid, not a sideways strip */
+ html body .tabs{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));overflow:visible!important;gap:8px}
+ html body .tabs button:not(#_){width:100%;padding:8px 10px;min-height:44px;white-space:normal;line-height:1.15}
+ /* list rows */
+ html body .moduleRow{grid-template-columns:minmax(0,1fr) auto!important}html body .moduleRow>button{min-width:72px}
+ /* tables -> stacked cards */
+ table.dataTable.stackable,table.dataTable.stackable tbody,table.dataTable.stackable tr,table.dataTable.stackable td{display:block;width:100%}
+ table.dataTable.stackable thead{display:none}
+ table.dataTable.stackable tr{background:#FBFCFD;border:1px solid var(--p-line);border-radius:14px;padding:8px 12px;margin:0 0 10px}
+ table.dataTable.stackable td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0!important;border-bottom:1px dashed #E2E6EE!important;text-align:right;min-width:0;word-break:break-word}
+ table.dataTable.stackable td:last-child{border-bottom:0!important}
+ table.dataTable.stackable td[data-label]::before{content:attr(data-label);flex:0 0 auto;max-width:45%;text-align:left;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#595959}
+ .modal table.dataTable tr{display:table-row}
+ .panel,.modulePanel,.card{overflow-x:auto;max-width:100%}
+ html body .stats{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px}
+ html body .stats .stat3d{padding:12px!important;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+ .split,.desk,.row4,.vitals{grid-template-columns:1fr!important}
+ img,video,canvas,svg{max-width:100%}
+}
+@media (min-width:768px) and (max-width:1023px){.split,.desk{grid-template-columns:1fr!important}html body .stats{grid-template-columns:repeat(2,1fr)!important}}
