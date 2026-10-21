@@ -589,3 +589,5 @@ html[data-theme=dark][data-accent] h1,html[data-theme=dark] .pageHead h1{color:#
 .dayCol .addSess{margin-left:auto}
 @media (max-width:767px){.dayCol>b{flex:1 1 100%}.sess{grid-template-columns:1fr auto 1fr!important;width:100%;padding-right:34px!important}.sess input{width:100%!important}.sess select{grid-column:1/-1!important;width:100%!important}.dayCol .addSess{margin-left:0;width:100%}}
 .lbl small.muted{font-weight:500;color:#667085}
+.userTable .rowActions{flex-wrap:nowrap}.userTable td:last-child{white-space:nowrap}
+@media (max-width:767px){.userTable .rowActions{flex-wrap:wrap}.userTable td:last-child{white-space:normal}}
