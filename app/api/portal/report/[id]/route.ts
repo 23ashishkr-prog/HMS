@@ -1,0 +1,2 @@
+import {portalApi} from '@/lib/patientauth';import {portalReport} from '@/lib/services/portal';export const runtime='nodejs';export const dynamic='force-dynamic'
+export const GET=portalApi(async(c,db,r,p)=>{const f=await portalReport(db,c,p.id);return new Response(new Uint8Array(f.data),{headers:{'content-type':f.mime,'content-disposition':`inline; filename="${String(f.file_name).replace(/"/g,'')}"`,'cache-control':'private, no-store','x-content-type-options':'nosniff'}})})

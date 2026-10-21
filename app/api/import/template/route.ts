@@ -1,0 +1,2 @@
+import {api} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {template} from '@/lib/services/bulkimport';import {requireRole} from '@/lib/services/core'
+export const GET=api(async(c,db,r)=>{requireRole(c,['admin']);const k=new URL(r.url).searchParams.get('kind') as any;const b=await template(k);return new Response(new Uint8Array(b),{headers:{'content-type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','content-disposition':`attachment; filename="hms-${k}-template.xlsx"`,'cache-control':'no-store'}})})

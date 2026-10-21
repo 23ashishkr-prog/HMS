@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {getDb} from '@/lib/db';import {fail,body} from '@/lib/api';import {requestOtp} from '@/lib/services/portal';import {Db} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export async function POST(req:Request){try{const b:any=await body(req);const ip=(req.headers.get('x-forwarded-for')||'').split(',')[0].trim().slice(0,60);return NextResponse.json(await requestOtp(getDb() as unknown as Db,b.h,b,ip))}catch(e){return fail(e,{route:'/api/portal/otp'})}}
