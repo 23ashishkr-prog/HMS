@@ -576,3 +576,16 @@ html[data-theme=soft] .top{background:rgba(236,239,244,.9)!important}
  .stat3d b{font-size:1.4rem!important}
 }
 @media (min-width:768px) and (max-width:1199px){.page{padding:22px 24px 32px!important}}
+/* v7.1: page background shows through (soft grey base), dark headings, roomier schedule editor */
+html body,html body .page,html body .mainCol{background:transparent!important}
+html{background:#ECEFF4!important}html[data-theme=soft]{background:#E2E6ED!important}html[data-theme=dark]{background:#0D1524!important}
+html[data-theme=dark][data-accent] h1,html[data-theme=dark] .pageHead h1{color:#E6ECF5!important}
+.weekGrid{grid-template-columns:1fr!important;gap:8px}
+.dayCol{flex-direction:row!important;flex-wrap:wrap;align-items:center;gap:10px!important;padding:10px 12px!important}
+.dayCol>b{flex:0 0 56px}
+.sess{grid-template-columns:auto auto auto auto!important;gap:8px!important;padding:6px 34px 6px 10px!important}
+.sess input{width:118px!important}.sess select{grid-column:auto!important;width:96px!important}
+.sess .x{top:50%!important;right:6px!important;transform:translateY(-50%)}
+.dayCol .addSess{margin-left:auto}
+@media (max-width:767px){.dayCol>b{flex:1 1 100%}.sess{grid-template-columns:1fr auto 1fr!important;width:100%;padding-right:34px!important}.sess input{width:100%!important}.sess select{grid-column:1/-1!important;width:100%!important}.dayCol .addSess{margin-left:0;width:100%}}
+.lbl small.muted{font-weight:500;color:#667085}
