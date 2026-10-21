@@ -27,7 +27,7 @@ function Tile({it,title,edit,d,role,onSize,onRemove}:{it:Item;title:string;edit:
   {edit&&<div className="wSizes" onPointerDown={e=>e.stopPropagation()}>{(['s','m','l'] as const).map(s=><button key={s} className={it.size===s?'on':''} onClick={()=>onSize(s)}>{({s:'Small',m:'Medium',l:'Large'})[s]}</button>)}</div>}</section>}
 export default function Home(){const[role,setRole]=useState(''),[items,setItems]=useState<Item[]>([]),[cat,setCat]=useState<any[]>([]),[data,setData]=useState<any>({}),[src,setSrc]=useState(''),[edit,setEdit]=useState(false),[lib,setLib]=useState(false),[defRole,setDefRole]=useState('reception'),[err,setErr]=useState(''),[setup,setSetup]=useState<any>(null)
  const load=useCallback(()=>call('/api/home').then(x=>{setItems(x.layout);setCat(x.catalog);setData(x.data);setSrc(x.source)}).catch(e=>setErr(e.message)),[])
- useEffect(()=>{whoAmI().then(m=>{setRole(m.role);load();if(m.role==='admin')call('/api/setup').then(setSetup).catch(()=>{})}).catch(()=>location.replace('/auth/login'))},[load])
+ useEffect(()=>{whoAmI().then(m=>{setRole(m.role);load();if(m.role==='admin')call('/api/setup').then(setSetup).catch(()=>{})}).catch(()=>location.replace('/welcome'))},[load])
  useEffect(()=>{if(edit)return;const t=setInterval(()=>call('/api/home').then(x=>setData(x.data)).catch(()=>{}),60000);return ()=>clearInterval(t)},[edit])
  const sensors=useSensors(useSensor(PointerSensor,{activationConstraint:{distance:6}}),useSensor(TouchSensor,{activationConstraint:{delay:180,tolerance:8}}),useSensor(KeyboardSensor,{coordinateGetter:sortableKeyboardCoordinates}))
  const title=(id:string)=>cat.find(c=>c.id===id)?.title||id
