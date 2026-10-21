@@ -395,3 +395,5 @@ html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs butt
 @media (min-width:768px) and (max-width:1023px){.split,.desk{grid-template-columns:1fr!important}html body .stats{grid-template-columns:repeat(2,1fr)!important}}
 
 @media (min-width:768px) and (max-width:1199px){html body .app>.side .railToggle:not(#_){min-height:44px!important;box-shadow:none!important}}
+@media (max-width:767px){html body .formGrid>button.primary:disabled,html body form>button.primary:disabled:last-child{opacity:1!important;background:#8FA3C0!important;border-color:#8FA3C0!important}
+ html body .formGrid>button.primary,html body form>button.primary:last-child{margin-top:6px;outline:6px solid rgba(236,239,244,.92)}}
