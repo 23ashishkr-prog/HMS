@@ -1,3 +1,4 @@
+import {slotGrid} from './doctorsched'
 /** Patient-facing messages built on the outbox: stage updates (same journey logic as the assistant), prescription summary,
  *  receipts, lab-ready notices, medicine reminders and confirmation-gated follow-up offers. */
 import {Ctx,Db,HttpError,audit} from './core'
@@ -26,7 +27,7 @@ const hm=(s:string)=>{const [h,m]=String(s).split(':').map(Number);return h*60+m
 /** Free slots for a doctor on an IST date: OPD hours minus existing appointments and other patients' live holds. Holds are not appointments. */
 export async function freeSlots(db:Db,hid:string,doctorId:string,dateIST:string,opd:{start:string;end:string;slotMin:number},excludeOffer:string|null=null,now=new Date(),max=3){const from=istToUtc(dateIST,0),to=istToUtc(dateIST,1440)
  const busy=new Set<number>([...(await db.query("select scheduled_at from appointments where hospital_id=$1 and doctor_user_id=$2 and status not in ('cancelled','no_show') and scheduled_at>=$3 and scheduled_at<$4",[hid,doctorId,from,to])).rows.map((r:any)=>new Date(r.scheduled_at).getTime()),...(await db.query("select held_slot from followup_offers where hospital_id=$1 and doctor_user_id=$2 and status='proposed' and hold_until>$5 and held_slot>=$3 and held_slot<$4 and ($6::uuid is null or id<>$6)",[hid,doctorId,from,to,now,excludeOffer])).rows.map((r:any)=>new Date(r.held_slot).getTime())])
- const out:Date[]=[];const step=Number(opd.slotMin||15);for(let m=hm(opd.start||'10:00');m+step<=hm(opd.end||'17:00')&&out.length<max;m+=step){const at=istToUtc(dateIST,m);if(at.getTime()<=now.getTime()+30*60000)continue;if(!busy.has(at.getTime()))out.push(at)}return out}
+ const out:Date[]=[];for(const at of await slotGrid(db,hid,doctorId,dateIST,opd)){if(out.length>=max)break;if(at.getTime()<=now.getTime()+30*60000)continue;if(!busy.has(at.getTime()))out.push(at)}return out}
 const fmtSlot=(d:Date)=>d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})
 function offerLinks(id:string,hours:number){const exp=Date.now()+hours*3600e3;return (['confirm','another','cancel'] as const).map(a=>({label:{confirm:'Confirm',another:'Another time',cancel:'Cancel'}[a],url:`${appUrl()}/followup?o=${id}&a=${a}&e=${exp}&s=${signLink(id,a,exp)}`}))}
 async function sendOffer(db:Db,o:any,p:any,doctor:string,reminder=false){const slot=new Date(o.held_slot);const pending=(await db.query("select test_name from diagnostic_orders where hospital_id=$1 and patient_id=$2 and status in ('ordered','sample_collected')",[o.hospital_id,o.patient_id])).rows.map((r:any)=>r.test_name)
