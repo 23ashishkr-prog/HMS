@@ -23,12 +23,9 @@ const G:Record<IconName,React.ReactNode>={
  queue:<><rect x="14" y="14" width="36" height="36" rx="18"/><text x="32" y="40" textAnchor="middle" fontSize="20" fontWeight="800" fill="#0005" fontFamily="system-ui">#</text></>}
 /* iOS-style continuous-corner squircle (superellipse approximation) */
 const SQ='M32 2C9.5 2 2 9.5 2 32s7.5 30 30 30 30-7.5 30-30S54.5 2 32 2z'
-export default function Icon3D({name,size=28}:{name:IconName;size?:number}){const uid=React.useId().replace(/[^a-zA-Z0-9]/g,''),id='i'+name+uid,[a,b,c]=C[name];return <svg className="appIcon" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true"><defs>
- <linearGradient id={id} x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stopColor={a}/><stop offset=".55" stopColor={b}/><stop offset="1" stopColor={c}/></linearGradient>
- <radialGradient id={id+'g'} cx=".3" cy=".15" r=".9"><stop offset="0" stopColor="#fff" stopOpacity=".55"/><stop offset=".45" stopColor="#fff" stopOpacity=".08"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></radialGradient>
- <linearGradient id={id+'r'} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity=".9"/><stop offset=".5" stopColor="#fff" stopOpacity=".15"/><stop offset="1" stopColor="#fff" stopOpacity=".45"/></linearGradient>
- <filter id={id+'d'} x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.2" floodColor={c} floodOpacity=".55"/></filter></defs>
- <path d={SQ} fill={`url(#${id})`}/><path d={SQ} fill={`url(#${id}g)`}/>
- <ellipse cx="32" cy="14" rx="22" ry="9" fill="#fff" opacity=".22"/>
- <path d={SQ} fill="none" stroke={`url(#${id}r)`} strokeWidth="1.4" opacity=".8"/>
- <g fill="#fff" fillOpacity=".96" filter={`url(#${id}d)`} transform="translate(32 33) scale(.82) translate(-32 -32)">{G[name]}</g></svg>}
+/** Flat, modern icon tile: tinted rounded square + solid glyph. Colours come from CSS variables so the same icon adapts to
+ *  light cards (accent tint), the navy sidebar (white on translucent) and the user's accent preset. Coral tone for money/medicine/compliance. */
+const CORAL:IconName[]=['billing','pharmacy','insurance','audit','money']
+export default function Icon3D({name,size=28}:{name:IconName;size?:number}){return <svg className={'appIcon'+(CORAL.includes(name)?' tone-coral':'')} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+ <rect x="0" y="0" width="64" height="64" rx="17" className="icBg"/>
+ <g className="icFg" transform="translate(32 32) scale(.62) translate(-32 -32)">{G[name]}</g></svg>}

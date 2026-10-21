@@ -512,3 +512,67 @@ html body .seg button.on:not(#_){background:#fff!important;box-shadow:0 1px 3px 
 .apFoot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid #DCE1EA}
 html[data-theme=dark] .seg{background:#0F1A2B;border-color:#2C3B53}html[data-theme=dark] body .seg button.on:not(#_){background:#22344F!important;color:#fff!important}
 @media (max-width:767px){.themeGrid{grid-template-columns:1fr 1fr 1fr}.apRow{grid-template-columns:1fr}.apFoot>button{flex:1 1 100%}}
+/* ===== v7 modern SaaS refresh (see docs/UI_RESEARCH.md) ===== */
+:root{--ic-bg:var(--p-tint,#E6ECF5);--ic-fg:var(--p-navy,#104176);--r-card:14px;--sh-1:0 1px 2px rgba(16,24,40,.05);--sh-2:0 1px 3px rgba(16,24,40,.08),0 4px 12px rgba(16,24,40,.05)}
+/* flat icon tiles */
+.appIcon{flex:0 0 auto;filter:none!important}.appIcon .icBg{fill:var(--ic-bg)}.appIcon .icFg{fill:var(--ic-fg)}.appIcon .icFg [stroke]{stroke:var(--ic-fg)}.appIcon .icFg [fill^="#"]{fill:var(--ic-bg)}
+.appIcon.tone-coral{--ic-bg:#FDECEC;--ic-fg:#C62828}
+.side .appIcon,header.top .mBrand .appIcon,.patientBanner .appIcon{--ic-bg:rgba(255,255,255,.12);--ic-fg:#fff}
+.side nav button.act .appIcon{--ic-bg:#fff;--ic-fg:var(--p-navy,#104176)}
+.side .appIcon.tone-coral{--ic-bg:rgba(227,55,55,.22);--ic-fg:#FFD6D6}
+html[data-theme=dark] .appIcon{--ic-bg:#22344F;--ic-fg:#BFD0EA}html[data-theme=dark] .appIcon.tone-coral{--ic-bg:#3A1C22;--ic-fg:#FF9C9C}
+/* cards: crisp, flat, hairline borders instead of heavy glass */
+.card,.panel,.modulePanel,.stat3d,.kpi{background:#fff!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:1px solid #E3E7EE!important;box-shadow:var(--sh-1)!important;border-radius:var(--r-card)!important}
+html[data-theme=soft] .card,html[data-theme=soft] .panel,html[data-theme=soft] .modulePanel,html[data-theme=soft] .stat3d{background:#F4F6F9!important}
+.panel h3,.modulePanel h3{font-size:1rem;margin:0 0 12px;color:#101828}
+/* page header */
+.pageHead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px!important}
+.pageHead h1{font-size:1.65rem!important;font-weight:600;letter-spacing:-.02em;margin:2px 0 4px!important}
+.pageHead p{color:#667085!important;max-width:760px;margin:0;font-size:.95rem}
+.eyebrow2{font:600 .7rem/1 var(--font-body),"Open Sans",sans-serif!important;letter-spacing:.1em!important;color:#C62828!important}
+.page{padding:28px 32px 40px!important;max-width:1440px}
+/* KPI tiles */
+.stats{gap:16px!important}
+.stat3d{padding:18px 20px!important;border-top:0!important;position:relative;overflow:hidden}
+.stat3d::before{display:none!important}
+.stat3d small{font:600 .7rem var(--font-body),"Open Sans",sans-serif!important;color:#667085!important;letter-spacing:.06em}
+.stat3d b{font-size:1.75rem!important;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+/* tables */
+.dataTable{font-variant-numeric:tabular-nums}
+.dataTable thead th{position:sticky;top:0;background:#F9FAFB!important;border-bottom:1px solid #EAECF0!important;color:#667085!important;font-size:.7rem!important;padding:11px 14px!important;z-index:1}
+.dataTable thead th:first-child{border-top-left-radius:10px}.dataTable thead th:last-child{border-top-right-radius:10px}
+.dataTable td{padding:13px 14px!important;border-bottom:1px solid #F2F4F7!important;color:#344054}
+.dataTable tbody tr:last-child td{border-bottom:0!important}
+html[data-theme=dark] .dataTable thead th{background:#111C2E!important;border-color:#26344A!important}
+/* buttons */
+.primary,button.primary{border-radius:10px!important;font-weight:600;letter-spacing:.01em}
+.ghost,button.ghost{border-radius:10px!important}
+/* top bar */
+.top{height:64px;box-shadow:none!important;background:rgba(255,255,255,.85)!important;border-bottom:1px solid #EAECF0!important;backdrop-filter:saturate(1.6) blur(12px)}
+html[data-theme=soft] .top{background:rgba(236,239,244,.9)!important}
+.gsearch{background:#F9FAFB!important;border:1px solid #EAECF0!important;border-radius:12px!important;box-shadow:none!important}
+.gsearch input{background:transparent!important;border:0!important;box-shadow:none!important}
+/* sidebar: section label + calmer nav */
+.side nav{display:flex;flex-direction:column;gap:2px}
+.side nav button:not(#_){font-weight:500;font-size:.92rem;min-height:42px!important;padding:0 10px!important;gap:10px}
+.side nav button.act:not(#_){background:rgba(255,255,255,.16)!important;box-shadow:inset 3px 0 0 #E33737!important;font-weight:600}
+.side .moreBtn:not(#_){background:transparent!important;border:0!important;font-size:.68rem!important;letter-spacing:.12em;text-transform:uppercase;color:#9FB3D1!important;justify-content:space-between;margin-top:14px;min-height:30px!important}
+.side .sideBrand{padding:18px 14px 16px!important;border-bottom:1px solid rgba(255,255,255,.08)}
+/* chips & pills */
+.pill{font-weight:600;letter-spacing:.01em}
+/* doctor desk patient banner */
+.padHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:linear-gradient(135deg,var(--p-navy,#104176),var(--p-navy2,#0B2E55));color:#fff;border-radius:12px;padding:14px 18px;margin:-4px -4px 14px}
+.padHead h2{color:#fff!important;margin:0;font-size:1.2rem}.padHead small{color:#C9D6EA!important}
+.padHead .alert{background:#E33737!important;color:#fff!important;border:0!important;padding:6px 12px;border-radius:999px;font-weight:600;font-size:.85rem}
+.recLink{display:inline-flex;margin:0 0 10px}
+/* hide keyboard hints on touch devices */
+@media (hover:none),(pointer:coarse){kbd,.kbdHint{display:none!important}}
+/* phone fixes */
+@media (max-width:767px){
+ html body form.card.big>button.primary,html body form.card.big>button.xlBtn{position:static!important;box-shadow:0 4px 14px rgba(16,65,118,.25)!important;outline:0!important;margin-top:12px}
+ .page{padding:16px 14px 24px!important}
+ .pageHead{align-items:stretch;margin-bottom:14px!important}.pageHead h1{font-size:1.35rem!important}
+ html body .app.single .mainCol{padding-bottom:16px}
+ .stat3d b{font-size:1.4rem!important}
+}
+@media (min-width:768px) and (max-width:1199px){.page{padding:22px 24px 32px!important}}
