@@ -600,3 +600,4 @@ html[data-theme=dark][data-accent] h1,html[data-theme=dark] .pageHead h1{color:#
 .intCopy{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0;padding:12px 14px;border:1px dashed var(--p-line);border-radius:12px}.intCopy code{word-break:break-all;font-size:12.5px}
 .intTo{max-width:240px}.ghost.danger{color:#b4232c}.small{font-size:12.5px}
 .tokenBill{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:8px;font-size:13px}
+.bookPage .slotGrid{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}.bookPage .chip.on{background:var(--p-navy);color:#fff;border-color:var(--p-navy)}.bookPage .dayChips{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.bookPage label.check{flex-direction:row;align-items:center;gap:8px}
