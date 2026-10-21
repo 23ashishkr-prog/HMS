@@ -1,0 +1,3 @@
+import {api,body} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {getSchedule,saveWeek,addLeave,deleteLeave,setOnline} from '@/lib/services/doctorsched'
+export const GET=api(async(c,db,r)=>getSchedule(db,c,new URL(r.url).searchParams.get('doctorId')||undefined))
+export const POST=api(async(c,db,r)=>{const b:any=await body(r);if(b.action==='week')return saveWeek(db,c,b.doctorId,b.sessions);if(b.action==='leave')return addLeave(db,c,b.doctorId,b);if(b.action==='deleteLeave')return deleteLeave(db,c,b.leaveId);if(b.action==='online')return setOnline(db,c,b.doctorId,!!b.online);return Response.json({error:'Unknown action'},{status:400})})

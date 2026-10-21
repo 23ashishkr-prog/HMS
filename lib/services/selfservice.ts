@@ -1,3 +1,4 @@
+import {doctorStatuses} from './doctorsched'
 /** Patient self-service: QR self check-in at the hospital and WhatsApp booking. Both are off until an admin enables them. */
 import {Ctx,Db,HttpError,audit,today} from './core'
 import {checkIn} from './opd'
@@ -8,7 +9,7 @@ import {istToUtc} from './schedule'
 import crypto from 'node:crypto'
 async function hosp(db:Db,code:string,key:string){const h=(await db.query('select id,name,code,self_checkin_enabled,checkin_key from hospitals where upper(code)=upper($1)',[String(code||'')])).rows[0];const a=Buffer.from(String(h?.checkin_key||'x')),b=Buffer.from(String(key||''));if(!h||!h.self_checkin_enabled||a.length!==b.length||!crypto.timingSafeEqual(a,b))throw new HttpError(404,'This check-in QR is not active. Please go to reception.');return h}
 const systemCtx=async(db:Db,hid:string):Promise<Ctx>=>{const u=(await db.query("select id from users where hospital_id=$1 and role='admin' and active order by created_at limit 1",[hid])).rows[0];if(!u)throw new HttpError(503,'Self check-in unavailable. Please go to reception.');return {hospitalId:hid,userId:u.id,role:'reception'}}
-export async function checkinInfo(db:Db,code:string,key:string){const h=await hosp(db,code,key);const d=(await db.query("select id,full_name from users where hospital_id=$1 and role='doctor' and active order by full_name",[h.id])).rows;return {hospital:h.name,doctors:d}}
+export async function checkinInfo(db:Db,code:string,key:string){const h=await hosp(db,code,key);const d=(await doctorStatuses(db,h.id)).filter(x=>x.status!=='on_leave'&&x.online).map(x=>({id:x.id,full_name:x.full_name,available:x.status==='available'}));return {hospital:h.name,doctors:d}}
 /** Patient identifies with mobile + date of birth (or UHID). Max 5 failed tries per mobile per 15 min. */
 export async function selfCheckIn(db:Db,code:string,key:string,b:any){const h=await hosp(db,code,key);let mobile:string|null=null;try{mobile=normalizeMobile(b.mobile)}catch{};if(!mobile)throw new HttpError(400,'Enter your 10-digit mobile number.')
  const fails=(await db.query("select count(*)::int n from self_checkin_attempts where hospital_id=$1 and mobile=$2 and not ok and created_at>now()-interval '15 minutes'",[h.id,mobile])).rows[0].n;if(fails>=5)throw new HttpError(429,'Too many attempts. Please go to reception.')
@@ -19,6 +20,7 @@ export async function selfCheckIn(db:Db,code:string,key:string,b:any){const h=aw
  const q=(await db.query("select q.token_no,u.full_name doctor from doctor_queue q join users u on u.id=q.doctor_user_id where q.hospital_id=$1 and q.patient_id=$2 and q.visit_date=$3 and q.status<>'checked' order by q.checked_in_at desc limit 1",[h.id,p.id,day])).rows[0];if(q)return {already:true,token:q.token_no,doctor:q.doctor,firstName:p.full_name.split(' ')[0]}
  const ap=(await db.query("select id,doctor_user_id from appointments where hospital_id=$1 and patient_id=$2 and status in ('scheduled','confirmed') and scheduled_at>=$3 and scheduled_at<$4 order by scheduled_at limit 1",[h.id,p.id,istToUtc(day,0),istToUtc(day,1440)])).rows[0]
  const doctorId=ap?.doctor_user_id||b.doctorId;if(!doctorId)return {needDoctor:true,firstName:p.full_name.split(' ')[0]}
+ if(!ap){const st=(await doctorStatuses(db,h.id)).find(x=>x.id===doctorId);if(!st)throw new HttpError(404,'Doctor not found.');if(st.status==='on_leave'||!st.online)throw new HttpError(409,'This doctor is not available today. Please choose another doctor or ask at reception.')}
  const r=await checkIn(db,ctx,{patientId:p.id,doctorId,appointmentId:ap?.id||null});await audit(db,ctx,'self_check_in','queue',r.id,{via:'qr',token:r.token_no,appointment:!!ap})
  const ahead=(await db.query("select count(*)::int n from doctor_queue where hospital_id=$1 and doctor_user_id=$2 and visit_date=$3 and status in ('waiting','called') and token_no<$4",[h.id,doctorId,day,r.token_no])).rows[0].n
  return {token:r.token_no,doctor:r.doctor,ahead,firstName:p.full_name.split(' ')[0],appointment:!!ap}}

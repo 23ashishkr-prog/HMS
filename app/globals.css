@@ -406,3 +406,17 @@ html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs butt
 .modalBackdrop .modal.wide{width:min(760px,100%)}
 .accessBox{grid-column:1/-1;background:#F2F5FA;border-radius:12px;padding:12px 14px}.accessBox b{display:block;font-size:.8rem;color:#595959;margin-bottom:8px}.accessBox div{display:flex;flex-wrap:wrap;gap:6px}
 @media (max-width:767px){.rowActions{justify-content:flex-start}.userTable td:first-child{justify-content:flex-start}}
+/* doctor schedules */
+.docPicker{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.docCard{display:grid!important;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:left;padding:10px 14px!important;min-width:180px;border-radius:14px!important}
+.docCard .dot{grid-row:1/3}.docCard small{color:#595959;font-size:.75rem}.docCard.on{border-color:#104176!important;box-shadow:0 0 0 2px rgba(16,65,118,.15)!important}
+.dot{width:10px;height:10px;border-radius:50%;background:#B8C1CF;display:inline-block}.dot.available{background:#1E9E5A;box-shadow:0 0 0 3px rgba(30,158,90,.18)}.dot.on_leave{background:#E33737}.dot.offline{background:#8A94A6}.dot.off_duty{background:#E0A100}
+.schedHead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.schedHead h2{margin:0}
+.switch{display:inline-flex;align-items:center;gap:10px;font-weight:600;color:#0B2E55;cursor:pointer}.switch input{position:absolute;opacity:0;width:1px;height:1px}.switch span{width:46px;height:26px;border-radius:13px;background:#C9D1DD;position:relative;transition:background .15s}.switch span::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s}.switch input:checked+span{background:#1E9E5A}.switch input:checked+span::after{left:23px}.switch input:focus-visible+span{box-shadow:0 0 0 3px rgba(74,111,165,.35)}
+.weekGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}.dayCol{background:#F2F5FA;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}.dayCol>b{font:600 .85rem var(--font-heading),Poppins,sans-serif;color:#0B2E55}
+.sess{display:grid;grid-template-columns:1fr auto 1fr;gap:4px;align-items:center;background:#FBFCFD;border:1px solid #DCE1EA;border-radius:10px;padding:6px;position:relative}.sess span{font-size:.7rem;color:#595959}.sess input,.sess select{min-height:32px!important;padding:2px 4px!important;font-size:.8rem!important}.sess select{grid-column:1/-1}.sess .x{position:absolute;top:-8px;right:-8px;min-height:22px!important;width:22px;height:22px;padding:0!important;border-radius:50%!important;background:#fff!important;font-size:.7rem}
+.addSess{min-height:32px!important;font-size:.8rem;border-style:dashed!important}
+.availStrip{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}.availStrip .a{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#F7F8FB;border:1px solid #DCE1EA;font-size:.85rem}.availStrip small{color:#595959}
+.chip.offDoc{opacity:.5}.chip .dot{margin-right:6px}
+@media (max-width:1199px){.weekGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:767px){.weekGrid{grid-template-columns:1fr}.docCard{flex:1 1 100%}}
