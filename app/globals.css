@@ -640,3 +640,17 @@ html body .wX{position:absolute;top:-8px;left:-8px;width:28px;height:28px;paddin
 .st{font-style:normal;font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(16,65,118,.08);text-transform:capitalize}
 @media (max-width:1100px){.homeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.widget.w-l,.widget.w-m{grid-column:span 2}}
 @media (max-width:767px){.homeGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.widget{padding:14px;min-height:120px}.widget.w-s{grid-column:span 1}.widget.w-m,.widget.w-l{grid-column:span 2}.wBig b{font-size:28px}.homeActs button{padding:8px 14px}}
+/* patient portal */
+.portal{max-width:720px;margin:0 auto;padding:20px 16px 60px;font-family:'Open Sans',system-ui,sans-serif}
+.portalLogin{margin-top:8vh}.portalLogin h1,.pTop h1{font:700 28px/1.15 Poppins,system-ui,sans-serif;margin:6px 0}
+.otpIn{font:600 26px/1 Poppins,monospace;letter-spacing:.4em;text-align:center}
+.pTop{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 4px 14px}.pTop small{color:var(--p-muted,#6b7385)}
+.pTabs{display:flex;gap:6px;overflow-x:auto;padding:4px;margin-bottom:16px;border-radius:999px;background:var(--co-glass,#fff);border:1px solid var(--p-line)}.pTabs button{flex:none;border:0;background:transparent;padding:9px 14px;font-weight:600}.pTabs button.on{background:var(--p-navy);color:#fff}
+.pGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.pTile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:18px;border-radius:22px!important;border:1px solid var(--co-glass-b,#fff);background:var(--co-glass,#fff);box-shadow:var(--co-shadow);text-align:left;font-weight:600}.pTile b{font:700 28px/1 Poppins,sans-serif;color:var(--p-navy)}
+.pCard{display:flex;flex-direction:column;gap:6px;padding:16px 18px;margin-bottom:10px;border-radius:20px;background:var(--co-glass,#fff);border:1px solid var(--co-glass-b,#fff);box-shadow:var(--co-shadow);text-decoration:none;color:inherit}.pCard small{color:var(--p-muted,#6b7385)}.pCard.warn{border-left:4px solid #E33737}.pCard.ok{border-left:4px solid #18a058}.pCard ul{margin:4px 0 0 18px;padding:0}
+.pDose{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:14px 16px;margin-bottom:10px;border-radius:20px;background:var(--co-glass,#fff);border:1px solid var(--co-glass-b,#fff);box-shadow:var(--co-shadow)}.pDose b{font:700 18px Poppins,sans-serif;display:block}.pDose small{color:var(--p-muted,#6b7385);text-transform:capitalize}.pDose ul{margin:0;padding-left:16px}.pDose.done{opacity:.7}.pDose .chip.on{background:#18a058;color:#fff;border-color:#18a058}
+.portal .chip.on{background:var(--p-navy);color:#fff}.portal .slotGrid{display:flex;flex-wrap:wrap;gap:8px}.portal .dayChips{overflow-x:auto;flex-wrap:nowrap}
+.dictRow{display:flex;gap:8px;align-items:center}.dictRow>input,.dictRow>textarea{flex:1}
+html body .dictBtn{flex:none;width:40px;height:40px;padding:0;border-radius:50%;border:1px solid var(--p-line);background:var(--co-glass,#fff);font-size:17px}html body .dictBtn.live{background:#E33737;color:#fff;border-color:#E33737;animation:pulse 1.2s infinite}@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(227,55,55,.18)}}
+@media (max-width:480px){.pDose{grid-template-columns:70px 1fr}.pDose button{grid-column:1/-1}}
+.vmode{margin:0 0 12px}.meetLink{display:block;font-size:11px;margin-top:2px}
