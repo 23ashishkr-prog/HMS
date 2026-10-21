@@ -698,3 +698,56 @@ html body .authPremium .authCard{align-self:center;justify-self:center;width:min
 .kcard{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 14px #0f172a0f;cursor:pointer;border-left:4px solid #6366f1}
 .k-won .kcard{border-left-color:#10b981}.k-lost .kcard{border-left-color:#94a3b8}.k-demo .kcard{border-left-color:#f59e0b}.k-trial .kcard{border-left-color:#ec4899}
 html body .authPremium .authSide{align-self:stretch;min-height:100vh;border-radius:0}html body .crm .crmHead{background:none;box-shadow:none;position:static}
+.mkPlans.two{max-width:880px;margin:20px auto 0;text-align:left}.mkPlans ul{padding-left:18px;line-height:1.9;margin:14px 0 20px}.mkPlans .hot ul{color:#eef2ff}.mkPlans article{position:relative;display:flex;flex-direction:column}.mkPlans article .mkBtn{margin-top:auto;text-align:center}
+.mkTag{position:absolute;top:16px;right:16px;background:#fff3;padding:4px 10px;border-radius:99px;font-size:.75rem;font-weight:700}.mkTrial{color:#64748b;margin-top:16px}
+/* ================= ColorOS spec layer (r1022b) =================
+   icons 56px r16 · labels 12px · screen padding 16/20/24 · widgets r24 · floating cards r20 · targets ≥48 · press .96
+   short 160ms · open/close 380/320ms · ease-out / spring */
+:root{--c-ease:cubic-bezier(.22,1,.36,1);--c-spring:cubic-bezier(.2,.9,.3,1.04);--c-short:160ms;--c-open:380ms;--c-widget-r:24px;--c-card-r:20px;--c-pad:16px}
+@media(min-width:600px){:root{--c-pad:20px}}@media(min-width:1100px){:root{--c-pad:24px}}
+html body .mainCol>section,html body .mainCol .content,html body .mainCol>div:not(.btabs){padding-left:var(--c-pad);padding-right:var(--c-pad)}
+html body .widget{border-radius:var(--c-widget-r)!important}
+html body .panel,html body .modal,html body .card,html body .kcard,html body .authCard,html body .aquaPill,html body .mkGrid article,html body .mkPlans article{border-radius:var(--c-card-r)}
+html body button,html body a.chip,html body .btabs button,html body select,html body input:not([type=checkbox]):not([type=radio]){min-height:48px}
+html body button:not(:disabled),html body a[data-app],html body .chip{transition:transform var(--c-short) var(--c-ease),background-color var(--c-short) var(--c-ease),box-shadow var(--c-short) var(--c-ease),opacity var(--c-short) var(--c-ease)}
+html body button:not(:disabled):active,html body a[data-app]:active,html body .chip:active,html body .kcard:active{transform:scale(.96)}
+/* app icons */
+html body .wQuick{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:14px 8px}
+html body .wQuick a.appLaunch{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:48px;min-width:48px;padding:6px 2px;border-radius:18px;text-decoration:none;color:inherit;background:none!important}
+html body .wQuick a.appLaunch span{font-size:12px;line-height:1.25;text-align:center;font-weight:600;max-width:84px}
+html body .wQuick .appIcon{width:56px;height:56px;filter:drop-shadow(0 6px 12px rgba(16,65,118,.18))}
+/* dynamic wallpaper */
+html body{background:#eef2f8}
+html body::before{content:"";position:fixed;inset:-20vmax;z-index:-1;pointer-events:none;background:radial-gradient(35vmax 35vmax at 15% 20%,rgba(31,182,201,.20),transparent 70%),radial-gradient(40vmax 40vmax at 85% 15%,rgba(255,122,107,.16),transparent 70%),radial-gradient(45vmax 45vmax at 50% 95%,rgba(11,42,91,.14),transparent 70%);animation:wall 28s var(--c-ease) infinite alternate}
+@keyframes wall{0%{transform:translate3d(0,0,0) rotate(0)}50%{transform:translate3d(-3vmax,2vmax,0) rotate(6deg)}100%{transform:translate3d(2vmax,-2vmax,0) rotate(-4deg)}}
+html[data-theme=dark] body{background:#0b1220}html[data-theme=dark] body::before{opacity:.55}
+html body .mainCol{background:transparent}
+/* thin rounded nav indicator */
+html body .btabs button{position:relative}
+html body .btabs button.act::after{content:"";position:absolute;bottom:4px;left:50%;width:20px;height:3px;margin-left:-10px;border-radius:3px;background:currentColor;animation:ind var(--c-short) var(--c-ease)}
+@keyframes ind{from{width:4px;margin-left:-2px;opacity:.3}}
+/* gesture bar */
+.gestureZone{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:160px;height:28px;z-index:75;display:flex;align-items:flex-end;justify-content:center;padding-bottom:max(6px,env(safe-area-inset-bottom));cursor:pointer;touch-action:none}
+.gestureBar{width:120px;height:5px;border-radius:5px;background:rgba(15,23,42,.45);box-shadow:0 0 0 1px rgba(255,255,255,.5);transition:width var(--c-short) var(--c-ease),background var(--c-short)}
+.gestureZone:hover .gestureBar,.gestureZone:active .gestureBar{width:140px;background:rgba(15,23,42,.7)}
+html[data-theme=dark] .gestureBar{background:rgba(255,255,255,.6)}
+@media(max-width:767px){html body .btabs{padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}}
+/* app open/close */
+.appWin{position:fixed;z-index:90;background:linear-gradient(180deg,#f7f9fc,#eef2f8);box-shadow:0 30px 80px rgba(11,42,91,.35);pointer-events:none;will-change:left,top,width,height}
+html[data-theme=dark] .appWin{background:#0f172a}
+html.appLaunching .mainCol,html.appLaunching .rail,html.appLaunching aside{transform:scale(.94);filter:blur(6px);opacity:.6;transition:transform var(--c-open) var(--c-ease),filter var(--c-open) var(--c-ease),opacity var(--c-open) var(--c-ease)}
+/* Aqua Dynamics pill */
+.aquaPill{--pw:min(360px,100%);margin:0 auto 16px;width:var(--pw);max-width:300px;background:#0b1220;color:#e6f6fb;border-radius:999px;padding:0 16px;min-height:48px;cursor:pointer;overflow:hidden;box-shadow:0 10px 28px rgba(11,18,32,.35);transition:max-width 420ms var(--c-spring),border-radius 420ms var(--c-spring),padding 420ms var(--c-spring),min-height 420ms var(--c-spring)}
+.aquaPill.open{max-width:560px;border-radius:28px;padding:6px 18px 16px;min-height:180px}
+.apShort{display:flex;align-items:center;gap:10px;min-height:48px;font-size:13px;white-space:nowrap}.apShort b{color:#5eead4}
+.apDot{width:8px;height:8px;border-radius:50%;background:#94a3b8;flex:none}.aquaPill.live .apDot{background:#22d3ee;box-shadow:0 0 0 0 rgba(34,211,238,.7);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(34,211,238,0)}100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}}
+.apMore{opacity:0;transform:scale(.96) translateY(-6px);max-height:0;transition:opacity 260ms var(--c-ease) 80ms,transform 380ms var(--c-spring),max-height 420ms var(--c-spring)}
+.aquaPill.open .apMore{opacity:1;transform:none;max-height:260px}
+.apGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}.apGrid div{background:rgba(255,255,255,.07);border-radius:16px;padding:10px}.apGrid small{display:block;font-size:11px;opacity:.7}.apGrid b{font-size:20px}
+.apNext{font-size:12px;opacity:.85;margin:10px 2px 0}.apLinks{display:flex;gap:8px;margin-top:10px}.apLinks a{flex:1;text-align:center;min-height:44px;line-height:44px;border-radius:14px;background:rgba(94,234,212,.15);color:#5eead4;text-decoration:none;font-weight:700;font-size:13px}
+@media(max-width:480px){.apGrid{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){html body::before{animation:none}.aquaPill,.apMore,.gestureBar,html body button,html.appLaunching .mainCol{transition:none!important}.aquaPill.live .apDot{animation:none}}
+.brandLogo{display:block;flex:none}
+html body .aquaPill .apGrid small{color:#a9bdd3!important;opacity:1}html body .aquaPill:not(.open){max-width:260px}html body .aquaPill .apShort span{color:#e6f6fb}
+html body .mkPlans .hot h3{color:#fff}

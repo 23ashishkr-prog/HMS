@@ -1,5 +1,5 @@
 'use client'
-import {useCallback,useEffect,useMemo,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,inr,me as whoAmI} from '@/lib/client';import {toast} from '@/lib/toast';import Icon3D,{IconName} from '@/components/Icon3D'
+import {useCallback,useEffect,useMemo,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,inr,me as whoAmI} from '@/lib/client';import {toast} from '@/lib/toast';import Icon3D,{IconName} from '@/components/Icon3D';import LivePill from '@/components/LivePill'
 import {DndContext,closestCenter,PointerSensor,TouchSensor,KeyboardSensor,useSensor,useSensors,DragEndEvent} from '@dnd-kit/core'
 import {SortableContext,useSortable,arrayMove,rectSortingStrategy,sortableKeyboardCoordinates} from '@dnd-kit/sortable';import {CSS} from '@dnd-kit/utilities'
 type Item={id:string;size:'s'|'m'|'l'}
@@ -7,7 +7,7 @@ const ICON:Record<string,IconName>={quick_actions:'dashboard',kpi_patients:'pati
 const QA:Record<string,[string,string,IconName][]>={admin:[['Register patient','/frontdesk','frontdesk'],['Doctor desk','/opd','doctor'],['Billing','/billing','billing'],['Users','/admin/users','patients'],['Schedules','/schedules','calendar'],['Integrations','/admin/integrations','settings']],reception:[['Register patient','/frontdesk','frontdesk'],['Appointments','/appointments','calendar'],['Billing','/billing','billing'],['Patients','/patients','patients']],doctor:[['Doctor desk','/opd','doctor'],['Appointments','/appointments','calendar'],['My schedule','/schedules','calendar'],['Follow-ups','/followups','calendar']],nurse:[['Doctor desk','/opd','doctor'],['IPD beds','/ipd','ipd'],['Patients','/patients','patients']],lab:[['Lab worklist','/laboratory','lab']],pharmacy:[['Prescriptions','/pharmacy','pharmacy']],billing:[['Billing','/billing','billing'],['Insurance','/insurance','insurance'],['IPD beds','/ipd','ipd']]}
 const fmtT=(s:string)=>new Date(s).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit'})
 function Body({id,d,role}:{id:string;d:any;role:string}){if(d==null)return <div className="wSkel"/>
- switch(id){case 'quick_actions':return <div className="wQuick">{(QA[role]||[]).map(([l,h,i])=><a key={h} href={h}><Icon3D name={i} size={40}/><span>{l}</span></a>)}</div>
+ switch(id){case 'quick_actions':return <div className="wQuick">{(QA[role]||[]).map(([l,h,i])=><a key={h} href={h} data-app className="appLaunch"><Icon3D name={i} size={56}/><span>{l}</span></a>)}</div>
   case 'kpi_patients':return <div className="wBig"><b>{d.registered}</b><small>registered</small><b>{d.seen}</b><small>OPD visits</small></div>
   case 'beds':return <div className="wBig"><b>{d.occupied}<i>/{d.total}</i></b><small>beds occupied</small><div className="wBar"><span style={{width:(d.total?Math.round(100*d.occupied/d.total):0)+'%'}}/></div></div>
   case 'collections':return <div className="wBig"><b>{inr(d.total)}</b><small>{d.n} payments today</small></div>
@@ -41,6 +41,7 @@ export default function Home(){const[role,setRole]=useState(''),[items,setItems]
   {setup&&!setup.done&&!edit&&<a className="setupNudge" href="/admin/setup"><b>Finish setting up · {setup.progress}%</b><span>{setup.steps.filter((x:any)=>!x.done&&!x.optional).length} steps left — open the setup wizard</span></a>}
   {edit&&<div className="editBar"><span>Layout: {src==='user'?'your own':src==='hospital'?'hospital default':'role default'}</span><button className="ghost" onClick={async()=>{const x=await call('/api/home','PUT',{reset:true});setItems(x.layout);setSrc(x.source);toast('Reset to default')}}>Reset to default</button>
    {role==='admin'&&<span className="defRole">Set as hospital default for <select value={defRole} onChange={e=>setDefRole(e.target.value)}>{['admin','reception','doctor','nurse','lab','pharmacy','billing'].map(r=><option key={r}>{r}</option>)}</select><button className="ghost" onClick={async()=>{try{await call('/api/home','PUT',{scope:'hospital',role:defRole,layout:items});toast('Default saved for '+defRole)}catch(e:any){toast(e.message,'err')}}}>Save default</button></span>}</div>}
+  <LivePill/>
   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onEnd}><SortableContext items={items.map(i=>i.id)} strategy={rectSortingStrategy}><div className={'homeGrid'+(edit?' editing':'')}>
    {items.map(it=><Tile key={it.id} it={it} title={title(it.id)} edit={edit} d={data[it.id]} role={role} onSize={s=>save(items.map(x=>x.id===it.id?{...x,size:s}:x))} onRemove={()=>save(items.filter(x=>x.id!==it.id))}/>)}
    {!items.length&&<p className="emptyState">No widgets. Tap Edit home → Add widget.</p>}</div></SortableContext></DndContext>

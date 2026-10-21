@@ -68,11 +68,9 @@ test('tenant isolation: hospital B can never read or write hospital A data', asy
 
 test('subscription gating, limits and provider events', async()=>{
  const db=await freshDb();const {admin,mk}=await tenant(db,'Small Clinic','basic')
- await requireModule(db,admin,'opd');await rejects(requireModule(db,admin,'ipd'),402)
- for(let i=0;i<4;i++)await mk('doctor','Doc '+i) // admin + 4 = basic limit of 5
- await rejects(mk('doctor','Doc extra'),402)
+ await requireModule(db,admin,'opd');await requireModule(db,admin,'ipd');await rejects(requireModule(db,admin,'ai'),402);await rejects(requireModule(db,admin,'engagement'),402)
  await db.query("update subscriptions set trial_ends_at=now()-interval '1 day' where hospital_id=$1",[admin.hospitalId]);await rejects(requireModule(db,admin,'opd'),402)
- await applyProviderEvent(db,admin.hospitalId,{type:'subscription.activated',planCode:'pro'},{});const s=await getSubscription(db,admin.hospitalId);assert.equal(s.status,'active');assert.equal(s.plan_code,'pro');await requireModule(db,admin,'ipd')
+ await applyProviderEvent(db,admin.hospitalId,{type:'subscription.activated',planCode:'pro'},{});const s=await getSubscription(db,admin.hospitalId);assert.equal(s.status,'active');assert.equal(s.plan_code,'ai_engage');await requireModule(db,admin,'ai');await requireModule(db,admin,'engagement')
  assert.equal(normalizeAbha(null),null);assert.throws(()=>normalizeAbha('123'))
 })
 test('dashboard "today" counts use IST calendar day', async()=>{
