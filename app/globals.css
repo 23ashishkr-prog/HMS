@@ -420,3 +420,9 @@ html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs butt
 .chip.offDoc{opacity:.5}.chip .dot{margin-right:6px}
 @media (max-width:1199px){.weekGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:767px){.weekGrid{grid-template-columns:1fr}.docCard{flex:1 1 100%}}
+/* report files */
+.rfiles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.rfile{display:inline-flex;align-items:center;gap:4px;background:#F2F5FA;border-radius:10px;padding:2px 4px}.rfile .ghost{min-height:30px!important;padding:0 8px!important;font-size:.8rem;border:0!important}.mini{min-height:26px!important;font-size:.72rem!important;padding:0 8px!important}
+.upBtn{min-height:32px!important;font-size:.8rem;border-style:dashed!important}
+.modalBackdrop .modal.viewer{width:min(1000px,96vw);height:min(90vh,1100px);display:flex;flex-direction:column}.viewFrame{flex:1;width:100%;border:1px solid #DCE1EA;border-radius:12px;background:#fff}.viewImg{max-width:100%;max-height:calc(90vh - 110px);object-fit:contain;margin:auto;border-radius:12px}
+.btnLink{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border-radius:10px;text-decoration:none;border:1px solid #DCE1EA;color:#104176}
+@media (max-width:767px){.modalBackdrop .modal.viewer{height:92vh;width:100%}}
