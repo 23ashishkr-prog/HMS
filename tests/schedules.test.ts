@@ -1,11 +1,11 @@
 import {test} from 'node:test';import assert from 'node:assert/strict'
 import {freshDb,tenant} from './helpers'
-import {saveWeek,addLeave,slotGrid,checkBookable,doctorStatuses,setOnline,istToUtc} from '../lib/services/doctorsched'
+import {saveWeek,addLeave,slotGrid,checkBookable,doctorStatuses,setOnline,istToUtc,getSchedule} from '../lib/services/doctorsched'
 import {freeSlots} from '../lib/services/patientcomms'
 test('weekly sessions, leave and online status drive bookable slots',async()=>{const db:any=await freshDb();const t=await tenant(db,'Sch '+Math.random(),'enterprise');const doc=await t.mk('doctor','Dr Sched');const other=await tenant(db,'Sch2 '+Math.random(),'enterprise')
  // 2026-10-26 is a Monday
  await saveWeek(db,t.admin,doc.userId,[{day:1,start:'09:00',end:'10:00',slotMinutes:20},{day:1,start:'17:00',end:'18:00',slotMinutes:30}])
- const g=await slotGrid(db,t.admin.hospitalId,doc.userId,'2026-10-26');assert.equal(g.length,5);assert.equal(g[0].toISOString(),istToUtc('2026-10-26',540).toISOString());assert.equal(g[3].toISOString(),istToUtc('2026-10-26',1020).toISOString())
+ const gs:any=await getSchedule(db,t.admin,doc.userId);assert.equal(gs.sessions.length,2);assert.equal(gs.sessions[0].start,'09:00');const g=await slotGrid(db,t.admin.hospitalId,doc.userId,'2026-10-26');assert.equal(g.length,5);assert.equal(g[0].toISOString(),istToUtc('2026-10-26',540).toISOString());assert.equal(g[3].toISOString(),istToUtc('2026-10-26',1020).toISOString())
  assert.equal((await slotGrid(db,t.admin.hospitalId,doc.userId,'2026-10-27')).length,0)
  assert.equal(await checkBookable(db,t.admin.hospitalId,doc.userId,istToUtc('2026-10-26',540)),null)
  assert.match(String(await checkBookable(db,t.admin.hospitalId,doc.userId,istToUtc('2026-10-26',720))),/outside/)
