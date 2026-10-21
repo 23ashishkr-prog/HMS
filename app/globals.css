@@ -664,3 +664,4 @@ html body .dictBtn{flex:none;width:40px;height:40px;padding:0;border-radius:50%;
 .idScanSheet video{width:100%;max-height:52vh;border-radius:16px;background:#000;object-fit:cover}
 .idScanSheet .row{display:flex;gap:8px;align-items:center;margin-top:10px}.idScanSheet .row small{flex:1}
 .dictWrap{position:relative}.dictWrap .dictBtn{position:absolute;right:6px;top:6px}
+.authForm .forgotLink{align-self:flex-end;font-size:.85rem;margin-top:-6px}.btnLink{display:block;text-align:center;text-decoration:none}
