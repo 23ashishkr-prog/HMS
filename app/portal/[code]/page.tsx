@@ -1,5 +1,5 @@
 'use client'
-import {use,useEffect,useState} from 'react';import Dictate from '@/components/Dictate'
+import TimeRoller from '@/components/TimeRoller';import {use,useEffect,useState} from 'react';import Dictate from '@/components/Dictate'
 const j=async(u:string,b?:any)=>{const r=await fetch(u,b?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}:{cache:'no-store'});const x=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(x.error||'Something went wrong'),{status:r.status});return x}
 const when=(s:string)=>new Date(s).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})
 const day=(s:string)=>new Date(s).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'numeric'})
@@ -23,7 +23,7 @@ function Book({code,onDone}:{code:string;onDone:()=>void}){const[info,setInfo]=u
   <label>Doctor<select required value={f.doctorId} onChange={e=>setF({...f,doctorId:e.target.value,at:''})}><option value="">Choose…</option>{info.doctors.map((d:any)=><option key={d.id} value={d.id}>{d.full_name}</option>)}</select></label>
   <div className="chips">{[['in_person','In person'],['video','Video']].map(([k,l])=><button type="button" key={k} className={'chip'+(f.mode===k?' on':'')} onClick={()=>setF({...f,mode:k})}>{l}</button>)}</div>
   {f.doctorId&&<><div className="chips dayChips">{[0,1,2,3,4,5,6].map(i=>istDay(i)).map(d=><button type="button" key={d} className={'chip'+(f.date===d?' on':'')} onClick={()=>setF({...f,date:d,at:''})}>{new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric'})}</button>)}</div>
-   <div className="slotGrid">{slots===null?<small>Loading…</small>:slots.length?slots.map(s=><button type="button" key={s.at} className={'chip'+(String(f.at)===String(s.at)?' on':'')} onClick={()=>setF({...f,at:s.at})}>{s.label}</button>):<small className="muted">No free times this day.</small>}</div></>}
+   <TimeRoller label="Appointment time" slots={slots&&slots.map((s:any)=>({value:String(s.at),label:s.label}))} value={String(f.at||'')} onChange={v=>setF((o:any)=>({...o,at:v}))} emptyText="No free times this day (doctor off or on leave). Try another day."/></>}
   <label>Reason (optional)<span className="dictRow"><input value={f.reason} onChange={e=>setF({...f,reason:e.target.value})}/><Dictate onText={t=>setF((x:any)=>({...x,reason:(x.reason?x.reason+' ':'')+t}))}/></span></label>
   <button className="primary full" disabled={busy||!f.at}>{busy?'Booking…':'Confirm booking'}</button></>}{err&&<p className="alert">{err}</p>}</form>}
 export default function Portal({params}:{params:Promise<{code:string}>}){const {code}=use(params);const[d,setD]=useState<any>(null),[auth,setAuth]=useState<'?'|'in'|'out'>('?'),[tab,setTab]=useState<string>('home'),[book,setBook]=useState(false),[err,setErr]=useState('')

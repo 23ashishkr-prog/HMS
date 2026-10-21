@@ -1,0 +1,5 @@
+/** Open (bookable) slots from the /api/appointments payload for one IST day. Shared by the appointments page and follow-up booking. */
+export function daySlots(x:any,date:string){if(Array.isArray(x?.slots))return x.slots;const dow=new Date(date+'T12:00:00').getDay();const a=x?.availability?.find((v:any)=>v.day_of_week===dow&&v.active);if(!a)return[]
+ const [sh,sm]=a.start_time.split(':').map(Number),[eh,em]=a.end_time.split(':').map(Number),out:any[]=[];for(let m=sh*60+sm;m+a.slot_minutes<=eh*60+em;m+=a.slot_minutes){const hm=String(m/60|0).padStart(2,'0')+':'+String(m%60).padStart(2,'0'),iso=date+'T'+hm+':00',t=new Date(iso).getTime(),ap=x.appointments?.find((v:any)=>new Date(v.scheduled_at).getTime()===t),off=x.timeOff?.some((v:any)=>t>=new Date(v.start_at).getTime()&&t<new Date(v.end_at).getTime());out.push({iso,hm,ap,off})}return out}
+const l12=(hm:string)=>{const [h,m]=hm.split(':').map(Number);return `${(h%12)||12}:${String(m).padStart(2,'0')} ${h<12?'am':'pm'}`}
+export const openRoll=(slots:any[],now=Date.now())=>slots.filter(s=>!s.off&&!s.ap&&new Date(s.iso).getTime()>now-60000).map(s=>({value:s.iso,label:l12(s.hm),hour:Number(s.hm.slice(0,2))}))

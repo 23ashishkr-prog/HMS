@@ -1,5 +1,5 @@
 'use client'
-import {use,useEffect,useState} from 'react'
+import TimeRoller from '@/components/TimeRoller';import {use,useEffect,useState} from 'react'
 const istDay=(o=0)=>new Date(Date.now()+330*60000+o*864e5).toISOString().slice(0,10)
 export default function Book({params}:{params:Promise<{code:string}>}){const {code}=use(params);const[info,setInfo]=useState<any>(null),[err,setErr]=useState(''),[f,setF]=useState<any>({name:'',mobile:'',email:'',doctorId:'',date:istDay(),at:'',mode:'in_person',reason:'',consent:true}),[slots,setSlots]=useState<any[]|null>(null),[busy,setBusy]=useState(false),[done,setDone]=useState<any>(null)
  const q=(x:any)=>fetch('/api/public/book?'+new URLSearchParams({h:code,...x})).then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error);return j})
@@ -15,7 +15,7 @@ export default function Book({params}:{params:Promise<{code:string}>}){const {co
    <label>Doctor<select required value={f.doctorId} onChange={e=>setF({...f,doctorId:e.target.value,at:''})}><option value="">Choose a doctor…</option>{info.doctors.map((d:any)=><option key={d.id} value={d.id}>{d.full_name}{d.department?' · '+d.department:''}</option>)}</select></label>
    <label>Visit type<div className="chips">{[['in_person','In person'],['video','Video']].map(([k,l])=><button type="button" key={k} className={'chip'+(f.mode===k?' on':'')} onClick={()=>setF({...f,mode:k})}>{l}</button>)}</div></label>
    {f.doctorId&&<><div className="chips dayChips">{days.map(d=><button type="button" key={d} className={'chip'+(f.date===d?' on':'')} onClick={()=>setF({...f,date:d,at:''})}>{new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}</button>)}</div>
-    <div className="slotGrid">{slots===null?<small className="muted">Loading times…</small>:slots.length?slots.map(s=><button type="button" key={s.at} className={'chip'+(String(f.at)===String(s.at)?' on':'')} onClick={()=>setF({...f,at:s.at})}>{s.label}</button>):<small className="muted">No free times this day (doctor off or on leave). Try another day.</small>}</div></>}
+    <TimeRoller label="Appointment time" slots={slots&&slots.map((s:any)=>({value:String(s.at),label:s.label}))} value={String(f.at||'')} onChange={v=>setF((o:any)=>({...o,at:v}))} emptyText="No free times this day (doctor off or on leave). Try another day."/></>}
    {f.mode==='video'&&<label>E-mail (optional, for the calendar invite)<input type="email" value={f.email} onChange={e=>setF({...f,email:e.target.value})}/></label>}
    <label>Reason (optional)<input value={f.reason} onChange={e=>setF({...f,reason:e.target.value})}/></label>
    <label className="check"><input type="checkbox" checked={f.consent} onChange={e=>setF({...f,consent:e.target.checked})}/> Send confirmation and reminders on WhatsApp</label>
