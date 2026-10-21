@@ -14,6 +14,7 @@ export const NAV:NavItem[]=[
  {name:'Appointments',icon:'calendar',path:'/appointments',roles:['admin','reception','doctor'],more:true},
  {name:'Follow-ups',icon:'calendar',path:'/followups',roles:['admin','reception','doctor'],more:true},
  {name:'Insurance / TPA',icon:'insurance',path:'/insurance',roles:['admin','billing'],more:true},
- {name:'Settings & staff',icon:'settings',path:'/admin/settings',roles:['admin'],more:true},
+ {name:'Users & access',icon:'patients',path:'/admin/users',roles:['admin'],more:true},
+ {name:'Settings',icon:'settings',path:'/admin/settings',roles:['admin'],more:true},
  {name:'Audit log',icon:'audit',path:'/admin/audit',roles:['admin'],more:true}]
 export const HOME:Record<Role,string>={admin:'/',reception:'/frontdesk',doctor:'/opd',nurse:'/opd',lab:'/laboratory',pharmacy:'/pharmacy',billing:'/billing',patient:'/auth/login'}

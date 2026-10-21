@@ -397,3 +397,12 @@ html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs butt
 @media (min-width:768px) and (max-width:1199px){html body .app>.side .railToggle:not(#_){min-height:44px!important;box-shadow:none!important}}
 @media (max-width:767px){html body .formGrid>button.primary:disabled,html body form>button.primary:disabled:last-child{opacity:1!important;background:#8FA3C0!important;border-color:#8FA3C0!important}
  html body .formGrid>button.primary,html body form>button.primary:last-child{margin-top:6px;outline:6px solid rgba(236,239,244,.92)}}
+/* users & access */
+.roleChips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.roleChips .chip b{margin-left:6px;color:#4A6FA5}
+.userCell{display:flex;align-items:center;gap:12px;min-width:0}.userCell img,.userCell .ava{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 40px}.userCell .ava{display:grid;place-items:center;background:#E6ECF5;color:#104176;font:600 .85rem var(--font-heading),Poppins,sans-serif}
+.userCell span{display:flex;flex-direction:column;min-width:0}.userCell small{color:#595959;overflow:hidden;text-overflow:ellipsis}
+.userTable tr.inactive td{opacity:.55}.rowActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.rowActions button{padding:0 12px}
+.okPill{background:#E3F4EA!important;color:#1E6B3A!important}
+.modalBackdrop .modal.wide{width:min(760px,100%)}
+.accessBox{grid-column:1/-1;background:#F2F5FA;border-radius:12px;padding:12px 14px}.accessBox b{display:block;font-size:.8rem;color:#595959;margin-bottom:8px}.accessBox div{display:flex;flex-wrap:wrap;gap:6px}
+@media (max-width:767px){.rowActions{justify-content:flex-start}.userTable td:first-child{justify-content:flex-start}}
