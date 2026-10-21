@@ -23,7 +23,7 @@ const G:Record<IconName,React.ReactNode>={
  queue:<><rect x="14" y="14" width="36" height="36" rx="18"/><text x="32" y="40" textAnchor="middle" fontSize="20" fontWeight="800" fill="#0005" fontFamily="system-ui">#</text></>}
 /* iOS-style continuous-corner squircle (superellipse approximation) */
 const SQ='M32 2C9.5 2 2 9.5 2 32s7.5 30 30 30 30-7.5 30-30S54.5 2 32 2z'
-export default function Icon3D({name,size=28}:{name:IconName;size?:number}){const id='i'+name,[a,b,c]=C[name];return <svg className="appIcon" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true"><defs>
+export default function Icon3D({name,size=28}:{name:IconName;size?:number}){const uid=React.useId().replace(/[^a-zA-Z0-9]/g,''),id='i'+name+uid,[a,b,c]=C[name];return <svg className="appIcon" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true"><defs>
  <linearGradient id={id} x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stopColor={a}/><stop offset=".55" stopColor={b}/><stop offset="1" stopColor={c}/></linearGradient>
  <radialGradient id={id+'g'} cx=".3" cy=".15" r=".9"><stop offset="0" stopColor="#fff" stopOpacity=".55"/><stop offset=".45" stopColor="#fff" stopOpacity=".08"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></radialGradient>
  <linearGradient id={id+'r'} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity=".9"/><stop offset=".5" stopColor="#fff" stopOpacity=".15"/><stop offset="1" stopColor="#fff" stopOpacity=".45"/></linearGradient>

@@ -311,7 +311,7 @@ html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs butt
 @media (min-width:768px) and (max-width:1199px){
  html body .app{display:grid!important;grid-template-columns:76px minmax(0,1fr)!important}
  html body .app>.side{position:sticky!important;top:0;height:100vh!important;width:76px!important;min-width:0!important;padding:10px 8px!important;display:flex!important;flex-direction:column!important;overflow:visible;z-index:50;transition:width .2s ease}
- html body .app>.side .railToggle{display:grid!important;place-items:center;width:44px;height:44px;margin:0 auto 8px;border-radius:12px;background:rgba(255,255,255,.1)!important;color:#fff!important;border:0!important;font-size:1.1rem}
+ html body .app>.side .railToggle:not(#_){display:grid!important;place-items:center;width:44px;height:44px;margin:0 auto 8px;border-radius:12px;background:rgba(255,255,255,.1)!important;color:#fff!important;border:0!important;font-size:1.1rem}
  html body .app:not(.railOpen)>.side .sideBrand>div,html body .app:not(.railOpen)>.side nav span,html body .app:not(.railOpen)>.side nav kbd,html body .app:not(.railOpen)>.side .sideFoot{display:none!important}
  html body .app:not(.railOpen)>.side .sideBrand{justify-content:center;padding:6px 0!important}
  html body .app:not(.railOpen)>.side nav button:not(#_){justify-content:center;padding:0!important;width:56px!important;height:52px;min-height:52px;margin:2px auto}
@@ -393,3 +393,5 @@ html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs butt
  img,video,canvas,svg{max-width:100%}
 }
 @media (min-width:768px) and (max-width:1023px){.split,.desk{grid-template-columns:1fr!important}html body .stats{grid-template-columns:repeat(2,1fr)!important}}
+
+@media (min-width:768px) and (max-width:1199px){html body .app>.side .railToggle:not(#_){min-height:44px!important;box-shadow:none!important}}
