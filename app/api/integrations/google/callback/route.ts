@@ -1,0 +1,4 @@
+import {NextResponse} from 'next/server';import {api} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {googleCallback,readState} from '@/lib/services/integrations';import {HttpError} from '@/lib/services/core'
+/** Google redirects here. The signed state must name the same hospital+admin as the current session. */
+const handle=api(async(c,db,r)=>{const u=new URL(r.url);const back=(q:string)=>NextResponse.redirect(new URL('/admin/integrations?google='+q,u.origin));if(u.searchParams.get('error'))return back('denied');const st=readState(u.searchParams.get('state')||'');if(!st||st.h!==c.hospitalId||st.u!==c.userId)throw new HttpError(400,'Invalid or expired Google sign-in state. Start again from Settings > Integrations.');try{await googleCallback(db,c,u.searchParams.get('code')||'');return back('connected')}catch(e:any){return back('error')}})
+export const GET=handle

@@ -591,3 +591,11 @@ html[data-theme=dark][data-accent] h1,html[data-theme=dark] .pageHead h1{color:#
 .lbl small.muted{font-weight:500;color:#667085}
 .userTable .rowActions{flex-wrap:nowrap}.userTable td:last-child{white-space:nowrap}
 @media (max-width:767px){.userTable .rowActions{flex-wrap:wrap}.userTable td:last-child{white-space:normal}}
+/* integrations */
+.intGrid{display:grid;gap:20px}
+.intHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}.intHead h2{margin:0 0 4px}
+.intBadge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--p-bg);color:var(--p-muted,#5b6475);border:1px solid var(--p-line)}
+.intBadge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.intBadge.ok{color:#137a4b;background:#e6f6ee;border-color:#bfe6d1}.intBadge.err{color:#b4232c;background:#fdecec;border-color:#f6c7c9}.intBadge.warn{color:#9a6200;background:#fff5e0;border-color:#f3dca8}.intBadge.info{color:var(--p-navy);background:rgba(16,65,118,.07)}
+.intCopy{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0;padding:12px 14px;border:1px dashed var(--p-line);border-radius:12px}.intCopy code{word-break:break-all;font-size:12.5px}
+.intTo{max-width:240px}.ghost.danger{color:#b4232c}.small{font-size:12.5px}
