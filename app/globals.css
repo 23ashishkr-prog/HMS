@@ -599,3 +599,4 @@ html[data-theme=dark][data-accent] h1,html[data-theme=dark] .pageHead h1{color:#
 .intBadge.ok{color:#137a4b;background:#e6f6ee;border-color:#bfe6d1}.intBadge.err{color:#b4232c;background:#fdecec;border-color:#f6c7c9}.intBadge.warn{color:#9a6200;background:#fff5e0;border-color:#f3dca8}.intBadge.info{color:var(--p-navy);background:rgba(16,65,118,.07)}
 .intCopy{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0;padding:12px 14px;border:1px dashed var(--p-line);border-radius:12px}.intCopy code{word-break:break-all;font-size:12.5px}
 .intTo{max-width:240px}.ghost.danger{color:#b4232c}.small{font-size:12.5px}
+.tokenBill{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:8px;font-size:13px}
