@@ -26,6 +26,9 @@ const SQ='M32 2C9.5 2 2 9.5 2 32s7.5 30 30 30 30-7.5 30-30S54.5 2 32 2z'
 /** Flat, modern icon tile: tinted rounded square + solid glyph. Colours come from CSS variables so the same icon adapts to
  *  light cards (accent tint), the navy sidebar (white on translucent) and the user's accent preset. Coral tone for money/medicine/compliance. */
 const CORAL:IconName[]=['billing','pharmacy','insurance','audit','money']
-export default function Icon3D({name,size=28}:{name:IconName;size?:number}){return <svg className={'appIcon'+(CORAL.includes(name)?' tone-coral':'')} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
- <rect x="0" y="0" width="64" height="64" rx="17" className="icBg"/>
+/** ColorOS-style vivid tile gradients (navy/coral family + friendly accents), used when the "colour" icon style is active. */
+const TONE:Record<IconName,[string,string]>={dashboard:['#4F7BFF','#2747C9'],frontdesk:['#36B3FF','#1769E0'],doctor:['#2BC7A4','#0E8F7A'],billing:['#FF8A7A','#E33737'],money:['#FFB35C','#F06A2A'],pharmacy:['#FF7AA8','#E0336E'],lab:['#9B7BFF','#5B3FD9'],ipd:['#3FC7E8','#1186B5'],beds:['#3FC7E8','#1186B5'],patients:['#5AA0FF','#104176'],calendar:['#FF9F5A','#EE5A24'],insurance:['#7C8CFF','#3D49C8'],settings:['#8E9BB0','#4D5A70'],audit:['#F07A7A','#B82424'],search:['#5A80B8','#104176'],queue:['#4FD1A5','#119A6E']}
+export default function Icon3D({name,size=28}:{name:IconName;size?:number}){const [a,b]=TONE[name]||TONE.dashboard;return <svg className={'appIcon'+(CORAL.includes(name)?' tone-coral':'')} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" style={{['--t1' as any]:a,['--t2' as any]:b}}>
+ <defs><linearGradient id={'ic-'+name} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={a}/><stop offset="1" stopColor={b}/></linearGradient></defs>
+ <rect x="0" y="0" width="64" height="64" rx="20" className="icBg" data-grad={'url(#ic-'+name+')'}/>
  <g className="icFg" transform="translate(32 32) scale(.62) translate(-32 -32)">{G[name]}</g></svg>}

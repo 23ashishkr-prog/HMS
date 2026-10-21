@@ -3,7 +3,7 @@ export type Role='admin'|'reception'|'doctor'|'nurse'|'lab'|'pharmacy'|'billing'
 export type NavItem={name:string;icon:IconName;path:string;roles:Role[];more?:boolean}
 /** Primary = the handful of daily-use desks; "more" = secondary menu. */
 export const NAV:NavItem[]=[
- {name:'Dashboard',icon:'dashboard',path:'/',roles:['admin']},
+ {name:'Home',icon:'dashboard',path:'/',roles:['admin','reception','doctor','nurse','lab','pharmacy','billing']},
  {name:'Front desk',icon:'frontdesk',path:'/frontdesk',roles:['admin','reception']},
  {name:'Doctor desk',icon:'doctor',path:'/opd',roles:['admin','doctor','nurse']},
  {name:'Billing',icon:'billing',path:'/billing',roles:['admin','billing','reception']},

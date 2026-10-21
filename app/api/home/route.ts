@@ -1,0 +1,3 @@
+import {api,body} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {getLayout,saveLayout,saveHospitalDefault,widgetData} from '@/lib/services/widgets';import {HttpError} from '@/lib/services/core'
+export const GET=api(async(c,db,r)=>{if(c.role==='patient')throw new HttpError(403,'Forbidden');const u=new URL(r.url);const l=await getLayout(db,c);const ids=u.searchParams.get('ids')?.split(',')||l.layout.map(x=>x.id);return {...l,data:await widgetData(db,c,ids)}})
+export const PUT=api(async(c,db,r)=>{const b:any=await body(r);if(b.scope==='hospital')return saveHospitalDefault(db,c,b);return saveLayout(db,c,b)})
