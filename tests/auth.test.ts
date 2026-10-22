@@ -3,9 +3,9 @@ import {freshDb} from './helpers';import {onboardHospital} from '../lib/services
 test('regression: hospital sign-up then login (case/whitespace, codes, rollback)', async()=>{
  const db=await freshDb();const pw='Str0ng@Pass#29'
  const h=await tx(db,d=>onboardHospital(d,{hospitalName:'sudipta_Test',adminName:'Owner',adminEmail:'  Owner.Test@Gmail.com ',password:pw}))
- assert.equal(h.code,'SUDIPTATES')
+ assert.equal(h.code,'SUDIPTA')
  const u=await authenticate(db,'owner.test@gmail.com',pw);assert.equal(u.hospital_id,h.hospitalId);assert.equal(u.role,'admin')
- await authenticate(db,' OWNER.TEST@GMAIL.COM ',pw);await authenticate(db,'owner.test@gmail.com',pw,'sudiptates')
+ await authenticate(db,' OWNER.TEST@GMAIL.COM ',pw);await authenticate(db,'owner.test@gmail.com',pw,'sudipta')
  await assert.rejects(authenticate(db,'owner.test@gmail.com','wrong-password'),(e:any)=>e.status===401)
  await assert.rejects(authenticate(db,'owner.test@gmail.com',pw,'OTHER'),(e:any)=>e.status===401)
  // same email in a second hospital → login asks for hospital code
