@@ -1,0 +1,2 @@
+import {api,qs} from '@/lib/api';import {coverageFor} from '@/lib/services/followupfree';import {assertPatient} from '@/lib/services/core';export const runtime='nodejs';export const dynamic='force-dynamic'
+export const GET=api(async(c,db,r)=>{const p=await assertPatient(db,c,qs(r,'patientId'));const d=String(qs(r,'doctorId')||'');const day=new Date(Date.now()+330*60000).toISOString().slice(0,10);return {coverage:d?await coverageFor(db,c.hospitalId,p.id,d,day):null}},{module:'queue'})
