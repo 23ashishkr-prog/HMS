@@ -1,10 +1,20 @@
 'use client'
-import {useEffect,useState} from 'react';import {call,formObj} from '@/lib/client'
-export default function Page(){const[plans,setPlans]=useState<any[]>([]),[months,setMonths]=useState(2),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false)
+import {useEffect,useState} from 'react';import {call,formObj} from '@/lib/client';import Logo from '@/components/Logo'
+const inr=(n:any)=>'₹'+Number(n||0).toLocaleString('en-IN')
+const BLURB:Record<string,string>={basic:'Complete hospital operations',ai_engage:'Basic + AI doctor assistant, WhatsApp/e-mail, patient portal, reminders'}
+export default function Page(){const[plans,setPlans]=useState<any[]>([]),[months,setMonths]=useState(2),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false),[plan,setPlan]=useState('basic'),[done,setDone]=useState<any>(null)
  useEffect(()=>{call('/api/onboarding').then(x=>{setPlans(x.plans);setMonths(x.trialMonths)}).catch(e=>setMsg(e.message))},[])
- return <main className="authPage"><section className="authCard" style={{maxWidth:640}}><span className="overline">START YOUR {months}-MONTH FREE TRIAL</span><h1>Register your hospital</h1><p>Creates your hospital workspace and your admin login. Your data is isolated from every other hospital.</p>
- <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);try{const x=await call('/api/onboarding','POST',formObj(e));window.location.href=x.redirect}catch(er:any){setMsg(er.message)}finally{setBusy(false)}}}>
- <label>Hospital name *<input name="hospitalName" required/></label><label>Hospital code (login + UHID prefix, 3-10 letters) <input name="code" placeholder="auto from name"/></label><label>Address<input name="address"/></label><label>GSTIN<input name="gstin"/></label><label>Phone<input name="phone"/></label>
- <label>Plan<select name="planCode">{plans.map(p=><option key={p.code} value={p.code}>{p.name} · {p.modules.length} modules · {p.max_users??'unlimited'} users</option>)}</select></label>
- <label>Your name *<input name="adminName" required/></label><label>Your email *<input name="adminEmail" type="email" required/></label><label>Password (10+ characters) *<input name="password" type="password" minLength={10} required/></label>
- <button className="primary full" disabled={busy}>{busy?'Creating…':'Create hospital workspace'}</button>{msg&&<div className="authMessage">{msg}</div>}</form><p><a href="/auth/login">Already registered? Sign in</a></p></section></main>}
+ return <main className="authPage authPremium"><aside className="authSide" aria-hidden><div className="authSideIn"><b className="mkLogo"><Logo size={36}/> PMS Hospital Cloud</b><h2>Your hospital, live in an afternoon.</h2><ul><li>{months}-month free trial, no card needed</li><li>Indian defaults: services, departments, OPD timings</li><li>Your data isolated from every other hospital</li></ul><small>Encrypted · Role-based access · Audit trail</small></div></aside>
+ <section className="authCard onbCard">{done?<div className="onbDone"><span className="overline">WORKSPACE READY</span><h1>Welcome aboard 🎉</h1><p>Your hospital is set up. Staff sign in with this hospital code:</p>
+   <label>Hospital code<input readOnly value={done.code} className="codeOut" onFocus={e=>e.currentTarget.select()} aria-label="Hospital code"/></label><p className="muted">We've also e-mailed it to you (if e-mail is configured). It is also your UHID prefix.</p><a className="primary full btnLink" href={done.redirect||'/admin/setup'}>Continue to setup</a></div>:<>
+  <div className="authBrand"><Logo size={36}/><div><b>PMS</b><small>HOSPITAL CLOUD</small></div></div>
+  <span className="overline">START YOUR {months}-MONTH FREE TRIAL</span><h1>Register your hospital</h1><p>Creates your workspace and admin login. Your hospital code is generated automatically.</p>
+  <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);setMsg('');try{const x=await call('/api/onboarding','POST',{...formObj(e),planCode:plan});setDone(x)}catch(er:any){setMsg(er.message)}finally{setBusy(false)}}}>
+   <label>Hospital name *<input name="hospitalName" required autoComplete="organization" placeholder="e.g. Sunrise Multispeciality Hospital"/></label>
+   <div className="onb2"><label>Phone<input name="phone" inputMode="tel" autoComplete="tel"/></label><label>GSTIN<input name="gstin" autoCapitalize="characters"/></label></div>
+   <label>Address<input name="address" autoComplete="street-address"/></label>
+   <fieldset className="planPick"><legend>Plan</legend>{(plans.length?plans:[{code:'basic',name:'Basic',monthly_price_inr:19999},{code:'ai_engage',name:'AI + Customer Engagement',monthly_price_inr:49999}]).map(p=><label key={p.code} className={'planOpt'+(plan===p.code?' on':'')}><input type="radio" name="plan" value={p.code} checked={plan===p.code} onChange={()=>setPlan(p.code)}/><span><b>{p.name}</b><small>{BLURB[p.code]||''}</small></span><em>{inr(p.monthly_price_inr)}<small>/month</small></em></label>)}</fieldset>
+   <label>Your name *<input name="adminName" required autoComplete="name"/></label>
+   <div className="onb2"><label>Your email *<input name="adminEmail" type="email" required autoComplete="email"/></label><label>Password (10+ characters) *<input name="password" type="password" minLength={10} required autoComplete="new-password"/></label></div>
+   <button className="primary full" disabled={busy}>{busy?'Creating…':'Create hospital workspace'}</button>{msg&&<div className="authMessage" role="alert">{msg}</div>}</form>
+  <div className="authNote">Already registered? <a href="/auth/login">Sign in</a> · <a href="/welcome#pricing">Compare plans</a></div></>}</section></main>}
