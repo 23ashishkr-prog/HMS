@@ -54,7 +54,7 @@ button.primary,.primary{background:linear-gradient(180deg,#6366f1,#4f46e5);color
 .center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;color:var(--mut)}
 .pad section{border-top:1px solid var(--ln);padding:12px 0}.pad h3{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#475569}.padHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.padHead h2{margin:0}.padHead small{color:var(--mut)}
 .alert{background:#fee2e2;color:#991b1b;border-radius:10px;padding:6px 10px;font-weight:600;font-size:13px}.hist{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--mut)}
-.vitals{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}.vitals label{display:flex;flex-direction:column;gap:4px}.vitals small{color:var(--mut);font-size:12px}
+.vitals{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}.vitals input{min-width:0;width:100%}.vitals label{display:flex;flex-direction:column;gap:4px}.vitals small{color:var(--mut);font-size:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.two textarea{min-height:70px}.dxrow{display:flex;gap:8px;margin-bottom:6px}.dxrow input:last-child{flex:1}
 .rxTable{width:100%;border-collapse:collapse}.rxTable th{font-size:12px;color:var(--mut);text-align:left;padding:4px}.rxTable td{padding:3px}.rxTable input{width:100%}
 .padFoot{display:flex;gap:12px;align-items:center;border-top:1px solid var(--ln);padding-top:6px}.padFoot .xlBtn{flex:1}
@@ -64,7 +64,7 @@ button.primary,.primary{background:linear-gradient(180deg,#6366f1,#4f46e5);color
 .toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:50}.toast2{background:#0f172a;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 12px 30px #0f172a40;max-width:420px;animation:tin .2s ease-out}.toast2.ok{border-left:4px solid #22c55e}.toast2.err{border-left:4px solid #ef4444}@keyframes tin{from{transform:translateY(8px);opacity:0}}
 .modulePanel{padding:18px 20px}.moduleRow{padding:12px 4px}.drawer{border-radius:16px 0 0 16px}
 kbd{font-family:ui-monospace,monospace;font-size:11px;border:1px solid var(--ln);border-radius:5px;padding:1px 5px;background:#f8fafc}
-@media(max-width:1000px){.app{grid-template-columns:1fr}.side{position:static;height:auto}.split,.desk{grid-template-columns:1fr}.vitals{grid-template-columns:repeat(4,1fr)}.row4{grid-template-columns:1fr 1fr}}
+@media(max-width:1000px){.app{grid-template-columns:1fr}.side{position:static;height:auto}.split,.desk{grid-template-columns:1fr}.vitals{grid-template-columns:repeat(4,minmax(0,1fr))}.row4{grid-template-columns:1fr 1fr}}
 .page h1,.page h2,.page h3,.stat3d b,.drawer h2,.drawer h3,.modal h2,.tokenCard b{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
 /* ===== v3 "Liquid Glass" layer ===== */
 :root{--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI Variable","Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;--glass:rgba(255,255,255,.58);--glass2:rgba(255,255,255,.38);--gborder:rgba(255,255,255,.75);--gshadow:0 1px 0 rgba(255,255,255,.9) inset,0 10px 30px rgba(31,41,90,.12),0 2px 6px rgba(31,41,90,.06);--ink2:#0b1020;--mut:#5b6476;--ln:rgba(15,23,42,.08);--accent:#5b5bf6;--r:22px;--blur:saturate(180%) blur(22px)}
