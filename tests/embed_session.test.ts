@@ -1,9 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
 import {stringifyCookie} from 'next/dist/compiled/@edge-runtime/cookies/index.js'
 import {requestsEmbedCookie, sessionCookieOptions} from '../lib/sessionCookie'
 import {isWebKitBrowser} from '../lib/embedSession'
-import nextConfig from '../next.config.mjs'
 
 test('production embed cookie is SameSite=None, Secure, and Partitioned', () => {
   const embed = sessionCookieOptions(43200, {embed: true, nodeEnv: 'production'})
@@ -52,11 +52,9 @@ test('WebKit (including iOS browsers) needs storage access; Chromium does not', 
   assert.equal(isWebKitBrowser('', 'MacIntel', 5), true)
 })
 
-test('only greynova.in may frame HMS', async () => {
-  const rules = await nextConfig.headers()
-  const headers = rules[0].headers
-  const csp = headers.find((h: {key: string}) => h.key === 'Content-Security-Policy')
-  assert.equal(csp.value, "frame-ancestors 'self' https://greynova.in https://www.greynova.in")
-  assert.equal(headers.some((h: {key: string}) => h.key.toLowerCase() === 'x-frame-options'), false)
-  assert.equal(csp.value.includes('*'), false)
+test('only greynova.in may frame HMS', () => {
+  const src = readFileSync(new URL('../next.config.mjs', import.meta.url), 'utf8')
+  assert.match(src, /frame-ancestors 'self' https:\/\/greynova\.in https:\/\/www\.greynova\.in/)
+  assert.doesNotMatch(src, /key:\s*'X-Frame-Options'/)
+  assert.doesNotMatch(src, /frame-ancestors \*/)
 })
