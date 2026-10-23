@@ -12,8 +12,12 @@ export default function HospitalDetail(){
  const[d,setD]=useState<any>(null)
  const[err,setErr]=useState('')
  const[msg,setMsg]=useState('')
+ const[admins,setAdmins]=useState<any[]>([])
+ const[tempPw,setTempPw]=useState<any>(null)
+ const[resetBusy,setResetBusy]=useState(false)
  const load=()=>call('/api/platform/hospitals/'+id).then(setD).catch((e:any)=>setErr(e.message))
- useEffect(()=>{if(id)load()},[id])
+ const loadAdmins=()=>call('/api/platform/hospitals/'+id+'/reset-admin-password').then((r:any)=>setAdmins(r.admins||[])).catch(()=>{})
+ useEffect(()=>{if(id){load();loadAdmins()}},[id])
 
  if(err&&!d)return <PlatformSignIn title="Hospital" hint="Sign in as platform owner, then open this hospital again."/>
  if(!d)return <main className="plat"><p>Loading…</p></main>
@@ -84,6 +88,36 @@ export default function HospitalDetail(){
      ))}
     </div>
    </section>
+
+   <section id="reset-admin" className="panel modulePanel" style={{marginTop:24}}>
+    <h2>Reset hospital admin password</h2>
+    <p className="muted"><small>Sets a temporary password for an admin of <b>this</b> hospital only. Shown once below — copy it and share privately. They must change it at next hospital login. The password is never e-mailed from this screen and is not written to audit logs.</small></p>
+    {(admins.length?admins:[{id:'',email:h.admin_email,full_name:h.admin_name||'Primary admin',active:true}]).map((a:any)=>(
+     <div key={a.id||'primary'} className="actionRow" style={{marginBottom:8,alignItems:'center'}}>
+      <div style={{flex:1}}><b>{a.full_name||'—'}</b><br/><small>{a.email||'—'}</small>{a.must_change_password&&<> · <small className="muted">temp password pending</small></>}{a.active===false&&<> · <small className="err">inactive</small></>}</div>
+      <button type="button" className="primary" disabled={resetBusy||a.active===false} onClick={async()=>{
+        if(!window.confirm('Generate a temporary password for '+((a.full_name||a.email)||'this admin')+'? They will be forced to change it at next login.'))return
+        setResetBusy(true);setTempPw(null);setMsg('')
+        try{
+          const r=await call('/api/platform/hospitals/'+id+'/reset-admin-password','POST',a.id?{userId:a.id}:{})
+          setTempPw(r);loadAdmins()
+        }catch(e:any){setMsg(e.message)}
+        finally{setResetBusy(false)}
+      }}>{resetBusy?'Working…':'Reset admin password'}</button>
+     </div>
+    ))}
+    {tempPw&&(
+     <div>
+      <p><b>Temporary password for {tempPw.fullName||tempPw.email}</b> — copy now; it will not be shown again after you leave this page.</p>
+      <div className="tempPwBox">
+       <code id="plat-temp-pw">{tempPw.temporaryPassword}</code>
+       <button type="button" className="chip" onClick={()=>{navigator.clipboard?.writeText(tempPw.temporaryPassword);setMsg('Copied temporary password')}}>Copy</button>
+      </div>
+      <p className="muted"><small>Hospital code: <code>{tempPw.hospitalCode}</code> · Login e-mail: <code>{tempPw.email}</code></small></p>
+     </div>
+    )}
+   </section>
+
   </PlatformShell>
  )
 }

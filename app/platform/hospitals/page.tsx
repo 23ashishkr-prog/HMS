@@ -92,6 +92,7 @@ export default function HospitalsPage(){
             <button type="button" onClick={()=>act(h.id,{action:'extend',what:'hold',days:30})}>+30d hold</button>
             <button type="button" onClick={()=>{if(window.confirm('Toggle tenant active?'))act(h.id,{action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Deactivate':'Reactivate'}</button>
             <Link href={'/platform/payments?hospitalId='+h.id}>Payments</Link>
+            <Link href={'/platform/hospitals/'+h.id+'#reset-admin'}>Reset admin password</Link>
            </div>
           )}
          </div>

@@ -382,9 +382,13 @@ html body .tabs button:not(#_){background:#F4F6F9!important}html body .tabs butt
  table.dataTable.stackable,table.dataTable.stackable tbody,table.dataTable.stackable tr,table.dataTable.stackable td{display:block;width:100%}
  table.dataTable.stackable thead{display:none}
  table.dataTable.stackable tr{background:#FBFCFD;border:1px solid var(--p-line);border-radius:14px;padding:8px 12px;margin:0 0 10px}
- table.dataTable.stackable td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0!important;border-bottom:1px dashed #E2E6EE!important;text-align:right;min-width:0;word-break:break-word}
+ table.dataTable.stackable td{display:grid;grid-template-columns:minmax(5.5rem,32%) minmax(0,1fr);gap:6px 12px;align-items:start;padding:7px 0!important;border-bottom:1px dashed #E2E6EE!important;text-align:left;min-width:0;word-break:break-word}
  table.dataTable.stackable td:last-child{border-bottom:0!important}
- table.dataTable.stackable td[data-label]::before{content:attr(data-label);flex:0 0 auto;max-width:45%;text-align:left;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#595959}
+ table.dataTable.stackable td[data-label=""],table.dataTable.stackable td:not([data-label]){grid-template-columns:1fr}
+ table.dataTable.stackable td[data-label]::before{content:attr(data-label);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#595959;padding-top:2px}
+ table.dataTable.stackable td[data-label=""]::before{display:none}
+ table.dataTable.stackable .userCell{justify-content:flex-start}
+ table.dataTable.stackable .rowActions{justify-content:flex-start;flex-wrap:wrap}
  .modal table.dataTable tr{display:table-row}
  .panel,.modulePanel,.card{overflow-x:auto;max-width:100%}
  html body .stats{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px}
@@ -589,7 +593,7 @@ html[data-theme=dark][data-accent] h1,html[data-theme=dark] .pageHead h1{color:#
 .dayCol .addSess{margin-left:auto}
 @media (max-width:767px){.dayCol>b{flex:1 1 100%}.sess{grid-template-columns:1fr auto 1fr!important;width:100%;padding-right:34px!important}.sess input{width:100%!important}.sess select{grid-column:1/-1!important;width:100%!important}.dayCol .addSess{margin-left:0;width:100%}}
 .lbl small.muted{font-weight:500;color:#667085}
-.userTable .rowActions{flex-wrap:nowrap}.userTable td:last-child{white-space:nowrap}
+.userTable{table-layout:fixed;width:100%}.userTable .rowActions{flex-wrap:wrap;justify-content:flex-start}.userTable td:last-child{white-space:normal}.userTable th:nth-child(1),.userTable td:nth-child(1){width:28%}.userTable th:nth-child(7),.userTable td:nth-child(7){width:22%}
 @media (max-width:767px){.userTable .rowActions{flex-wrap:wrap}.userTable td:last-child{white-space:normal}}
 /* integrations */
 .intGrid{display:grid;gap:20px}
@@ -888,3 +892,23 @@ html body main.authPremium{padding:0!important;margin:0!important;width:100%}
  .platStats{grid-template-columns:1fr 1fr}
 }
 
+
+@media (max-width:1100px) and (min-width:768px){
+ .userTable th:nth-child(3),.userTable td:nth-child(3),
+ .userTable th:nth-child(4),.userTable td:nth-child(4),
+ .userTable th:nth-child(5),.userTable td:nth-child(5){display:none}
+}
+.platHospTable{table-layout:fixed;width:100%}
+.platHospTable th:nth-child(5),.platHospTable td:nth-child(5),
+.platHospTable th:nth-child(6),.platHospTable td:nth-child(6){width:6.5rem;font-size:12px}
+.platHospTable .platAdmin{max-width:11rem;overflow:hidden}
+.platHospTable .platAdmin small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.platNote{background:#F0F5FB;border:1px solid #D5E0EF;border-radius:12px;padding:12px 14px;margin:0 0 16px;font-size:13px;line-height:1.45;color:#334155}
+.platNote b{color:#0f172a}
+.ticketForm label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:#334155}
+.ticketForm textarea{min-height:110px;resize:vertical}
+.tempPwBox{background:#0f172a;color:#f8fafc;border-radius:12px;padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0}
+.tempPwBox button{font-family:inherit}
+.platTabsInline{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.platTabsInline button{border:1px solid var(--p-line,#e2e8f0);background:#fff;border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer}
+.platTabsInline button.on{background:#0f172a;color:#fff;border-color:#0f172a}

@@ -14,7 +14,7 @@ export default function Users(){const[users,setUsers]=useState<any[]>([]),[err,s
  {err&&<p className="err">{err}</p>}
  <div className="roleChips">{ROLES.map(r=><button key={r} className={'chip'+(role===r?' on':'')} onClick={()=>setRole(role===r?'all':r)}>{LABEL[r]} <b>{counts[r]||0}</b></button>)}</div>
  <div className="panel modulePanel"><div className="actionRow"><input className="moduleInput" placeholder="Search name, email or department" value={q} onChange={e=>setQ(e.target.value)}/></div>
- <table className="dataTable userTable"><thead><tr><th>User</th><th>Role</th><th>Department</th><th>Phone</th><th>Last login</th><th>Status</th><th></th></tr></thead><tbody>{list.map(u=><tr key={u.id} className={u.active?'':'inactive'}>
+ <table className="dataTable userTable"><thead><tr><th>User</th><th>Role</th><th>Department</th><th>Phone</th><th>Last login</th><th>Status</th><th>Actions</th></tr></thead><tbody>{list.map(u=><tr key={u.id} className={u.active?'':'inactive'}>
  <td><div className="userCell">{u.photo_url?<img src={u.photo_url} alt=""/>:<span className="ava">{initials(u.full_name)}</span>}<span><b>{u.full_name}</b><small>{u.email}{u.registration_no?' · Reg '+u.registration_no:''}</small></span></div></td>
  <td><span className="pill">{LABEL[u.role]||u.role}</span></td><td>{u.department||'—'}</td><td>{u.phone||'—'}</td><td>{u.last_login_at?dt(u.last_login_at):'Never'}</td>
  <td>{u.active?<span className="pill okPill">Active</span>:<span className="pill warnPill">Inactive</span>}{u.must_change_password&&u.active&&<small className="muted"> · temp password</small>}</td>
