@@ -20,12 +20,16 @@ export default function PlatformOverview(){
    description="Hospital tenants, plan subscriptions, and platform health. Use the tabs above for hospitals, payments, gateway, and incidents."
   >
    <div className="platStats">
-    <Link className="platStat platStatLink" href="/platform/hospitals"><b>{s.hospitals||0}</b><small>Hospitals</small></Link>
-    <div className="platStat"><b>{s.active||0}</b><small>Active tenants</small></div>
-    <div className="platStat"><b>{s.trialing||0}</b><small>Trialing</small></div>
-    <div className="platStat"><b>{s.on_hold||0}</b><small>On hold</small></div>
+    <Link className="platStat platStatLink" href="/platform/hospitals"><b>{s.total||0}</b><small>Total hospitals</small></Link>
+    <div className="platStat"><b>{s.trial||0}</b><small>Trial</small></div>
+    <div className="platStat"><b>{s.active||0}</b><small>Active (paid)</small></div>
+    <div className="platStat"><b>{s.held||0}</b><small>On hold</small></div>
+    <div className="platStat"><b>{s.expired||0}</b><small>Expired / cancelled</small></div>
     <div className="platStat"><b>{s.past_due||0}</b><small>Past due</small></div>
-    <Link className="platStat platStatLink" href="/platform/payments"><b>₹{Number(s.mrr||0).toLocaleString('en-IN')}</b><small>Approx MRR</small></Link>
+    <div className="platStat"><b>{s.plan_clinic||0}</b><small>Clinic</small></div>
+    <div className="platStat"><b>{s.plan_basic||0}</b><small>Basic</small></div>
+    <div className="platStat"><b>{s.plan_ai||0}</b><small>AI + Engagement</small></div>
+    <Link className="platStat platStatLink" href="/platform/payments"><b>{s.paid_via_razorpay||0}</b><small>Paid via Razorpay</small></Link>
    </div>
 
    <div className="platQuick">
