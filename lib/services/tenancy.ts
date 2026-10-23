@@ -1,5 +1,5 @@
 import {Ctx,Db,HttpError,audit,opt,required,requireRole} from './core'
-import {canonicalPlan,TRIAL_DAYS,TRIAL_PLAN,upgradeLabel,PlanCode} from '../plans'
+import {canonicalPlan,TRIAL_DAYS,TRIAL_PLAN,upgradeLabel,PlanCode,PLAN_PRICE_INR,PLAN_ANNUAL_INR} from '../plans'
 export {canonicalPlan,upgradeLabel}
 export const MODULES=['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','bulk','ai','engagement'] as const
 export type Module=typeof MODULES[number]
@@ -52,7 +52,120 @@ export async function resetStaffPassword(db:Db,ctx:Ctx,id:string,password:string
 export async function setStaffActive(db:Db,ctx:Ctx,id:string,active:boolean){await updateStaff(db,ctx,id,{active})}
 /* ---- Payment provider hooks (Razorpay). Nothing is charged unless RAZORPAY_* env vars are set. ---- */
 export const paymentsConfigured=()=>!!(process.env.RAZORPAY_KEY_ID&&process.env.RAZORPAY_KEY_SECRET&&process.env.RAZORPAY_WEBHOOK_SECRET)
-export async function applyProviderEvent(db:Db,hospitalId:string,event:{type:string;planCode?:string;periodEnd?:string;subscriptionId?:string;customerId?:string},raw:unknown){await db.query('insert into subscription_events(hospital_id,provider,event_type,payload) values($1,$2,$3,$4)',[hospitalId,'razorpay',event.type,JSON.stringify(raw)]);const map:Record<string,string>={/* see lifecycle.ts */'subscription.activated':'active','subscription.charged':'active','subscription.pending':'past_due','subscription.halted':'past_due','subscription.cancelled':'cancelled','subscription.completed':'expired'};const status=map[event.type];if(!status)return;await db.query('update subscriptions set status=$2,hold_started_at=case when $2=\'active\' then null else hold_started_at end,hold_extended_until=case when $2=\'active\' then null else hold_extended_until end,plan_code=coalesce($3,plan_code),current_period_end=coalesce($4::timestamptz,current_period_end),provider=\'razorpay\',provider_subscription_id=coalesce($5,provider_subscription_id),provider_customer_id=coalesce($6,provider_customer_id),updated_at=now() where hospital_id=$1',[hospitalId,status,event.planCode?canonicalPlan(event.planCode):null,event.periodEnd||null,event.subscriptionId||null,event.customerId||null])}
+
+/** Activate / renew a hospital plan after a *confirmed* Razorpay payment (checkout signature or signed webhook).
+ *  Never call this for patient bills — only Clinic/Basic/AI+ subscription. Idempotent on provider_payment_id. */
+export async function activatePaidPlan(db:Db,opts:{hospitalId:string;planCode:string;period:'monthly'|'annual';paymentId?:string|null;orderId?:string|null;amountInr?:number|null;raw?:unknown;eventType?:string;signatureOk?:boolean}){
+ const plan=canonicalPlan(opts.planCode)
+ const period=opts.period==='annual'?'annual':'monthly'
+ const months=period==='annual'?12:1
+ if(!opts.paymentId&&!opts.orderId)throw new HttpError(400,'Confirmed payment id required to activate a paid plan.')
+ if(opts.paymentId){
+  const dup=await db.query('select 1 from subscription_payments where provider=$1 and provider_payment_id=$2',['razorpay',opts.paymentId])
+  if(dup.rows[0]){
+   const s=(await db.query('select * from subscriptions where hospital_id=$1',[opts.hospitalId])).rows[0]
+   return {ok:true,duplicate:true,subscription:s}
+  }
+ }
+ const amount=Number(opts.amountInr!=null?opts.amountInr:(period==='annual'?PLAN_ANNUAL_INR[plan]:PLAN_PRICE_INR[plan]))
+ await db.query('insert into subscription_events(hospital_id,provider,event_type,payload) values($1,$2,$3,$4)',[opts.hospitalId,'razorpay',opts.eventType||'payment.captured',JSON.stringify(opts.raw??{paymentId:opts.paymentId,orderId:opts.orderId,plan,period,amount})])
+ try{
+  await db.query(
+   `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,status,provider,provider_order_id,provider_payment_id,provider_signature_ok,raw)
+    values($1,$2,$3,$4,'captured','razorpay',$5,$6,$7,$8)`,
+   [opts.hospitalId,plan,period,amount,opts.orderId||null,opts.paymentId||null,opts.signatureOk??true,JSON.stringify(opts.raw??{})]
+  )
+ }catch(e:any){if(e?.code!=='23505')throw e}
+
+ const r=await db.query(`update subscriptions set
+   status='active',
+   plan_code=$2,
+   billing_period=$3,
+   current_period_start=now(),
+   current_period_end=now()+($4::text||' months')::interval,
+   hold_started_at=null,
+   hold_extended_until=null,
+   provider='razorpay',
+   last_payment_id=coalesce($5,last_payment_id),
+   last_order_id=coalesce($6,last_order_id),
+   updated_at=now()
+  where hospital_id=$1 returning *`,[opts.hospitalId,plan,period,String(months),opts.paymentId||null,opts.orderId||null])
+ if(!r.rows[0])throw new HttpError(404,'Hospital subscription not found')
+ await db.query(`update hospitals set status='active',updated_at=now() where id=$1 and status<>'active'`,[opts.hospitalId])
+ return {ok:true,subscription:r.rows[0]}
+}
+
+/** Platform: payment ledger for one hospital (plan subscriptions only). */
+export async function platformListPayments(db:Db,hospitalId:string){
+ return (await db.query(
+  `select id,hospital_id,plan_code,billing_period,amount_inr,currency,status,provider,provider_order_id,provider_payment_id,provider_signature_ok,paid_at,created_at
+   from subscription_payments where hospital_id=$1 order by paid_at desc limit 100`,[hospitalId]
+ )).rows
+}
+
+
+export async function applyProviderEvent(db:Db,hospitalId:string,event:{type:string;planCode?:string;period?:string;periodEnd?:string;periodStart?:string;subscriptionId?:string;customerId?:string;paymentId?:string;orderId?:string;amountInr?:number},raw:unknown){
+ if(event.type==='payment.captured'||event.type==='order.paid'){
+  if(!event.paymentId&&!event.orderId)return // never activate without a payment reference
+  const period=(event.period==='annual'?'annual':'monthly') as 'monthly'|'annual'
+  return activatePaidPlan(db,{hospitalId,planCode:event.planCode||'basic',period,paymentId:event.paymentId,orderId:event.orderId,amountInr:event.amountInr,raw,eventType:event.type,signatureOk:true})
+ }
+ await db.query('insert into subscription_events(hospital_id,provider,event_type,payload) values($1,$2,$3,$4)',[hospitalId,'razorpay',event.type,JSON.stringify(raw)])
+ const map:Record<string,string>={'subscription.activated':'active','subscription.charged':'active','subscription.pending':'past_due','subscription.halted':'past_due','subscription.cancelled':'cancelled','subscription.completed':'expired'}
+ const status=map[event.type];if(!status)return
+ await db.query(`update subscriptions set status=$2,
+  hold_started_at=case when $2='active' then null else hold_started_at end,
+  hold_extended_until=case when $2='active' then null else hold_extended_until end,
+  plan_code=coalesce($3,plan_code),
+  current_period_end=coalesce($4::timestamptz,current_period_end),
+  current_period_start=coalesce($7::timestamptz,current_period_start),
+  provider='razorpay',
+  provider_subscription_id=coalesce($5,provider_subscription_id),
+  provider_customer_id=coalesce($6,provider_customer_id),
+  updated_at=now() where hospital_id=$1`,[hospitalId,status,event.planCode?canonicalPlan(event.planCode):null,event.periodEnd||null,event.subscriptionId||null,event.customerId||null,event.periodStart||null])
+}
+
 /* ---- Platform super-admin ---- */
-export async function platformListHospitals(db:Db){return (await db.query('select h.id,h.name,h.code,h.status,h.created_at,s.plan_code,s.status sub_status,s.trial_ends_at,s.hold_started_at,s.hold_extended_until,s.purged_at,(select count(*)::int from users u where u.hospital_id=h.id) users,(select count(*)::int from patients p where p.hospital_id=h.id) patients from hospitals h left join subscriptions s on s.hospital_id=h.id order by h.created_at desc')).rows}
+export async function platformListHospitals(db:Db,q:any={}){
+ const search=String(q.q||q.search||'').trim()
+ const plan=opt(q.plan)||opt(q.planCode)
+ const status=opt(q.status)||opt(q.subStatus)
+ const params:any[]=[]
+ const where:string[]=['true']
+ if(search){params.push('%'+search.toLowerCase()+'%');where.push(`(lower(h.name) like $${params.length} or lower(h.code) like $${params.length} or lower(coalesce(h.contact_email,'')) like $${params.length} or lower(coalesce(a.email,'')) like $${params.length})`)}
+ if(plan){params.push(canonicalPlan(plan));where.push(`s.plan_code=$${params.length}`)}
+ if(status){params.push(status);where.push(`s.status=$${params.length}`)}
+ const sql=`select h.id,h.name,h.code,h.status,h.created_at,h.contact_email,h.contact_phone,
+  s.plan_code,s.status sub_status,s.trial_ends_at,s.current_period_start,s.current_period_end,
+  s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,
+  s.last_payment_id,s.last_order_id,s.updated_at sub_updated_at,
+  a.full_name admin_name,a.email admin_email,
+  (select count(*)::int from users u where u.hospital_id=h.id) users,
+  (select count(*)::int from patients p where p.hospital_id=h.id) patients
+ from hospitals h
+ left join subscriptions s on s.hospital_id=h.id
+ left join lateral (
+   select full_name,email from users u where u.hospital_id=h.id and u.role='admin' and u.active order by u.created_at asc limit 1
+ ) a on true
+ where ${where.join(' and ')}
+ order by h.created_at desc`
+ return (await db.query(sql,params)).rows
+}
+
+export async function platformHospitalStats(db:Db){
+ const r=await db.query(`select
+   count(*)::int as total,
+   count(*) filter (where s.status='trialing')::int as trial,
+   count(*) filter (where s.status='active')::int as active,
+   count(*) filter (where s.status='on_hold')::int as held,
+   count(*) filter (where s.status in ('expired','cancelled'))::int as expired,
+   count(*) filter (where s.status='past_due')::int as past_due,
+   count(*) filter (where coalesce(s.plan_code,'basic')='clinic')::int as plan_clinic,
+   count(*) filter (where coalesce(s.plan_code,'basic')='basic')::int as plan_basic,
+   count(*) filter (where coalesce(s.plan_code,'basic')='ai_engage')::int as plan_ai,
+   count(*) filter (where s.provider='razorpay' and s.last_payment_id is not null)::int as paid_via_razorpay
+  from hospitals h left join subscriptions s on s.hospital_id=h.id`)
+ return r.rows[0]
+}
+
 export async function platformSetSubscription(db:Db,hospitalId:string,b:any){const st=required(b.status,'Status');if(!['trialing','active','past_due','cancelled','expired','on_hold'].includes(st))throw new HttpError(400,'Invalid status');const r=await db.query('update subscriptions set status=$2,hold_started_at=case when $2 in (\'active\',\'trialing\') then null when $2=\'on_hold\' then coalesce(hold_started_at,now()) else hold_started_at end,plan_code=coalesce($3,plan_code),updated_at=now() where hospital_id=$1 returning *',[hospitalId,st,opt(b.planCode)?canonicalPlan(opt(b.planCode)):null]);if(!r.rows[0])throw new HttpError(404,'Hospital not found');return r.rows[0]}

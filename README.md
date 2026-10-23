@@ -37,7 +37,7 @@ Single source of truth: `lib/plans.ts`. DB seed: migration `033_three_plans.sql`
 - **Purge**: `HOLD_MONTHS` (default 6) after the hold starts, all clinical, financial, scheduling, inventory and audit data is deleted. Only a minimal **patient register** is kept (UHID + name + phone + address, still linked to the hospital, so it comes back on resubscription). All users except the primary admin are deactivated.
 - **Warnings**: in-app banners and notices at 30, 7 and 1 days before the hold and before the purge. Email is sent only if an email provider is configured (`RESEND_API_KEY` / `SMTP_URL`); otherwise notices are in-app only.
 - **Job**: Vercel Cron (`vercel.json`) calls `GET /api/cron/lifecycle` daily at 00:30 UTC (06:00 IST). It is idempotent and **fails closed**: it refuses (503) unless `CRON_SECRET` is set, and Vercel sends `Authorization: Bearer $CRON_SECRET` automatically.
-- **Platform admin** (`/platform`) sees each hospital's lifecycle, can extend the trial or hold by 30 days, and can deactivate or reactivate a hospital.
+- **Platform super-user** (`/platform`) is for the **SaaS owner only** (separate `platform_admins` login, cookie `hms_platform`). Hospital admins/staff/patients cannot open it even by guessing the URL — hospital JWTs are rejected; there is no link from hospital UI. The console shows totals (by plan / trial / active / held / expired), per-hospital plan, subscription start/expiry, payment status, admin contact, filters, and extend trial / change plan/status.
 
 ## Architecture
 - `lib/services/*`: business logic. Every query is scoped by `ctx.hospitalId`.
@@ -52,8 +52,17 @@ Single source of truth: `lib/plans.ts`. DB seed: migration `033_three_plans.sql`
 4. `DATABASE_URL=... npm run db:migrate`
 5. `npm run dev`, open http://localhost:3000/onboarding and register a hospital. You're signed in as its admin.
    - Or use the CLI: `DATABASE_URL=... HOSPITAL_NAME="City Hospital" HOSPITAL_CODE=CITY ADMIN_EMAIL=you@x.in ADMIN_PASSWORD='...' npm run db:create-admin`
-6. Optional platform super-admin: `DATABASE_URL=... PLATFORM_ADMIN_EMAIL=... PLATFORM_ADMIN_PASSWORD='12+chars' npm run db:create-platform-admin`, then go to `/platform`.
-7. `npm test` (needs no database) and `npm run build`
+6. **Platform super-user (SaaS owner only):** create the first row in `platform_admins` (not a hospital user):
+   ```bash
+   DATABASE_URL=... PLATFORM_ADMIN_EMAIL=you@example.com PLATFORM_ADMIN_PASSWORD='12+chars' npm run db:create-platform-admin
+   ```
+   Then open `/platform` and sign in with that e-mail. If production login fails, re-run the same seed against the **production** `DATABASE_URL` (Vercel → Storage/Postgres). Never share this password; never put a `/platform` link in hospital nav.
+7. **Razorpay plan checkout** (Clinic / Basic / AI+, monthly or annual from `lib/plans.ts`): set on Vercel (Production + Preview):
+   - `RAZORPAY_KEY_ID`
+   - `RAZORPAY_KEY_SECRET`
+   - `RAZORPAY_WEBHOOK_SECRET`
+   Webhook URL: `https://<your-host>/api/subscription/razorpay/webhook` (events: `payment.captured`, `order.paid`). **Razorpay is only for hospital plan subscriptions** (Clinic / Basic / AI+, monthly or annual) — not for patient bills, consultation fees or pharmacy. Those stay cash/UPI/card recorded in-app. Until all three env vars are set, checkout returns **503** and never fakes success. A paid plan activates only after a verified checkout signature or a signed webhook; the free 30-day Basic trial needs no card. Hospital admins pay from **Settings → Subscription** or the hold screen. Platform super-user sees a per-hospital payment ledger.
+8. `npm test` (needs no database) and `npm run build`
 
 First steps as a hospital admin: **Settings → Services** (consultation fee, lab tests, radiology), **Staff** (doctor/nurse/reception/lab/pharmacy/billing logins), and **IPD** (wards/beds). Then: Patients → register → check in → Doctor: OPD → start consultation.
 
@@ -67,7 +76,7 @@ The project already exists at https://hms-dun-delta.vercel.app, and pushing to a
    - Optional: `LLM_API_URL`/`LLM_API_KEY`/`LLM_MODEL`, `RESEND_API_KEY`, `ALLOW_PUBLIC_SIGNUP`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `WHATSAPP_*`
    - Use a **separate database for Preview** if you don't want preview builds to migrate production.
 2. Redeploy. Then open `/onboarding` to create a hospital, or keep using your existing admin login (existing hospitals are moved to the Enterprise plan).
-3. Razorpay (later): create subscription plans in Razorpay with `notes.hospital_id` and `notes.plan_code`, then point the webhook to `/api/subscription/razorpay/webhook`. Nothing is charged or faked until the keys are set.
+3. Razorpay (plan subscriptions only): set the three `RAZORPAY_*` env vars, point the webhook to `/api/subscription/razorpay/webhook` for `payment.captured` / `order.paid`. Orders carry `notes.hospital_id`, `notes.plan_code`, `notes.billing_period`. Patient billing never uses this gateway.
 
 ## WhatsApp
 `/api/whatsapp/send` sends through Meta WhatsApp Cloud API. Get patient consent and use approved templates.
