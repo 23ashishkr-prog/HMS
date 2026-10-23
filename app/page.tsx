@@ -1,5 +1,5 @@
 'use client'
-import {useCallback,useEffect,useMemo,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,inr,me as whoAmI} from '@/lib/client';import {toast} from '@/lib/toast';import Icon3D,{IconName} from '@/components/Icon3D';import LivePill from '@/components/LivePill'
+import {useCallback,useEffect,useMemo,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,inr,me as whoAmI} from '@/lib/client';import {toast} from '@/lib/toast';import Icon3D,{IconName} from '@/components/Icon3D';import LivePill from '@/components/LivePill';import {withBase} from '@/lib/basePath'
 import {DndContext,closestCenter,PointerSensor,TouchSensor,KeyboardSensor,useSensor,useSensors,DragEndEvent} from '@dnd-kit/core'
 import {SortableContext,useSortable,arrayMove,rectSortingStrategy,sortableKeyboardCoordinates} from '@dnd-kit/sortable';import {CSS} from '@dnd-kit/utilities'
 type Item={id:string;size:'s'|'m'|'l'}
@@ -11,9 +11,9 @@ function Body({id,d,role}:{id:string;d:any;role:string}){if(d==null)return <div 
   case 'kpi_patients':return <div className="wBig"><b>{d.registered}</b><small>registered</small><b>{d.seen}</b><small>OPD visits</small></div>
   case 'beds':return <div className="wBig"><b>{d.occupied}<i>/{d.total}</i></b><small>beds occupied</small><div className="wBar"><span style={{width:(d.total?Math.round(100*d.occupied/d.total):0)+'%'}}/></div></div>
   case 'collections':return <div className="wBig"><b>{inr(d.total)}</b><small>{d.n} payments today</small></div>
-  case 'unpaid':return <div className="wBig"><b>{d.n}</b><small>open invoices</small><a href="/billing">Open billing →</a></div>
+  case 'unpaid':return <div className="wBig"><b>{d.n}</b><small>open invoices</small><a href={withBase('/billing')}>Open billing →</a></div>
   case 'expiring':return <div className="wBig"><b>{d.n}</b><small>batches expire in 60 days</small></div>
-  case 'pending_labs':return <div className="wBig"><b>{d.ordered+d.collected}</b><small>{d.ordered} ordered · {d.collected} collected</small><a href="/laboratory">Worklist →</a></div>
+  case 'pending_labs':return <div className="wBig"><b>{d.ordered+d.collected}</b><small>{d.ordered} ordered · {d.collected} collected</small><a href={withBase('/laboratory')}>Worklist →</a></div>
   case 'opd_queue':return d.length?<ul className="wList">{d.map((q:any)=><li key={q.id}><b>#{q.token_no}</b><span>{q.full_name}<small>{q.doctor}</small></span><i className={'st '+q.status}>{q.status.replace('_',' ')}</i></li>)}</ul>:<p className="wEmpty">Queue is clear</p>
   case 'appointments':return d.length?<ul className="wList">{d.map((a:any)=><li key={a.id}><b>{fmtT(a.scheduled_at)}</b><span>{a.full_name}<small>{a.doctor}{a.mode==='video'?' · video':''}</small></span>{a.meet_url&&<a href={a.meet_url} target="_blank" rel="noreferrer">Join</a>}</li>)}</ul>:<p className="wEmpty">No more appointments today</p>
   case 'doctor_availability':return d.length?<ul className="wList">{d.map((x:any)=><li key={x.name}><span className={'dot '+(x.status==='available'&&x.online?'ok':x.status==='on_leave'?'err':'off')}/><span>{x.name}<small>{x.status==='on_leave'?'on leave':!x.online?'offline':x.status.replace('_',' ')}</small></span></li>)}</ul>:<p className="wEmpty">No doctors yet</p>
@@ -27,7 +27,7 @@ function Tile({it,title,edit,d,role,onSize,onRemove}:{it:Item;title:string;edit:
   {edit&&<div className="wSizes" onPointerDown={e=>e.stopPropagation()}>{(['s','m','l'] as const).map(s=><button key={s} className={it.size===s?'on':''} onClick={()=>onSize(s)}>{({s:'Small',m:'Medium',l:'Large'})[s]}</button>)}</div>}</section>}
 export default function Home(){const[role,setRole]=useState(''),[items,setItems]=useState<Item[]>([]),[cat,setCat]=useState<any[]>([]),[data,setData]=useState<any>({}),[src,setSrc]=useState(''),[edit,setEdit]=useState(false),[lib,setLib]=useState(false),[defRole,setDefRole]=useState('reception'),[err,setErr]=useState(''),[setup,setSetup]=useState<any>(null)
  const load=useCallback(()=>call('/api/home').then(x=>{setItems(x.layout);setCat(x.catalog);setData(x.data);setSrc(x.source)}).catch(e=>setErr(e.message)),[])
- useEffect(()=>{whoAmI().then(m=>{setRole(m.role);load();if(m.role==='admin')call('/api/setup').then(setSetup).catch(()=>{})}).catch(()=>location.replace('/welcome'))},[load])
+ useEffect(()=>{whoAmI().then(m=>{setRole(m.role);load();if(m.role==='admin')call('/api/setup').then(setSetup).catch(()=>{})}).catch(()=>location.replace(withBase('/welcome')))},[load])
  useEffect(()=>{if(edit)return;const t=setInterval(()=>call('/api/home').then(x=>setData(x.data)).catch(()=>{}),60000);return ()=>clearInterval(t)},[edit])
  const sensors=useSensors(useSensor(PointerSensor,{activationConstraint:{distance:6}}),useSensor(TouchSensor,{activationConstraint:{delay:180,tolerance:8}}),useSensor(KeyboardSensor,{coordinateGetter:sortableKeyboardCoordinates}))
  const title=(id:string)=>cat.find(c=>c.id===id)?.title||id
@@ -38,7 +38,7 @@ export default function Home(){const[role,setRole]=useState(''),[items,setItems]
  const hello=(()=>{const h=new Date(Date.now()+330*60000).getUTCHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'})()
  return <ModuleShell title={hello} eyebrow="YOUR HOME" description={edit?'Drag widgets to reorder, choose a size, remove with −, or add from the library.':'Your widgets update every minute. Tap Edit home to arrange them.'} actions={<div className="homeActs">{edit&&<button className="ghost" onClick={()=>setLib(true)}>＋ Add widget</button>}<button className={edit?'primary':'ghost'} onClick={()=>{setEdit(!edit);if(edit)load()}}>{edit?'Done':'Edit home'}</button></div>}>
   {err&&<p className="banner err">{err}</p>}
-  {setup&&!setup.done&&!edit&&<a className="setupNudge" href="/admin/setup"><b>Finish setting up · {setup.progress}%</b><span>{setup.steps.filter((x:any)=>!x.done&&!x.optional).length} steps left — open the setup wizard</span></a>}
+  {setup&&!setup.done&&!edit&&<a className="setupNudge" href={withBase('/admin/setup')}><b>Finish setting up · {setup.progress}%</b><span>{setup.steps.filter((x:any)=>!x.done&&!x.optional).length} steps left — open the setup wizard</span></a>}
   {edit&&<div className="editBar"><span>Layout: {src==='user'?'your own':src==='hospital'?'hospital default':'role default'}</span><button className="ghost" onClick={async()=>{const x=await call('/api/home','PUT',{reset:true});setItems(x.layout);setSrc(x.source);toast('Reset to default')}}>Reset to default</button>
    {role==='admin'&&<span className="defRole">Set as hospital default for <select value={defRole} onChange={e=>setDefRole(e.target.value)}>{['admin','reception','doctor','nurse','lab','pharmacy','billing'].map(r=><option key={r}>{r}</option>)}</select><button className="ghost" onClick={async()=>{try{await call('/api/home','PUT',{scope:'hospital',role:defRole,layout:items});toast('Default saved for '+defRole)}catch(e:any){toast(e.message,'err')}}}>Save default</button></span>}</div>}
   <LivePill/>

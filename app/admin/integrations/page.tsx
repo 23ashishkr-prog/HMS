@@ -1,5 +1,5 @@
 'use client'
-import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,dt} from '@/lib/client';import {toast} from '@/lib/toast'
+import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,dt} from '@/lib/client';import {toast} from '@/lib/toast';import {withBase} from '@/lib/basePath'
 const BADGE:Record<string,[string,string]>={connected:['ok','Connected'],configured:['warn','Saved · not tested'],error:['err','Error'],platform:['info','Using platform default'],not_configured:['muted','Not configured'],disconnected:['muted','Disconnected']}
 function Badge({s}:{s:string}){const[c,l]=BADGE[s]||BADGE.not_configured;return <span className={'intBadge '+c}>{l}</span>}
 type F={k:string;label:string;secret?:boolean;ph?:string;type?:string;opts?:string[]}
@@ -31,7 +31,7 @@ export default function Integrations(){const[d,setD]=useState<any>(null),[err,se
    <Card kind="email" title="E-mail sender" desc="Invoices, OTP fallback, lab reports and staff invites." fields={EM} d={d.email} reload={setD}/>
    <div className="panel modulePanel intCard">
     <div className="intHead"><div><h2>Payment gateway</h2><p className="muted">This hospital&apos;s own Razorpay (or later PayU/Cashfree) for <b>patient invoice</b> payments. Separate from SaaS plan billing. Admin and billing (accounts) only.</p></div></div>
-    <p><a className="primary btnLink" href="/billing/gateway">Open gateway settings</a> <a className="ghost btnLink" href="/billing/gateway-payments">Payment confirmations</a></p>
+    <p><a className="primary btnLink" href={withBase('/billing/gateway')}>Open gateway settings</a> <a className="ghost btnLink" href={withBase('/billing/gateway-payments')}>Payment confirmations</a></p>
    </div>
    <p className="muted small">Encryption: {d.encryption}. Every change is recorded in the audit log.</p></div>}
  </ModuleShell>}

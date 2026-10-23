@@ -1,5 +1,5 @@
 'use client'
-import {useEffect,useState} from 'react';import {call} from '@/lib/client'
+import {useEffect,useState} from 'react';import {call} from '@/lib/client';import {withBase} from '@/lib/basePath'
 /** Aqua Dynamics: compact live-activity pill that morphs open to show more. Polls every 20 s while visible. */
 export default function LivePill(){const[d,setD]=useState<any>(null),[open,setOpen]=useState(false)
  useEffect(()=>{let t:any;const go=()=>{if(document.visibilityState==='visible')call('/api/home/live').then(setD).catch(()=>{})};go();t=setInterval(go,20000);return()=>clearInterval(t)},[])
@@ -11,4 +11,4 @@ export default function LivePill(){const[d,setD]=useState<any>(null),[open,setOp
   <div className="apMore" aria-hidden={!open}>
    <div className="apGrid"><div><small>Now serving</small><b>{d.serving!=null?'#'+d.serving:'—'}</b></div><div><small>Next token</small><b>{d.nextToken!=null?'#'+d.nextToken:'—'}</b></div><div><small>Waiting</small><b>{d.waiting}</b></div><div><small>Pending labs</small><b>{d.pendingLabs}</b></div></div>
    {d.nextAppointment&&<p className="apNext">Next appointment {d.nextAppointment.time} · {d.nextAppointment.name}</p>}
-   <div className="apLinks"><a href="/queue" data-app onClick={e=>e.stopPropagation()}>Open queue</a><a href="/laboratory" data-app onClick={e=>e.stopPropagation()}>Lab worklist</a></div></div></div>}
+   <div className="apLinks"><a href={withBase('/queue')} data-app onClick={e=>e.stopPropagation()}>Open queue</a><a href={withBase('/laboratory')} data-app onClick={e=>e.stopPropagation()}>Lab worklist</a></div></div></div>}

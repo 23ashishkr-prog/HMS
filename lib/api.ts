@@ -1,5 +1,5 @@
 import {NextResponse,after} from 'next/server';import crypto from 'node:crypto';import {recordIncident,scrub} from './services/incidents';import {cookies} from 'next/headers';import {SignJWT,jwtVerify} from 'jose'
-import {getSession} from './auth';import {getDb} from './db';import {Ctx,Db,HttpError} from './services/core';import {Module,requireModule,getSubscription,memoSubscription} from './services/tenancy';import {requestsEmbedCookie,sessionCookieOptions} from './sessionCookie'
+import {getSession} from './auth';import {getDb} from './db';import {Ctx,Db,HttpError} from './services/core';import {Module,requireModule,getSubscription,memoSubscription} from './services/tenancy';import {applySessionCookie} from './sessionCookie'
 /**
  * Central tenant-scoped data access: every handler gets a Ctx whose hospitalId comes ONLY from the
  * signed session (never from the request body/query) and is re-verified against the DB on each call.
@@ -20,8 +20,8 @@ export const body=async(req:Request)=>{try{return await req.json()}catch{throw n
 export const qs=(req:Request,k:string)=>new URL(req.url).searchParams.get(k)||''
 /* Platform super-admin session (separate cookie, no hospital). */
 const sec=()=>{if(!process.env.SESSION_SECRET)throw new HttpError(503,'SESSION_SECRET not configured');return new TextEncoder().encode(process.env.SESSION_SECRET+':platform')}
-export async function setPlatformSession(id:string,email:string,req?:Request){const t=await new SignJWT({id,email,kind:'platform'}).setProtectedHeader({alg:'HS256'}).setExpirationTime('8h').sign(sec());(await cookies()).set('hms_platform',t,sessionCookieOptions(28800,{embed:requestsEmbedCookie(req),sameSite:'strict'}))}
-export async function clearPlatformSession(req?:Request){(await cookies()).set('hms_platform','',sessionCookieOptions(0,{embed:requestsEmbedCookie(req),sameSite:'strict'}))}
+export async function setPlatformSession(res:Response,id:string,email:string){const t=await new SignJWT({id,email,kind:'platform'}).setProtectedHeader({alg:'HS256'}).setExpirationTime('8h').sign(sec());applySessionCookie(res,'hms_platform',t,28800,'strict')}
+export function clearPlatformSession(res:Response){applySessionCookie(res,'hms_platform','',0,'strict')}
 export type PlatformCtx={id:string;email:string}
 export function platformApi(handler:(db:Db,req:Request,params:any,plat:PlatformCtx)=>Promise<unknown>){return async(req:Request,ext?:{params?:Promise<any>})=>{try{const t=(await cookies()).get('hms_platform')?.value;if(!t)throw new HttpError(401,'Platform sign-in required.');let p:any;try{p=(await jwtVerify(t,sec())).payload}catch{throw new HttpError(401,'Platform session expired.')}const db=getDb() as unknown as Db;if(p.kind!=='platform')throw new HttpError(401,'Not a platform session.');const a=(await db.query('select 1 from platform_admins where id=$1 and active',[p.id])).rows[0];if(!a)throw new HttpError(401,'Not a platform admin.');return NextResponse.json(await handler(db,req,ext?.params?await ext.params:{},{id:String(p.id),email:String(p.email||'')}))}catch(e){return fail(e)}}}
 

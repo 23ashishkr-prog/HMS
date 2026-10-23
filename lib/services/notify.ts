@@ -1,6 +1,7 @@
 /** Patient notifications: consent-gated outbox + provider interface (WhatsApp Cloud API / Resend e-mail / SMS stub).
  *  Dry-run when keys are missing: rows end as 'not_sent' with "not sent: provider not configured" — never faked as delivered. */
 import crypto from 'node:crypto'
+import {publicOriginUrl} from '../basePath'
 import {Db,HttpError} from './core'
 export type Channel='whatsapp'|'email'|'sms'
 export type Button={id:string;title:string}
@@ -25,7 +26,7 @@ export const smtpEmail=(cfg:{smtpUrl?:string;smtpHost?:string;smtpPort?:string;s
 /** No SMS gateway wired yet (DLT registration needed in India) — always "not configured". Swap in Gupshup/Twilio by implementing Provider. */
 export const smsStub:Provider={channel:'sms',name:'none',configured:()=>false,async send(){throw new ProviderError('sms provider not configured',true)}}
 export const defaultProviders=():Record<Channel,Provider>=>({whatsapp:whatsappCloud(),email:resendEmail(),sms:smsStub})
-export const appUrl=()=>(process.env.APP_BASE_URL||(process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'http://localhost:3000')).replace(/\/$/,'')
+export const appUrl=()=>publicOriginUrl()
 const linkSecret=()=>process.env.LINK_SECRET||process.env.SESSION_SECRET||''
 /** Signed one-time link token (offer id + action + expiry). One-time is enforced by the offer status. */
 export function signLink(id:string,action:string,exp:number){const s=linkSecret();if(!s)throw new HttpError(503,'LINK_SECRET/SESSION_SECRET not configured.');return crypto.createHmac('sha256',s).update(`${id}|${action}|${exp}`).digest('base64url').slice(0,32)}

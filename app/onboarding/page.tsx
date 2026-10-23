@@ -1,5 +1,5 @@
 'use client'
-import {useEffect,useState} from 'react';import Link from 'next/link';import {call,formObj} from '@/lib/client';import Logo from '@/components/Logo';import {ensureEmbedCookieAccess} from '@/lib/embedSession'
+import {useEffect,useState} from 'react';import Link from 'next/link';import {call,formObj} from '@/lib/client';import Logo from '@/components/Logo';import {withBase} from '@/lib/basePath'
 const inr=(n:any)=>'₹'+Number(n||0).toLocaleString('en-IN')
 const BLURB:Record<string,string>={
  clinic:'Online + token booking',
@@ -35,14 +35,14 @@ export default function Page(){
       <p>Your hospital is set up. Staff sign in with this hospital code:</p>
       <label>Hospital code<input readOnly value={done.code} className="codeOut" onFocus={e=>e.currentTarget.select()} aria-label="Hospital code"/></label>
       <p className="muted">We&apos;ve also e-mailed it to you (if e-mail is configured). It is also your UHID prefix.</p>
-      <a className="primary full btnLink" href={done.redirect||'/admin/setup'}>Continue to setup</a>
+      <a className="primary full btnLink" href={withBase(done.redirect||'/admin/setup')}>Continue to setup</a>
      </div>
     ):(<>
      <div className="authBrand"><Logo size={36}/><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
      <span className="overline">START YOUR {days}-DAY FREE TRIAL (BASIC)</span>
      <h1>Register your hospital</h1>
      <p className="onbLead">Creates your workspace and admin login. Hospital code is generated automatically. Free trial is always <b>Basic</b> (no AI or WhatsApp engagement). After trial, choose Clinic, Basic or AI + Engagement.</p>
-     <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);setMsg('');try{await ensureEmbedCookieAccess();const x=await call('/api/onboarding','POST',{...formObj(e),planCode:'basic'});setDone(x)}catch(er:any){setMsg(er.message)}finally{setBusy(false)}}}>
+     <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);setMsg('');try{const x=await call('/api/onboarding','POST',{...formObj(e),planCode:'basic'});setDone(x)}catch(er:any){setMsg(er.message)}finally{setBusy(false)}}}>
       <label>Hospital name *<input name="hospitalName" required autoComplete="organization" placeholder="e.g. Sunrise Multispeciality Hospital"/></label>
       <div className="onb2"><label>Phone<input name="phone" inputMode="tel" autoComplete="tel"/></label><label>GSTIN<input name="gstin" autoCapitalize="characters"/></label></div>
       <label>Address<input name="address" autoComplete="street-address"/></label>

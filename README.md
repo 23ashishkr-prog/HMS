@@ -2,7 +2,7 @@
 
 A Next.js 16 + Postgres SaaS HMS (Hospital Cloud). Many hospitals share one deployment; each hospital is a tenant with its own users and data.
 
-**Staff open HMS at [https://greynova.in/hms/](https://greynova.in/hms/).** That GreyNova page embeds this app, and the browser address bar stays on greynova.in. The Vercel host is for the owner and development; hospital staff do not need it.
+**Staff open HMS at [https://greynova.in/hms/](https://greynova.in/hms/).** GreyNova reverse-proxies that path to this app, so the address bar stays on greynova.in and the sign-in cookie is first-party. The Vercel host is for the owner and development; hospital staff do not need it. On that host the app is at [/hms](https://hms-dun-delta.vercel.app/hms).
 
 Modules: registration (UHID + ABHA), appointments, OPD token queue, consultation EMR (vitals, ICD-10, Rx, orders), lab/radiology worklist, pharmacy inventory and dispensing, billing and payments, IPD beds/admission/discharge, insurance/TPA, audit log, live dashboard, plans/subscriptions, and a platform super-admin console.
 See `docs/WORKFLOW_GAP_ANALYSIS.md` for what's built and what's left.
@@ -63,13 +63,13 @@ Single source of truth: `lib/plans.ts`. DB seed: migration `033_three_plans.sql`
    - `RAZORPAY_KEY_ID (optional if set in /platform/settings)`
    - `RAZORPAY_KEY_SECRET`
    - `RAZORPAY_WEBHOOK_SECRET`
-   Webhook URL: `https://<your-host>/api/subscription/razorpay/webhook` (events: `payment.captured`, `order.paid`). **Razorpay is only for hospital plan subscriptions** (Clinic / Basic / AI+, monthly or annual) — not for patient bills, consultation fees or pharmacy. Those stay cash/UPI/card recorded in-app. Until all three env vars are set, checkout returns **503** and never fakes success. A paid plan activates only after a verified checkout signature or a signed webhook; the free 30-day Basic trial needs no card. Hospital admins pay from **Settings → Subscription** or the hold screen. Platform super-user sees a per-hospital payment ledger.
+   Webhook URL: `https://<your-host>/hms/api/subscription/razorpay/webhook` (events: `payment.captured`, `order.paid`). **Razorpay is only for hospital plan subscriptions** (Clinic / Basic / AI+, monthly or annual) — not for patient bills, consultation fees or pharmacy. Those stay cash/UPI/card recorded in-app. Until all three env vars are set, checkout returns **503** and never fakes success. A paid plan activates only after a verified checkout signature or a signed webhook; the free 30-day Basic trial needs no card. Hospital admins pay from **Settings → Subscription** or the hold screen. Platform super-user sees a per-hospital payment ledger.
 8. `npm test` (needs no database) and `npm run build`
 
 First steps as a hospital admin: **Settings → Services** (consultation fee, lab tests, radiology), **Staff** (doctor/nurse/reception/lab/pharmacy/billing logins), and **IPD** (wards/beds). Then: Patients → register → check in → Doctor: OPD → start consultation.
 
 ## Deploy on Vercel
-The project already exists at https://hms-dun-delta.vercel.app, and pushing to a branch makes a preview.
+The project already exists at https://hms-dun-delta.vercel.app. The app is mounted at `/hms` (`https://hms-dun-delta.vercel.app/hms`). A visit to the bare host redirects there. Pushing to a branch makes a preview, also under `/hms`.
 1. Vercel → Project → Settings → Environment Variables:
    - `DATABASE_URL`: Neon / Vercel Postgres connection string (already set if login works today)
    - `SESSION_SECRET`: long random string (already set if login works today)
@@ -189,10 +189,23 @@ Open `/platform` → **Gateway settings** to enter Razorpay Key ID / Key Secret 
 
 ## Per-hospital payment gateway (tenant)
 
-Each hospital configures **its own** Razorpay keys under **Billing → Payment gateway** (`/billing/gateway`). Encrypted in `hospital_integrations` (kind `payments`). Admin and **billing** (accounts desk — there is no separate `account` role) can manage; doctor/lab/reception/nurse/pharmacy cannot. Online invoice collect uses these keys only — never the platform SaaS Razorpay keys used for plan subscriptions at `/platform/settings`. Confirmation list: `/billing/gateway-payments`. Webhook: `/api/webhooks/razorpay/<hospitalId>`.
+Each hospital configures **its own** Razorpay keys under **Billing → Payment gateway** (`/billing/gateway`). Encrypted in `hospital_integrations` (kind `payments`). Admin and **billing** (accounts desk — there is no separate `account` role) can manage; doctor/lab/reception/nurse/pharmacy cannot. Online invoice collect uses these keys only — never the platform SaaS Razorpay keys used for plan subscriptions at `/platform/settings`. Confirmation list: `/billing/gateway-payments`. Webhook: `https://<your-host>/hms/api/webhooks/razorpay/<hospitalId>`.
 
 ## Staff URL
 
-Hospital staff use **https://greynova.in/hms/**. The page embeds this app in an iframe, sign-in stays inside that frame, and the address bar remains on greynova.in. Direct use of `https://hms-dun-delta.vercel.app` still works for the owner and development; it is not the staff URL.
+Hospital staff use **https://greynova.in/hms/**. GreyNova reverse-proxies `/hms` to this deployment **without stripping the prefix**, so the browser only talks to greynova.in. Session cookies (`hms_session`, `hms_platform`, `hms_patient`) are `Path=/hms`, `Secure` in production, and `SameSite=Lax` (platform owner: `Strict`). They are not framed in from another host.
 
-The app sends `Content-Security-Policy: frame-ancestors 'self' https://greynova.in https://www.greynova.in`, so only this host and GreyNova may frame it. Inside that embed, `hms_session`, `hms_platform`, and `hms_patient` are set `SameSite=None; Secure; Partitioned` (the browser stores them for greynova.in and sends them on later iframe requests). A direct visit keeps a first-party cookie (`SameSite=Lax`, or `Strict` for the platform owner). Password-reset and other token links still use the app host, because the GreyNova page always opens the embedded welcome screen.
+Owner and development use **https://hms-dun-delta.vercel.app/hms**. The bare host redirects to `/hms`.
+
+GreyNova `vercel.json` once this build is live (replace any strip-prefix or root `/_next` / `/api` proxies):
+
+```json
+{
+  "rewrites": [
+    { "source": "/hms", "destination": "https://hms-dun-delta.vercel.app/hms" },
+    { "source": "/hms/:path*", "destination": "https://hms-dun-delta.vercel.app/hms/:path*" }
+  ]
+}
+```
+
+Update Razorpay, WhatsApp, and Google redirect URIs to the `/hms/api/...` paths on the deployment host (or on `https://greynova.in/hms/api/...` after the rewrite above is live). Cron paths are `/hms/api/cron/lifecycle` and `/hms/api/cron/outbox`.
