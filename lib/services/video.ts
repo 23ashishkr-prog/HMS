@@ -3,7 +3,8 @@
 import {Db,HttpError} from './core'
 import {createMeet} from './integrations'
 import {enqueue} from './notify'
-export async function setupVideo(db:Db,hid:string,appointmentId:string){const a=(await db.query("select a.id,a.scheduled_at,a.meet_url,a.patient_id,p.full_name,p.email,u.full_name doctor,u.email doctor_email,h.name hospital,h.opd_hours from appointments a join patients p on p.id=a.patient_id left join users u on u.id=a.doctor_user_id join hospitals h on h.id=a.hospital_id where a.id=$1 and a.hospital_id=$2",[appointmentId,hid])).rows[0];if(!a)throw new HttpError(404,'Appointment not found.')
+import {getSubscription} from './tenancy'
+export async function setupVideo(db:Db,hid:string,appointmentId:string){const sub=await getSubscription(db,hid);if(!sub?.modules?.includes('engagement'))throw new HttpError(402,'Video consultations (Google Meet) are available on the AI + Customer Engagement plan.');const a=(await db.query("select a.id,a.scheduled_at,a.meet_url,a.patient_id,p.full_name,p.email,u.full_name doctor,u.email doctor_email,h.name hospital,h.opd_hours from appointments a join patients p on p.id=a.patient_id left join users u on u.id=a.doctor_user_id join hospitals h on h.id=a.hospital_id where a.id=$1 and a.hospital_id=$2",[appointmentId,hid])).rows[0];if(!a)throw new HttpError(404,'Appointment not found.')
  if(a.meet_url)return {meetUrl:a.meet_url,dryRun:false,reused:true}
  const start=new Date(a.scheduled_at),end=new Date(start.getTime()+(Number(a.opd_hours?.slotMin)||15)*60000)
  const m=await createMeet(db,hid,{summary:`Video consultation: ${a.full_name} with ${a.doctor||'doctor'}`,description:`${a.hospital} video consultation.`,start,end,attendees:[a.email,a.doctor_email].filter(Boolean)})

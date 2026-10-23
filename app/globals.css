@@ -698,7 +698,7 @@ html body .authPremium .authCard{align-self:center;justify-self:center;width:min
 .kcard{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 14px #0f172a0f;cursor:pointer;border-left:4px solid #6366f1}
 .k-won .kcard{border-left-color:#10b981}.k-lost .kcard{border-left-color:#94a3b8}.k-demo .kcard{border-left-color:#f59e0b}.k-trial .kcard{border-left-color:#ec4899}
 html body .authPremium .authSide{align-self:stretch;min-height:100vh;border-radius:0}html body .crm .crmHead{background:none;box-shadow:none;position:static}
-.mkPlans.two{max-width:880px;margin:20px auto 0;text-align:left}.mkPlans ul{padding-left:18px;line-height:1.9;margin:14px 0 20px}.mkPlans .hot ul{color:#eef2ff}.mkPlans article{position:relative;display:flex;flex-direction:column}.mkPlans article .mkBtn{margin-top:auto;text-align:center}
+.mkPlans.two{max-width:880px;margin:20px auto 0;text-align:left}.mkPlans.three{max-width:1100px;margin:20px auto 0;text-align:left}.mkAnnual{display:block;margin-top:8px;opacity:.85}.planOpt.dim{opacity:.55;cursor:not-allowed}.mkPlans ul{padding-left:18px;line-height:1.9;margin:14px 0 20px}.mkPlans .hot ul{color:#eef2ff}.mkPlans article{position:relative;display:flex;flex-direction:column}.mkPlans article .mkBtn{margin-top:auto;text-align:center}
 .mkTag{position:absolute;top:16px;right:16px;background:#fff3;padding:4px 10px;border-radius:99px;font-size:.75rem;font-weight:700}.mkTrial{color:#64748b;margin-top:16px}
 /* ================= ColorOS spec layer (r1022b) =================
    icons 56px r16 · labels 12px · screen padding 16/20/24 · widgets r24 · floating cards r20 · targets ≥48 · press .96
@@ -791,3 +791,5 @@ html body main.authPremium{padding:0!important;margin:0!important;width:100%}
 .duHits{position:absolute;top:100%;left:0;right:0;z-index:30;background:#fff;border-radius:14px;box-shadow:0 12px 30px #0f172a26;overflow:hidden}.duHits button{display:flex;flex-direction:column;align-items:flex-start;width:100%;background:none!important;border:0!important;border-radius:0!important;padding:10px 14px;text-align:left}.duHits button:hover{background:#f1f5f9!important}
 .duPt{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#f0fdff;border-radius:14px;padding:8px 12px}.duPt small{color:#64748b}
 .warnPill{background:#fef3c7!important;color:#92400e!important;font-size:11px}
+
+.navLocked{margin-top:10px;padding-top:8px;border-top:1px dashed #cbd5e1}.navLocked small{display:block;color:#94a3b8;font-size:11px;margin:0 8px 6px}.navLocked .locked{opacity:.55}
