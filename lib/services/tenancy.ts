@@ -4,6 +4,7 @@ export {canonicalPlan,upgradeLabel}
 export const MODULES=['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','bulk','ai','engagement'] as const
 export type Module=typeof MODULES[number]
 import {lifecycleView} from './lifecycle'
+import {envPaymentsConfigured,paymentsConfiguredAsync} from './platformGateway'
 /** Per-request memo so the api() gate and requireModule() share one subscription lookup. */
 const subMemo=new WeakMap<object,any>()
 export function memoSubscription(ctx:object,sub:any){subMemo.set(ctx,sub)}
@@ -50,8 +51,10 @@ export async function updateStaff(db:Db,ctx:Ctx,id:string,b:any){requireRole(ctx
  const r=await db.query(`update users set ${sets.join(',')},updated_at=now() where id=$1 and hospital_id=$2 returning id,email,full_name,role,active,phone,department,designation,registration_no`,vals);await audit(db,ctx,'update','user',id,{changed,role:b.role??undefined});return r.rows[0]}
 export async function resetStaffPassword(db:Db,ctx:Ctx,id:string,password:string){requireRole(ctx,['admin']);if(typeof password!=='string'||password.length<10)throw new HttpError(400,'Password must be at least 10 characters.');const r=await db.query("update users set password_hash=crypt($1,gen_salt('bf',12)),must_change_password=true,password_changed_at=now(),updated_at=now() where id=$2 and hospital_id=$3 returning id",[password,id,ctx.hospitalId]);if(!r.rows[0])throw new HttpError(404,'User not found.');await audit(db,ctx,'reset_password','user',id,{forceChange:true});return {ok:true}}
 export async function setStaffActive(db:Db,ctx:Ctx,id:string,active:boolean){await updateStaff(db,ctx,id,{active})}
-/* ---- Payment provider hooks (Razorpay). Nothing is charged unless RAZORPAY_* env vars are set. ---- */
-export const paymentsConfigured=()=>!!(process.env.RAZORPAY_KEY_ID&&process.env.RAZORPAY_KEY_SECRET&&process.env.RAZORPAY_WEBHOOK_SECRET)
+/* ---- Payment provider hooks (Razorpay). Keys from platform_settings (preferred) or RAZORPAY_* env. ---- */
+/** Sync env-only check. Prefer paymentsConfiguredAsync(db) when a DB handle is available. */
+export const paymentsConfigured=()=>envPaymentsConfigured()
+export {paymentsConfiguredAsync}
 
 /** Activate / renew a hospital plan after a *confirmed* Razorpay payment (checkout signature or signed webhook).
  *  Never call this for patient bills — only Clinic/Basic/AI+ subscription. Idempotent on provider_payment_id. */
@@ -70,11 +73,20 @@ export async function activatePaidPlan(db:Db,opts:{hospitalId:string;planCode:st
  const amount=Number(opts.amountInr!=null?opts.amountInr:(period==='annual'?PLAN_ANNUAL_INR[plan]:PLAN_PRICE_INR[plan]))
  await db.query('insert into subscription_events(hospital_id,provider,event_type,payload) values($1,$2,$3,$4)',[opts.hospitalId,'razorpay',opts.eventType||'payment.captured',JSON.stringify(opts.raw??{paymentId:opts.paymentId,orderId:opts.orderId,plan,period,amount})])
  try{
-  await db.query(
-   `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,status,provider,provider_order_id,provider_payment_id,provider_signature_ok,raw)
-    values($1,$2,$3,$4,'captured','razorpay',$5,$6,$7,$8)`,
-   [opts.hospitalId,plan,period,amount,opts.orderId||null,opts.paymentId||null,opts.signatureOk??true,JSON.stringify(opts.raw??{})]
-  )
+  // Prefer upgrading an existing 'created' row for this order; else insert captured.
+  const up=opts.orderId?(await db.query(
+   `update subscription_payments set status='captured',provider_payment_id=coalesce($2,provider_payment_id),
+     provider_signature_ok=$3,amount_inr=$4,plan_code=$5,billing_period=$6,raw=$7,paid_at=now()
+    where provider='razorpay' and provider_order_id=$1 and status in ('created','authorized') returning id`,
+   [opts.orderId,opts.paymentId||null,opts.signatureOk??true,amount,plan,period,JSON.stringify(opts.raw??{})]
+  )).rows[0]:null
+  if(!up){
+   await db.query(
+    `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,status,provider,provider_order_id,provider_payment_id,provider_signature_ok,raw)
+     values($1,$2,$3,$4,'captured','razorpay',$5,$6,$7,$8)`,
+    [opts.hospitalId,plan,period,amount,opts.orderId||null,opts.paymentId||null,opts.signatureOk??true,JSON.stringify(opts.raw??{})]
+   )
+  }
  }catch(e:any){if(e?.code!=='23505')throw e}
 
  const r=await db.query(`update subscriptions set
@@ -98,13 +110,84 @@ export async function activatePaidPlan(db:Db,opts:{hospitalId:string;planCode:st
 /** Platform: payment ledger for one hospital (plan subscriptions only). */
 export async function platformListPayments(db:Db,hospitalId:string){
  return (await db.query(
-  `select id,hospital_id,plan_code,billing_period,amount_inr,currency,status,provider,provider_order_id,provider_payment_id,provider_signature_ok,paid_at,created_at
-   from subscription_payments where hospital_id=$1 order by paid_at desc limit 100`,[hospitalId]
+  `select sp.id,sp.hospital_id,sp.plan_code,sp.billing_period,sp.amount_inr,sp.currency,sp.status,sp.provider,
+    sp.provider_order_id,sp.provider_payment_id,sp.provider_signature_ok,sp.paid_at,sp.created_at,
+    s.current_period_start,s.current_period_end,s.status as sub_status
+   from subscription_payments sp
+   left join subscriptions s on s.hospital_id=sp.hospital_id
+   where sp.hospital_id=$1 order by sp.paid_at desc nulls last, sp.created_at desc limit 100`,[hospitalId]
  )).rows
+}
+
+/** Platform Payment check: all plan payments across hospitals. */
+export async function platformListAllPayments(db:Db,q:any={}){
+ const params:any[]=[]
+ const where:string[]=['true']
+ const search=String(q.q||q.search||'').trim()
+ const status=opt(q.status)
+ const hid=opt(q.hospitalId)
+ const after=opt(q.after)||opt(q.from)
+ const before=opt(q.before)||opt(q.to)
+ if(search){params.push('%'+search.toLowerCase()+'%');where.push(`(lower(h.name) like $${params.length} or lower(h.code) like $${params.length})`)}
+ if(status){params.push(status);where.push(`sp.status=$${params.length}`)}
+ if(hid){params.push(hid);where.push(`sp.hospital_id=$${params.length}`)}
+ if(after){params.push(after);where.push(`coalesce(sp.paid_at,sp.created_at)>=$${params.length}::timestamptz`)}
+ if(before){params.push(before);where.push(`coalesce(sp.paid_at,sp.created_at)<($${params.length}::timestamptz + interval '1 day')`)}
+ const sql=`select sp.id,sp.hospital_id,sp.plan_code,sp.billing_period,sp.amount_inr,sp.currency,sp.status,sp.provider,
+   sp.provider_order_id,sp.provider_payment_id,sp.provider_signature_ok,sp.paid_at,sp.created_at,
+   h.name hospital_name,h.code hospital_code,
+   s.current_period_start,s.current_period_end,s.status as sub_status,s.plan_code as current_plan
+  from subscription_payments sp
+  join hospitals h on h.id=sp.hospital_id
+  left join subscriptions s on s.hospital_id=sp.hospital_id
+  where ${where.join(' and ')}
+  order by coalesce(sp.paid_at,sp.created_at) desc
+  limit 500`
+ return (await db.query(sql,params)).rows
+}
+
+export async function platformPaymentStats(db:Db){
+ const r=await db.query(`select
+   count(*)::int as total,
+   count(*) filter (where status='created')::int as created,
+   count(*) filter (where status in ('captured','authorized'))::int as paid,
+   count(*) filter (where status='failed')::int as failed,
+   coalesce(sum(amount_inr) filter (where status in ('captured','authorized')),0)::numeric as paid_inr
+  from subscription_payments`)
+ return r.rows[0]
+}
+
+/** Platform: single hospital live tenant detail + recent payments. */
+export async function platformHospitalDetail(db:Db,hospitalId:string){
+ const h=(await db.query(
+  `select h.id,h.name,h.code,h.status,h.created_at,h.contact_email,h.contact_phone,h.address,h.gstin,
+    s.plan_code,s.status sub_status,s.trial_ends_at,s.current_period_start,s.current_period_end,
+    s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,
+    s.last_payment_id,s.last_order_id,s.updated_at sub_updated_at,
+    a.full_name admin_name,a.email admin_email,a.phone admin_phone,
+    (select count(*)::int from users u where u.hospital_id=h.id) users,
+    (select count(*)::int from patients p where p.hospital_id=h.id) patients
+   from hospitals h
+   left join subscriptions s on s.hospital_id=h.id
+   left join lateral (
+     select full_name,email,phone from users u where u.hospital_id=h.id and u.role='admin' and u.active order by u.created_at asc limit 1
+   ) a on true
+   where h.id=$1`,[hospitalId])).rows[0]
+ if(!h)throw new HttpError(404,'Hospital not found')
+ const payments=await platformListPayments(db,hospitalId)
+ return {hospital:h,payments}
 }
 
 
 export async function applyProviderEvent(db:Db,hospitalId:string,event:{type:string;planCode?:string;period?:string;periodEnd?:string;periodStart?:string;subscriptionId?:string;customerId?:string;paymentId?:string;orderId?:string;amountInr?:number},raw:unknown){
+ if(event.type==='payment.failed'){
+  if(event.orderId){
+   await db.query(`update subscription_payments set status='failed',provider_payment_id=coalesce($2,provider_payment_id),raw=$3,paid_at=now()
+    where provider='razorpay' and provider_order_id=$1 and status in ('created','authorized')`,[event.orderId,event.paymentId||null,JSON.stringify(raw)])
+  }
+  await db.query('insert into subscription_events(hospital_id,provider,event_type,payload) values($1,$2,$3,$4)',[hospitalId,'razorpay',event.type,JSON.stringify(raw)])
+  return
+ }
  if(event.type==='payment.captured'||event.type==='order.paid'){
   if(!event.paymentId&&!event.orderId)return // never activate without a payment reference
   const period=(event.period==='annual'?'annual':'monthly') as 'monthly'|'annual'

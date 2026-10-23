@@ -8,6 +8,8 @@ export const NAV:NavItem[]=[
  {name:'Front desk',icon:'frontdesk',path:'/frontdesk',roles:['admin','reception'],module:'queue'},
  {name:'Doctor desk',icon:'doctor',path:'/opd',roles:['admin','doctor','nurse'],module:'opd'},
  {name:'Billing',icon:'billing',path:'/billing',roles:['admin','billing','reception'],module:'billing'},
+ {name:'Payment gateway',icon:'billing',path:'/billing/gateway',roles:['admin','billing'],module:'billing',more:true},
+ {name:'Gateway payments',icon:'billing',path:'/billing/gateway-payments',roles:['admin','billing'],module:'billing',more:true},
  {name:'Pharmacy',icon:'pharmacy',path:'/pharmacy',roles:['admin','pharmacy'],module:'pharmacy'},
  {name:'Lab worklist',icon:'lab',path:'/laboratory',roles:['admin','lab'],module:'lab'},
  {name:'IPD beds',icon:'ipd',path:'/ipd',roles:['admin','reception','doctor','nurse','billing'],module:'ipd'},
