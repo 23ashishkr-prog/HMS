@@ -188,3 +188,7 @@ Open `/platform` → **Gateway settings** to enter Razorpay Key ID / Key Secret 
 ## Per-hospital payment gateway (tenant)
 
 Each hospital configures **its own** Razorpay keys under **Billing → Payment gateway** (`/billing/gateway`). Encrypted in `hospital_integrations` (kind `payments`). Admin and **billing** (accounts desk — there is no separate `account` role) can manage; doctor/lab/reception/nurse/pharmacy cannot. Online invoice collect uses these keys only — never the platform SaaS Razorpay keys used for plan subscriptions at `/platform/settings`. Confirmation list: `/billing/gateway-payments`. Webhook: `/api/webhooks/razorpay/<hospitalId>`.
+
+## Login URL
+
+Staff must sign in on the app host (e.g. `https://hms-dun-delta.vercel.app/auth/login`), not through a third-party iframe wrapper such as `https://greynova.in/hms/`. Embedded iframes block or partition the `hms_session` cookie (SameSite / third-party cookie rules), so login appears to fail and the browser address bar stays on the wrapper site. The app sends `Content-Security-Policy: frame-ancestors 'self'` so marketing shells cannot embed it.
