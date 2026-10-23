@@ -39,7 +39,7 @@ function SupportTickets(){
  useEffect(()=>{load()},[])
  return <div className="panel modulePanel">
   <h3>Raise ticket / Report issue</h3>
-  <p className="muted"><small>Hospital admins only. Tickets go to the SaaS owner (Platform → Incidents &amp; tickets). Other roles in your hospital cannot see this form or your tickets. Auto-captured app errors are separate and appear as “errors” on the platform.</small></p>
+  <p className="muted"><small>Hospital admins only. Tickets go to the SaaS owner (Platform → Incidents &amp; tickets). Auto-captured app errors are separate and appear as “errors” on the platform.</small></p>
   <form className="formGrid ticketForm" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);setBusy(true);setM('');try{await call('/api/admin/tickets','POST',{title:String(f.get('title')||''),description:String(f.get('description')||''),severity:String(f.get('severity')||'medium'),category:String(f.get('category')||'other')});(e.target as HTMLFormElement).reset();setM('Ticket submitted');load()}catch(er:any){setM(er.message)}finally{setBusy(false)}}}>
    <label>Title *<input name="title" required maxLength={160} placeholder="Short summary"/></label>
    <label>Severity<select name="severity" defaultValue="medium"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></label>

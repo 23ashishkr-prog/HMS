@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="PMS Hospital Cloud">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="HMS Hospital Cloud">
 <defs><linearGradient id="lg" x1="12" y1="88" x2="88" y2="12" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0B2A5B"/><stop offset=".45" stop-color="#1FB6C9"/><stop offset="1" stop-color="#FF7A6B"/></linearGradient>
 <radialGradient id="gl" cx="40" cy="30" r="30" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
 <path d="M36 30C36 13 64 13 64 30Q64 36 70 36C87 36 87 64 70 64Q64 64 64 70C64 87 36 87 36 70Q36 64 30 64C13 64 13 36 30 36Q36 36 36 30Z" fill="url(#lg)"/><path d="M36 30C36 13 64 13 64 30Q64 36 70 36C87 36 87 64 70 64Q64 64 64 70C64 87 36 87 36 70Q36 64 30 64C13 64 13 36 30 36Q36 36 36 30Z" fill="url(#gl)"/><ellipse cx="44" cy="25" rx="5" ry="3" fill="#fff" opacity=".7" transform="rotate(-20 44 25)"/>

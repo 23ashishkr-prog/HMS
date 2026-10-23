@@ -33,7 +33,7 @@ export default function IncidentsPage(){
    <div className="platNote">
     <b>Where this data comes from.</b>{' '}
     <span><b>Errors</b> — {src.errors||'Automatic capture of app errors (server/client), not user-filed tickets.'}</span>
-    {' '}<span><b>Tickets</b> — {src.tickets||'Hospital admins raise these from Settings → Support; tenant-scoped.'}</span>
+    {' '}<span><b>Tickets</b> — {src.tickets||'Hospital admins raise these from Settings → Support.'}</span>
    </div>
    {msg&&<p className="err">{msg}</p>}
    <div className="platTabsInline" role="tablist">

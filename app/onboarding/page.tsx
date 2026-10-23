@@ -19,14 +19,12 @@ export default function Page(){
   <main className="authPage authPremium onbPage">
    <aside className="authSide" aria-hidden>
     <div className="authSideIn">
-     <b className="mkLogo"><Logo size={36}/> PMS Hospital Cloud</b>
+     <b className="mkLogo"><Logo size={36}/> HMS Hospital Cloud</b>
      <h2>Your hospital, live in an afternoon.</h2>
      <ul>
       <li>{days}-day free trial on Basic — no card needed</li>
       <li>Indian defaults: services, departments, OPD timings</li>
-      <li>Your data isolated from every other hospital</li>
      </ul>
-     <small>Encrypted · Role-based access · Audit trail</small>
     </div>
    </aside>
    <section className="authCard onbCard">
@@ -40,7 +38,7 @@ export default function Page(){
       <a className="primary full btnLink" href={done.redirect||'/admin/setup'}>Continue to setup</a>
      </div>
     ):(<>
-     <div className="authBrand"><Logo size={36}/><div><b>PMS</b><small>HOSPITAL CLOUD</small></div></div>
+     <div className="authBrand"><Logo size={36}/><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
      <span className="overline">START YOUR {days}-DAY FREE TRIAL (BASIC)</span>
      <h1>Register your hospital</h1>
      <p className="onbLead">Creates your workspace and admin login. Hospital code is generated automatically. Free trial is always <b>Basic</b> (no AI or WhatsApp engagement). After trial, choose Clinic, Basic or AI + Engagement.</p>

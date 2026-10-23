@@ -63,7 +63,7 @@ export async function getHospitalGatewayView(db:Db,ctx:Ctx){
     updatedAt:r?.updated_at||null,
     encryption:process.env.INTEGRATIONS_ENC_KEY?'INTEGRATIONS_ENC_KEY':'derived from SESSION_SECRET (set INTEGRATIONS_ENC_KEY)',
     webhookUrl:`${appUrl()}/api/webhooks/razorpay/${ctx.hospitalId}`,
-    note:'This hospital\'s own gateway for patient invoice payments. Completely separate from platform SaaS plan billing.',
+    note:'This hospital\'s own gateway for patient invoice payments. Separate from platform SaaS plan billing.',
     accountRole:'billing',
     accountRoleNote:'No separate account role — billing role is the accounts desk. Admin and billing can manage; doctor/lab/reception/nurse/pharmacy cannot.',
   }

@@ -10,7 +10,7 @@ export const GET=platformApi(async(db,req)=>{
   configured:{github:!!process.env.GITHUB_ISSUES_TOKEN,email:!!(process.env.RESEND_API_KEY&&process.env.TECH_ALERT_EMAIL&&process.env.EMAIL_FROM)},
   sources:{
    errors:'Automatic capture of app (server/client) errors. Fingerprinted, scrubbed of PHI/secrets; optional GitHub issue / tech e-mail.',
-   tickets:'Hospital-admin “Raise ticket” reports from Settings → Support. Tenant-scoped; not visible to other hospital roles.',
+   tickets:'Hospital-admin “Raise ticket” reports from Settings → Support.',
   },
  }
 })

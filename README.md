@@ -1,6 +1,6 @@
-# HMS: multi-tenant Patient Management System (India)
+# HMS: multi-tenant Hospital Management System (India)
 
-A Next.js 16 + Postgres SaaS PMS. Many hospitals share one deployment, and each hospital (tenant) has its own users and isolated data.
+A Next.js 16 + Postgres SaaS HMS (Hospital Cloud). Many hospitals share one deployment; each hospital is a tenant with its own users and data.
 
 Modules: registration (UHID + ABHA), appointments, OPD token queue, consultation EMR (vitals, ICD-10, Rx, orders), lab/radiology worklist, pharmacy inventory and dispensing, billing and payments, IPD beds/admission/discharge, insurance/TPA, audit log, live dashboard, plans/subscriptions, and a platform super-admin console.
 See `docs/WORKFLOW_GAP_ANALYSIS.md` for what's built and what's left.

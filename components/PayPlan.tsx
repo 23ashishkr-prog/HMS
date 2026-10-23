@@ -33,7 +33,7 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
    await loadRzp()
    await new Promise<void>((resolve,reject)=>{
     const rzp=new window.Razorpay!({
-     key:order.keyId,amount:order.amountPaise,currency:order.currency,name:'PMS Hospital Cloud',
+     key:order.keyId,amount:order.amountPaise,currency:order.currency,name:'HMS Hospital Cloud',
      description:order.description,order_id:order.orderId,
      notes:{hospital_id:undefined,plan_code:planCode,billing_period:period},
      prefill:{email:order.prefillEmail},
