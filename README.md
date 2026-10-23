@@ -193,9 +193,11 @@ Each hospital configures **its own** Razorpay keys under **Billing → Payment g
 
 ## Staff URL
 
-Hospital staff use **https://greynova.in/hms/**. GreyNova reverse-proxies `/hms` to this deployment **without stripping the prefix**, so the browser only talks to greynova.in. Session cookies (`hms_session`, `hms_platform`, `hms_patient`) are `Path=/hms`, `Secure` in production, and `SameSite=Lax` (platform owner: `Strict`). They are not framed in from another host.
+Hospital staff sign in at **https://greynova.in/hms/auth/login**. GreyNova reverse-proxies `/hms` to this deployment **without stripping the prefix**, so the browser only talks to greynova.in. Session cookies (`hms_session`, `hms_platform`, `hms_patient`) are `Path=/hms`, `Secure` in production, and `SameSite=Lax` (platform owner: `Strict`). They are not framed in from another host.
 
-Owner and development use **https://hms-dun-delta.vercel.app/hms**. The bare host redirects to `/hms`.
+The owner platform is **https://greynova.in/hms/platform** (same proxy) or **https://hms-dun-delta.vercel.app/hms/platform**. A visit to the bare Vercel host (`/`) redirects to `/hms`. Older bookmarks on that host (`/platform`, `/auth/login`, `/welcome`, `/api/...`, and the other app routes) 307 to the same path under `/hms`. GreyNova does not proxy those bare paths — only `/hms`.
+
+Set `APP_BASE_URL=https://greynova.in` in production so password-reset, booking, and QR links stay on greynova.in/hms instead of the Vercel host.
 
 GreyNova `vercel.json` once this build is live (replace any strip-prefix or root `/_next` / `/api` proxies):
 
