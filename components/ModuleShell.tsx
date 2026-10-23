@@ -1,6 +1,7 @@
 'use client'
 import Logo from '@/components/Logo'
 import {useEffect,useRef,useState} from 'react';import {usePathname,useRouter} from 'next/navigation';import Icon3D from './Icon3D';import Assistant from './Assistant';import AppearancePanel,{applyAppearance} from './Appearance';import {NAV,HOME,Role,navFor} from '@/lib/nav';import {me as whoAmI,clearMe} from '@/lib/client'
+import PayPlan from '@/components/PayPlan'
 type Viewer={name:string;email:string;role:Role;mustChangePassword?:boolean;hospital:{name:string;code:string;logoUrl?:string;accentColor?:string}}
 type T={id:number;msg:string;kind:string}
 export default function ModuleShell({title,eyebrow,description,children,actions}:{title:string;eyebrow?:string;description?:string;children:React.ReactNode;actions?:React.ReactNode}){
@@ -35,8 +36,9 @@ export default function ModuleShell({title,eyebrow,description,children,actions}
 
 function HoldScreen({sub}:{sub:any}){const lc=sub.lifecycle||{};return <section className="page"><div className="card glass hold"><h1>Account on hold</h1><p>Your {lc.purgedAt?'subscription has lapsed and clinical data was removed after the hold period. Your patient register (name, phone, address) is kept.':'free trial or subscription has ended. All your data is safe. Subscribe to continue exactly where you left off.'}</p>
  {lc.daysToPurge!=null&&<p className="banner danger">If not renewed, data will be removed in <b>{lc.daysToPurge} days</b> (on {new Date(lc.purgeAt).toLocaleDateString('en-IN')}). Only patient names, phone numbers and addresses are kept.</p>}
- <div className="planGrid">{(sub.plans||[]).map((p:any)=><div key={p.code} className={'plan glass '+(p.code===sub.planCode?'cur':'')}><b>{p.name}</b><span>{Number(p.monthly_price_inr)>0?'₹'+Number(p.monthly_price_inr).toLocaleString('en-IN')+'/month':'Contact sales'}</span><small>{(p.modules||[]).join(' · ')}</small></div>)}</div><p className="muted"><small>Prices exclude GST. Free trial was 30 days on Basic.</small></p>
- {sub.role==='admin'?<p>{sub.paymentsEnabled?'Online payment is being enabled.':'Online payment is not set up yet.'} To renew now, contact the platform team. Your account resumes instantly once activated.</p>:<p>Please ask your hospital admin to renew the subscription.</p>}</div></section>}
+ {sub.role==='admin'?<PayPlan onPaid={()=>location.reload()}/>:<p>Please ask your hospital admin to renew the subscription.</p>}
+ <p className="muted"><small>Prices exclude GST. Free trial was 30 days on Basic. Platform console is for the SaaS owner only — hospital accounts cannot open it.</small></p>
+ </div></section>}
 
 /** Shown instead of every page until a temporary password is replaced (the API also refuses other calls with 403). */
 function ChangePasswordScreen({onDone}:{onDone:()=>void}){const[err,setErr]=useState(''),[busy,setBusy]=useState(false)
