@@ -9,7 +9,7 @@ test('hospital roles are not platform',()=>{
 })
 
 test('platform routes are owner-only paths',()=>{
- const ownerPaths=['/platform','/platform/settings','/platform/payments','/platform/hospitals']
+ const ownerPaths=['/platform','/platform/hospitals','/platform/payments','/platform/settings','/platform/incidents']
  for(const p of ownerPaths)assert.ok(p.startsWith('/platform'))
  const hospitalNav=['/admin/settings','/billing','/pharmacy']
  for(const p of hospitalNav)assert.ok(!p.startsWith('/platform'))

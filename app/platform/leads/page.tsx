@@ -7,7 +7,7 @@ export default function Leads(){const[d,setD]=useState<any>(null),[err,setErr]=u
  if(err&&!d)return <main className="authPage"><section className="authCard"><h1>Sales CRM</h1><p>{err}</p><Link className="primary full btnLink" href="/platform">Platform sign-in</Link></section></main>
  if(!d)return <main className="crm"><p>Loading…</p></main>
  const total=d.leads.length,won=d.counts.won||0
- return <main className="crm"><header className="crmHead"><div><span className="overline">PLATFORM · SALES</span><h1>Leads pipeline</h1><p className="muted">{total} leads · {won} won · {total?Math.round(won*100/total):0}% conversion</p></div><Link href="/platform" className="ghost btnLink">← Hospitals</Link></header>
+ return <main className="crm"><header className="crmHead"><div><span className="overline">PLATFORM · SALES</span><h1>Leads pipeline</h1><p className="muted">{total} leads · {won} won · {total?Math.round(won*100/total):0}% conversion</p></div><Link href="/platform" className="ghost btnLink">← Platform</Link></header>
  <div className="kanban">{d.stages.map((st:string)=><section key={st} className={'kcol k-'+st}><h3>{LBL[st]}<span>{d.counts[st]}</span></h3>
   {d.leads.filter((l:any)=>l.status===st).map((l:any)=><article key={l.id} className="kcard" onClick={()=>setOpen(l)}><b>{l.hospital_name}</b><small>{l.name} · {l.city||'—'}{l.beds?' · '+l.beds+' beds':''}</small><small className="muted">{dt(l.created_at)}{l.next_follow_up?' · follow up '+String(l.next_follow_up).slice(0,10):''}</small>
    <select value={l.status} onClick={e=>e.stopPropagation()} onChange={e=>upd(l.id,{status:e.target.value})} aria-label="Stage">{d.stages.map((x:string)=><option key={x} value={x}>{LBL[x]}</option>)}</select></article>)}</section>)}</div>
