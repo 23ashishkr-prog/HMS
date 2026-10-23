@@ -2,6 +2,8 @@
 
 A Next.js 16 + Postgres SaaS HMS (Hospital Cloud). Many hospitals share one deployment; each hospital is a tenant with its own users and data.
 
+**Staff open HMS at [https://greynova.in/hms/](https://greynova.in/hms/).** That GreyNova page embeds this app, and the browser address bar stays on greynova.in. The Vercel host is for the owner and development; hospital staff do not need it.
+
 Modules: registration (UHID + ABHA), appointments, OPD token queue, consultation EMR (vitals, ICD-10, Rx, orders), lab/radiology worklist, pharmacy inventory and dispensing, billing and payments, IPD beds/admission/discharge, insurance/TPA, audit log, live dashboard, plans/subscriptions, and a platform super-admin console.
 See `docs/WORKFLOW_GAP_ANALYSIS.md` for what's built and what's left.
 
@@ -189,6 +191,8 @@ Open `/platform` → **Gateway settings** to enter Razorpay Key ID / Key Secret 
 
 Each hospital configures **its own** Razorpay keys under **Billing → Payment gateway** (`/billing/gateway`). Encrypted in `hospital_integrations` (kind `payments`). Admin and **billing** (accounts desk — there is no separate `account` role) can manage; doctor/lab/reception/nurse/pharmacy cannot. Online invoice collect uses these keys only — never the platform SaaS Razorpay keys used for plan subscriptions at `/platform/settings`. Confirmation list: `/billing/gateway-payments`. Webhook: `/api/webhooks/razorpay/<hospitalId>`.
 
-## Login URL
+## Staff URL
 
-Staff must sign in on the app host (e.g. `https://hms-dun-delta.vercel.app/auth/login`), not through a third-party iframe wrapper such as `https://greynova.in/hms/`. Embedded iframes block or partition the `hms_session` cookie (SameSite / third-party cookie rules), so login appears to fail and the browser address bar stays on the wrapper site. The app sends `Content-Security-Policy: frame-ancestors 'self'` so marketing shells cannot embed it.
+Hospital staff use **https://greynova.in/hms/**. The page embeds this app in an iframe, sign-in stays inside that frame, and the address bar remains on greynova.in. Direct use of `https://hms-dun-delta.vercel.app` still works for the owner and development; it is not the staff URL.
+
+The app sends `Content-Security-Policy: frame-ancestors 'self' https://greynova.in https://www.greynova.in`, so only this host and GreyNova may frame it. Inside that embed, `hms_session`, `hms_platform`, and `hms_patient` are set `SameSite=None; Secure; Partitioned` (the browser stores them for greynova.in and sends them on later iframe requests). A direct visit keeps a first-party cookie (`SameSite=Lax`, or `Strict` for the platform owner). Password-reset and other token links still use the app host, because the GreyNova page always opens the embedded welcome screen.

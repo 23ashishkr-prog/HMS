@@ -1,6 +1,7 @@
 'use client'
 import TimeRoller from '@/components/TimeRoller';import {use,useEffect,useState} from 'react';import Dictate from '@/components/Dictate'
-const j=async(u:string,b?:any)=>{const r=await fetch(u,b?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}:{cache:'no-store'});const x=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(x.error||'Something went wrong'),{status:r.status});return x}
+import {embedRequestHeaders,ensureEmbedCookieAccess} from '@/lib/embedSession'
+const j=async(u:string,b?:any)=>{const r=await fetch(u,b?{method:'POST',credentials:'include',headers:{'content-type':'application/json',...embedRequestHeaders()},body:JSON.stringify(b)}:{cache:'no-store',credentials:'include'});const x=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(x.error||'Something went wrong'),{status:r.status});return x}
 const when=(s:string)=>new Date(s).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})
 const day=(s:string)=>new Date(s).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'numeric'})
 const inr=(n:number)=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})
@@ -8,7 +9,7 @@ const istDay=(o=0)=>new Date(Date.now()+330*60000+o*864e5).toISOString().slice(0
 const TABS=[['home','Home'],['appts','Appointments'],['meds','Medicines'],['rx','Prescriptions'],['reports','Reports'],['bills','Bills']] as const
 function Login({code,onIn}:{code:string;onIn:()=>void}){const[m,setM]=useState(''),[otp,setOtp]=useState(''),[sent,setSent]=useState<any>(null),[err,setErr]=useState(''),[busy,setBusy]=useState(false)
  const send=async(via?:string)=>{setBusy(true);setErr('');try{setSent(await j('/api/portal/otp',{h:code,mobile:m,via}))}catch(e:any){setErr(e.message)}finally{setBusy(false)}}
- const verify=async(e:any)=>{e.preventDefault();setBusy(true);setErr('');try{await j('/api/portal/verify',{h:code,mobile:m,otp});onIn()}catch(e:any){setErr(e.message)}finally{setBusy(false)}}
+ const verify=async(e:any)=>{e.preventDefault();setBusy(true);setErr('');try{await ensureEmbedCookieAccess();await j('/api/portal/verify',{h:code,mobile:m,otp});onIn()}catch(e:any){setErr(e.message)}finally{setBusy(false)}}
  return <div className="card pad portalLogin"><span className="eyebrow2">PATIENT PORTAL</span><h1>Log in with your mobile</h1><p className="muted">No password. We send a 6-digit code on WhatsApp.</p>
   {!sent?<form onSubmit={e=>{e.preventDefault();send()}} className="formGrid"><label>Mobile number<input required inputMode="numeric" autoComplete="tel" value={m} onChange={e=>setM(e.target.value)} placeholder="98765 43210"/></label><button className="primary full" disabled={busy}>{busy?'Sending…':'Send code on WhatsApp'}</button></form>
   :<form onSubmit={verify} className="formGrid"><p>Code sent on {sent.channel==='email'?'e-mail':'WhatsApp'} to {sent.to}.</p><label>6-digit code<input required inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,''))} className="otpIn"/></label><button className="primary full" disabled={busy||otp.length!==6}>{busy?'Checking…':'Log in'}</button>
