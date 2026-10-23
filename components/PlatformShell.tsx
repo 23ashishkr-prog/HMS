@@ -3,7 +3,6 @@ import Link from 'next/link'
 import {usePathname,useRouter} from 'next/navigation'
 import {ReactNode,useState} from 'react'
 import {call} from '@/lib/client'
-import {ensureEmbedCookieAccess} from '@/lib/embedSession'
 
 const TABS:[string,string,((p:string)=>boolean)?][]=[
  ['/platform','Overview',p=>p==='/platform'],
@@ -26,7 +25,6 @@ export function PlatformSignIn({title='Platform sign-in',hint}:{title?:string;hi
      e.preventDefault();setMsg('')
      const fd=new FormData(e.currentTarget)
      try{
-      await ensureEmbedCookieAccess()
       await call('/api/platform/login','POST',{email:String(fd.get('email')||''),password:String(fd.get('password')||'')})
       router.refresh();location.reload()
      }catch(er:any){setMsg(er.message)}

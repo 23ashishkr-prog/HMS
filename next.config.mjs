@@ -1,15 +1,27 @@
 /** @type {import('next').NextConfig} */
-// https://greynova.in/hms/ embeds this app. CSP frame-ancestors is the allowlist.
-// X-Frame-Options is omitted on purpose: SAMEORIGIN would block that embed even
-// when frame-ancestors lists greynova.in (some browsers apply the stricter header).
+// HMS is served at /hms on this host and, via a same-origin reverse proxy, under
+// that same prefix on the public site. Do not strip /hms at the proxy: assets,
+// routes, and cookies all live under that path.
+// Framing is same-origin only. The old cross-origin iframe is not a supported sign-in path.
 const securityHeaders = [
-  {key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://greynova.in https://www.greynova.in"},
+  {key: 'Content-Security-Policy', value: "frame-ancestors 'self'"},
+  {key: 'X-Frame-Options', value: 'SAMEORIGIN'},
 ]
 
 const nextConfig = {
   poweredByHeader: false,
+  basePath: '/hms',
+  async redirects() {
+    return [
+      // Owner/dev visits to the bare Vercel host land on the app. GreyNova does not proxy "/".
+      {source: '/', destination: '/hms', permanent: false, basePath: false},
+    ]
+  },
   async headers() {
-    return [{source: '/:path*', headers: securityHeaders}]
+    return [
+      {source: '/', headers: securityHeaders},
+      {source: '/:path*', headers: securityHeaders},
+    ]
   },
 }
 
