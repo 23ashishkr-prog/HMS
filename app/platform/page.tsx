@@ -1,5 +1,6 @@
 'use client'
 import {useEffect,useState} from 'react'
+import Link from 'next/link'
 import {call,formObj,dt} from '@/lib/client'
 
 const PLAN_LABEL:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
@@ -54,7 +55,11 @@ export default function Page(){
      <h1>Hospitals onboarded</h1>
      <p className="muted">Product analytics for you only — not visible to hospital admins, staff or patients. No hospital role can reach this page even by URL.</p>
     </div>
-    <p><a href="/platform/leads">Sales leads →</a></p>
+    <nav className="platNav">
+     <Link href="/platform/payments">Payment check</Link>
+     <Link href="/platform/settings">Gateway settings</Link>
+     <Link href="/platform/leads">Sales leads</Link>
+    </nav>
    </div>
 
    {stats&&<div className="platStats">
@@ -69,7 +74,7 @@ export default function Page(){
     <div className="platStat"><b>{stats.paid_via_razorpay}</b><small>Paid via Razorpay</small></div>
    </div>}
 
-   <p><small>Razorpay checkout: {payCfg?'configured':'not configured (set RAZORPAY_KEY_ID / KEY_SECRET / WEBHOOK_SECRET)'}.</small></p>
+   <p><small>Razorpay checkout: {payCfg?'configured':'not configured'} · <Link href="/platform/settings">Gateway settings</Link>.</small></p>
    {msg&&<p className="err">{msg}</p>}
 
    <form className="platFilters" onSubmit={e=>{e.preventDefault();load()}}>
@@ -91,13 +96,13 @@ export default function Page(){
       const start=h.current_period_start||(h.sub_status==='trialing'?h.created_at:null)
       const end=h.current_period_end||h.trial_ends_at
       return <tr key={h.id}>
-       <td><b>{h.name}</b>{h.status!=='active'&&<div><small className="err">tenant deactivated</small></div>}</td>
+       <td><b>{h.name}</b>{h.status!=='active'&&<div><small className="err">tenant deactivated</small></div>}<div><Link className="chip" href={'/platform/hospitals/'+h.id}>Detail</Link></div></td>
        <td><code>{h.code}</code></td>
        <td>{PLAN_LABEL[h.plan_code]||h.plan_code||'—'}</td>
        <td><span className="pill">{h.sub_status||'—'}</span></td>
        <td>{d(start)}</td>
        <td>{d(end)}{h.billing_period&&<div><small>{h.billing_period}</small></div>}</td>
-       <td>{h.last_payment_id?<><small>Razorpay</small><div><code style={{fontSize:11}}>{String(h.last_payment_id).slice(0,14)}…</code></div></>:h.provider||'—'}<div><button type="button" className="chip" onClick={()=>openPay(h)}>Ledger</button></div></td>
+       <td>{h.last_payment_id?<><small>Razorpay</small><div><code style={{fontSize:11}}>{String(h.last_payment_id).slice(0,14)}…</code></div></>:h.provider||'—'}<div><button type="button" className="chip" onClick={()=>openPay(h)}>Ledger</button> <Link className="chip" href={'/platform/payments?hospitalId='+h.id}>Payments</Link></div></td>
        <td><div className="platAdmin"><span>{h.admin_name||'—'}</span><small>{h.admin_email||h.contact_email||'—'}</small>{h.contact_phone&&<small>{h.contact_phone}</small>}</div></td>
        <td>{h.users}</td>
        <td>

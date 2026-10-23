@@ -58,7 +58,7 @@ Single source of truth: `lib/plans.ts`. DB seed: migration `033_three_plans.sql`
    ```
    Then open `/platform` and sign in with that e-mail. If production login fails, re-run the same seed against the **production** `DATABASE_URL` (Vercel → Storage/Postgres). Never share this password; never put a `/platform` link in hospital nav.
 7. **Razorpay plan checkout** (Clinic / Basic / AI+, monthly or annual from `lib/plans.ts`): set on Vercel (Production + Preview):
-   - `RAZORPAY_KEY_ID`
+   - `RAZORPAY_KEY_ID (optional if set in /platform/settings)`
    - `RAZORPAY_KEY_SECRET`
    - `RAZORPAY_WEBHOOK_SECRET`
    Webhook URL: `https://<your-host>/api/subscription/razorpay/webhook` (events: `payment.captured`, `order.paid`). **Razorpay is only for hospital plan subscriptions** (Clinic / Basic / AI+, monthly or annual) — not for patient bills, consultation fees or pharmacy. Those stay cash/UPI/card recorded in-app. Until all three env vars are set, checkout returns **503** and never fakes success. A paid plan activates only after a verified checkout signature or a signed webhook; the free 30-day Basic trial needs no card. Hospital admins pay from **Settings → Subscription** or the hold screen. Platform super-user sees a per-hospital payment ledger.
@@ -179,3 +179,12 @@ Assistive only — **not a diagnostic or treatment device**. Every output is lab
 - **Daily close-out:** Settings → Daily close-out. The report is sent by the outbox worker at the chosen IST time; it is a dry-run ("not sent") without `RESEND_API_KEY` + `EMAIL_FROM` or WhatsApp keys.
 - **Offline front desk:** a service worker plus an IndexedDB queue. Registrations made offline sync automatically, using the same Idempotency-Key so they never duplicate.
 - No new env vars beyond the existing ones (`APP_BASE_URL` is used for the QR link).
+
+
+## Platform gateway settings (SaaS owner)
+
+Open `/platform` → **Gateway settings** to enter Razorpay Key ID / Key Secret / Webhook Secret (encrypted at rest with `INTEGRATIONS_ENC_KEY`). Platform-stored keys preferred over env. **Payment check** at `/platform/payments` lists all hospital plan payment confirmations. Hospital JWTs cannot read these APIs.
+
+## Per-hospital payment gateway (tenant)
+
+Each hospital configures **its own** Razorpay keys under **Billing → Payment gateway** (`/billing/gateway`). Encrypted in `hospital_integrations` (kind `payments`). Admin and **billing** (accounts desk — there is no separate `account` role) can manage; doctor/lab/reception/nurse/pharmacy cannot. Online invoice collect uses these keys only — never the platform SaaS Razorpay keys used for plan subscriptions at `/platform/settings`. Confirmation list: `/billing/gateway-payments`. Webhook: `/api/webhooks/razorpay/<hospitalId>`.

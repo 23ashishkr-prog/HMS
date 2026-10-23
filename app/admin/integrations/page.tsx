@@ -22,12 +22,16 @@ function Card({kind,title,desc,fields,d,reload,children}:{kind:string;title:stri
 export default function Integrations(){const[d,setD]=useState<any>(null),[err,setErr]=useState('')
  useEffect(()=>{call('/api/integrations/settings').then(x=>setD(x.integrations)).catch(e=>setErr(e.message));const g=new URLSearchParams(location.search).get('google');if(g)toast(g==='connected'?'Google account connected':g==='denied'?'Google sign-in was cancelled':'Google connection failed',g==='connected'?'ok' as any:'err')},[])
  const connect=async()=>{try{const x=await call('/api/integrations/google/start');location.href=x.url}catch(e:any){toast(e.message,'err')}}
- return <ModuleShell title="Integrations" eyebrow="SETTINGS · INTEGRATIONS" description="Connect this hospital's own WhatsApp Business number, Google account (Meet links for video visits) and e-mail sender. Secrets are encrypted and never shown again.">
+ return <ModuleShell title="Integrations" eyebrow="SETTINGS · INTEGRATIONS" description="Connect this hospital's own WhatsApp, Google Meet, e-mail sender and patient payment gateway. Secrets are encrypted and never shown again. Platform SaaS Razorpay keys are never used for patient bills.">
   {err&&<p className="banner err">{err}</p>}{!d?!err&&<p className="muted">Loading…</p>:<div className="intGrid">
    <Card kind="whatsapp" title="WhatsApp Business" desc="Meta Cloud API. Used for tokens, reminders, invoices and booking replies." fields={WA} d={d.whatsapp} reload={setD}>
     <div className="intCopy"><span>Webhook callback URL (paste in Meta › WhatsApp › Configuration, subscribe to <b>messages</b>)</span><code>{d.whatsapp.webhookUrl}</code><button type="button" className="ghost" onClick={()=>{navigator.clipboard?.writeText(d.whatsapp.webhookUrl);toast('Copied')}}>Copy</button></div></Card>
    <Card kind="google" title="Google Meet & Calendar" desc="Creates a Calendar event with a Meet link for each video consultation." fields={GO} d={d.google} reload={setD}>
     <div className="intCopy">{d.google.config.accountEmail&&d.google.status!=='disconnected'?<span>Connected as <b>{d.google.config.accountEmail}</b></span>:<span>Not connected</span>}<button type="button" className="primary" disabled={!d.google.oauthAvailable} onClick={connect}>{d.google.config.accountEmail&&d.google.status!=='disconnected'?'Reconnect Google':'Connect Google'}</button>{!d.google.oauthAvailable&&<small className="muted">Enter your own OAuth client ID/secret and save first (redirect URI: <code>{d.google.redirectUri}</code>).</small>}</div></Card>
    <Card kind="email" title="E-mail sender" desc="Invoices, OTP fallback, lab reports and staff invites." fields={EM} d={d.email} reload={setD}/>
+   <div className="panel modulePanel intCard">
+    <div className="intHead"><div><h2>Payment gateway</h2><p className="muted">This hospital&apos;s own Razorpay (or later PayU/Cashfree) for <b>patient invoice</b> payments. Separate from SaaS plan billing. Admin and billing (accounts) only.</p></div></div>
+    <p><a className="primary btnLink" href="/billing/gateway">Open gateway settings</a> <a className="ghost btnLink" href="/billing/gateway-payments">Payment confirmations</a></p>
+   </div>
    <p className="muted small">Encryption: {d.encryption}. Every change is recorded in the audit log.</p></div>}
  </ModuleShell>}
