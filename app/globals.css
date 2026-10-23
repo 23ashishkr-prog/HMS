@@ -813,11 +813,51 @@ html body main.authPremium{padding:0!important;margin:0!important;width:100%}
 .payPlan.compact .payGrid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
 .banner.warn{background:#fef3c7;color:#92400e;border-radius:14px;padding:12px 14px}
 /* platform console */
-.plat{padding:24px 3vw;min-height:100vh;background:#f8fafc}.platHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.platStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0 20px}.platStat{background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 6px 18px #0f172a0a}.platStat b{display:block;font-size:1.5rem}.platStat small{color:#64748b}
-.platFilters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:end}.platFilters label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#64748b}.platFilters input,.platFilters select{min-height:44px;border-radius:12px;border:1.5px solid #e2e8f0;padding:0 12px;background:#fff}
-.platTableWrap{overflow:auto;background:#fff;border-radius:18px;box-shadow:0 8px 24px #0f172a0a}.platTableWrap table{min-width:1100px}.platAdmin{display:flex;flex-direction:column;gap:2px;font-size:13px}.platAdmin small{color:#64748b}
-
+.plat{min-height:100vh;background:#f8fafc;padding:0 0 40px}
+.platBody{padding:20px 3vw 32px}
+.platTop{position:sticky;top:0;z-index:40;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 3vw;background:rgba(248,250,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid #e2e8f0}
+.platTopBrand{display:flex;flex-direction:column;gap:0;min-width:120px}.platTopBrand b{font-size:14px}
+.platTabs{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+.platTab{display:inline-flex;align-items:center;padding:8px 12px;border-radius:999px;font-weight:700;font-size:13px;color:#475569;text-decoration:none;border:1px solid transparent}
+.platTab:hover{background:#e2e8f0;color:#0f172a}
+.platTab.on{background:#0f172a;color:#fff}
+.platTab.ghostish{font-weight:600;opacity:.85}
+.platTopActions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.platSignOut{min-height:36px;padding:0 12px;border-radius:999px;border:1.5px solid #cbd5e1;background:#fff;font-weight:700;font-size:13px;cursor:pointer}
+.platSignOut:hover{background:#fee2e2;border-color:#fca5a5}
+.platHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.platHead h1{margin:4px 0 6px;font-size:clamp(1.35rem,2.5vw,1.85rem)}
+.platHeadActions{display:flex;gap:8px;flex-wrap:wrap}
+.platStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0 20px}
+.platStat{background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 6px 18px #0f172a0a}
+.platStat b{display:block;font-size:1.5rem;word-break:break-word}.platStat small{color:#64748b}
+.platStatLink{text-decoration:none;color:inherit;transition:transform .12s}.platStatLink:hover{transform:translateY(-2px)}
+.platQuick{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:8px}
+.platQuickCard{display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:#fff;border-radius:16px;box-shadow:0 6px 18px #0f172a0a;text-decoration:none;color:inherit;border:1px solid #e2e8f0}
+.platQuickCard:hover{border-color:#94a3b8}.platQuickCard b{font-size:1.05rem}.platQuickCard span{font-size:13px;color:#64748b;line-height:1.35}
+.platFilters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:end}
+.platFilters label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#64748b;flex:1 1 140px;min-width:0}
+.platFilters input,.platFilters select{min-height:44px;border-radius:12px;border:1.5px solid #e2e8f0;padding:0 12px;background:#fff;width:100%;box-sizing:border-box}
+.platFilterBtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-bottom:2px}
+.platTableWrap{overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;border-radius:18px;box-shadow:0 8px 24px #0f172a0a}
+.platTableWrap table{width:100%}
+.platHospTable{min-width:720px}
+.platPayTable{min-width:780px}
+.platAdmin{display:flex;flex-direction:column;gap:2px;font-size:13px}.platAdmin small{color:#64748b}
+.platRowActions{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;white-space:nowrap}
+.platMenuWrap{position:relative}
+.platMenu{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:160px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 12px 28px #0f172a1a;padding:6px;display:flex;flex-direction:column;gap:2px}
+.platMenu button,.platMenu a{display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;border-radius:8px;font:inherit;font-weight:600;font-size:13px;cursor:pointer;text-decoration:none;color:#0f172a;box-sizing:border-box}
+.platMenu button:hover,.platMenu a:hover{background:#f1f5f9}
+.platIds{display:flex;flex-direction:column;gap:2px;font-size:11px}
+.platMsgCell{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.platCardList{display:flex;flex-direction:column;gap:12px}
+.platHospCard{background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 6px 18px #0f172a0a;border:1px solid #e2e8f0}
+.platHospCardTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.platHospMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:0 0 10px;font-size:13px}
+.platHospMeta dt{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.02em}
+.platHospMeta dd{margin:2px 0 0}
+.platHospMore summary{cursor:pointer;font-weight:700;font-size:13px;color:#475569;margin-bottom:8px}
 .platNav{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .platNav a{font-weight:600;font-size:14px}
 .platForm{display:flex;flex-direction:column;gap:14px;max-width:560px;padding:20px;background:#fff;border-radius:18px;box-shadow:0 8px 24px #0f172a0a}
@@ -825,5 +865,26 @@ html body main.authPremium{padding:0!important;margin:0!important;width:100%}
 .platForm input,.platForm select{min-height:44px;border-radius:12px;border:1.5px solid #e2e8f0;padding:0 12px}
 .pill-captured,.pill-authorized{background:#dcfce7;color:#166534}
 .pill-created{background:#e0f2fe;color:#075985}
-.pill-failed{background:#fee2e2;color:#991b1b}
+.pill-failed,.pill-open{background:#fee2e2;color:#991b1b}
+.pill-acknowledged{background:#fef3c7;color:#92400e}
+.pill-resolved,.pill-ignored{background:#e2e8f0;color:#475569}
+.pill-trialing{background:#e0e7ff;color:#3730a3}
+.pill-active{background:#dcfce7;color:#166534}
+.pill-on_hold,.pill-past_due{background:#ffedd5;color:#9a3412}
 .ok{color:#166534}
+/* plat responsive */
+.platDesktopOnly{display:block}.platMobileOnly{display:none}
+@media (max-width:900px){
+ .platDesktopOnly{display:none}.platMobileOnly{display:flex}
+ .platTop{padding:8px 4vw}.platBody{padding:16px 4vw 28px}
+ .platTabs{order:3;flex:1 1 100%;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+ .platTab{flex:0 0 auto}
+ .platFilters label{flex:1 1 100%}
+ .platHospMeta{grid-template-columns:1fr}
+ .platMsgCell{max-width:100%;white-space:normal}
+}
+@media (max-width:420px){
+ .platTopBrand .overline{display:none}
+ .platStats{grid-template-columns:1fr 1fr}
+}
+
