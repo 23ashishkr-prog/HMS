@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import {Ctx,Db,HttpError,audit,opt,required,requireRole} from './core'
 import {canonicalPlan,TRIAL_DAYS,TRIAL_PLAN,upgradeLabel,PlanCode,PLAN_PRICE_INR,PLAN_ANNUAL_INR} from '../plans'
 export {canonicalPlan,upgradeLabel}
@@ -252,3 +253,36 @@ export async function platformHospitalStats(db:Db){
 }
 
 export async function platformSetSubscription(db:Db,hospitalId:string,b:any){const st=required(b.status,'Status');if(!['trialing','active','past_due','cancelled','expired','on_hold'].includes(st))throw new HttpError(400,'Invalid status');const r=await db.query('update subscriptions set status=$2,hold_started_at=case when $2 in (\'active\',\'trialing\') then null when $2=\'on_hold\' then coalesce(hold_started_at,now()) else hold_started_at end,plan_code=coalesce($3,plan_code),updated_at=now() where hospital_id=$1 returning *',[hospitalId,st,opt(b.planCode)?canonicalPlan(opt(b.planCode)):null]);if(!r.rows[0])throw new HttpError(404,'Hospital not found');return r.rows[0]}
+
+/** Platform owner: list admin users for a hospital (owner-only). */
+export async function platformListHospitalAdmins(db:Db,hospitalId:string){
+ const h=(await db.query('select id,code,name from hospitals where id=$1',[hospitalId])).rows[0]
+ if(!h)throw new HttpError(404,'Hospital not found.')
+ const admins=(await db.query(
+  `select id,email,full_name,active,must_change_password,last_login_at from users
+   where hospital_id=$1 and role='admin' order by active desc,created_at asc`,[hospitalId])).rows
+ return {hospital:h,admins}
+}
+/** Platform owner: set a temporary password for a hospital admin. Shown once in the API response; forces change at next hospital login. Audited — password never written to logs. */
+export async function platformResetAdminPassword(db:Db,hospitalId:string,b:any,plat:{id:string;email:string}){
+ const h=(await db.query('select id,code,name from hospitals where id=$1',[hospitalId])).rows[0]
+ if(!h)throw new HttpError(404,'Hospital not found.')
+ const userId=opt(b.userId)
+ const target=userId
+  ?(await db.query("select id,email,full_name from users where id=$1 and hospital_id=$2 and role='admin'",[userId,hospitalId])).rows[0]
+  :(await db.query("select id,email,full_name from users where hospital_id=$1 and role='admin' and active order by created_at asc limit 1",[hospitalId])).rows[0]
+ if(!target)throw new HttpError(404,userId?'Admin user not found in this hospital.':'No active admin for this hospital.')
+ let password=typeof b.password==='string'?b.password:''
+ if(!password){
+  const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$'
+  const bytes=crypto.randomBytes(14)
+  password=Array.from(bytes,(x:number)=>alphabet[x%alphabet.length]).join('')
+ }
+ if(password.length<10)throw new HttpError(400,'Password must be at least 10 characters.')
+ await db.query("update users set password_hash=crypt($1,gen_salt('bf',12)),must_change_password=true,password_changed_at=now(),updated_at=now() where id=$2 and hospital_id=$3",[password,target.id,hospitalId])
+ await db.query(
+  "insert into audit_log(hospital_id,user_id,action,entity,entity_id,details) values($1,$2,'platform_reset_admin_password','user',$3,$4)",
+  [hospitalId,target.id,target.id,JSON.stringify({byPlatformAdminId:plat.id,byPlatformEmail:plat.email,forceChange:true,targetEmail:target.email})]
+ ).catch(()=>{})
+ return {ok:true,userId:target.id,email:target.email,fullName:target.full_name,temporaryPassword:password,mustChangePassword:true,hospitalCode:h.code}
+}

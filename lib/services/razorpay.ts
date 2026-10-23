@@ -55,7 +55,7 @@ export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode
   planCode:plan,
   planName:PLAN_NAME[plan],
   period,
-  description:`PMS ${PLAN_NAME[plan]} · ${period}`,
+  description:`HMS ${PLAN_NAME[plan]} · ${period}`,
   prefillEmail:opts.adminEmail||undefined,
   mode:creds.mode,
  }

@@ -32,7 +32,7 @@ export default function HospitalGatewaySettings(){
   finally{setBusy(false)}
  }
 
- return <ModuleShell title="Payment gateway" eyebrow="BILLING · GATEWAY" description="This hospital's own Razorpay keys for patient invoice payments. Completely separate from the SaaS platform subscription gateway. Secrets encrypted at rest; never shared with other hospitals.">
+ return <ModuleShell title="Payment gateway" eyebrow="BILLING · GATEWAY" description="This hospital's own Razorpay keys for patient invoice payments. Separate from the SaaS platform subscription gateway. Secrets encrypted at rest.">
   <p><Link className="chip" href="/billing/gateway-payments">Payment confirmations →</Link> <Link className="chip" href="/billing">← Billing</Link></p>
   <div className="platStats" style={{marginBottom:16}}>
    <div className="platStat"><b>{d.active?'On':'Off'}</b><small>Collecting online</small></div>
