@@ -25,3 +25,11 @@ export function publicOrigin(): string {
 export function publicOriginUrl(): string {
   return configuredOrigin() + basePath
 }
+
+/** Path for next/navigation, which adds basePath itself. Strips one leading /hms. */
+export function toRouterPath(href: string): string {
+  if (typeof href !== 'string' || href.length === 0) return href
+  if (href === basePath) return '/'
+  if (href.startsWith(basePath + '/')) return href.slice(basePath.length) || '/'
+  return href
+}

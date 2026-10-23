@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {basePath, publicOriginUrl, withBase} from '../lib/basePath'
+import {basePath, publicOriginUrl, toRouterPath, withBase} from '../lib/basePath'
+import {legacyRedirects, legacyRoots} from '../lib/legacyRedirects.mjs'
 import {applySessionCookie, serializeLegacyClear, serializeSessionCookie, sessionCookieOptions} from '../lib/sessionCookie'
 
 test('withBase prefixes root-relative paths once', () => {
@@ -77,6 +78,39 @@ test('login response sets Path=/hms and clears the legacy Path=/ cookie', () => 
   assert.doesNotMatch(all[1], /Path=\/hms/)
 })
 
+test('router paths drop one /hms prefix so next/navigation does not double it', () => {
+  assert.equal(toRouterPath('/hms/frontdesk'), '/frontdesk')
+  assert.equal(toRouterPath('/hms'), '/')
+  assert.equal(toRouterPath('/hms/platform/hospitals'), '/platform/hospitals')
+  assert.equal(toRouterPath('/frontdesk'), '/frontdesk')
+  assert.equal(toRouterPath('/'), '/')
+  assert.equal(toRouterPath('https://greynova.in/hms'), 'https://greynova.in/hms')
+})
+
+test('old bookmarks redirect onto /hms without matching /hms itself', () => {
+  const rules = legacyRedirects()
+  const bySource = new Map(rules.map(r => [r.source, r]))
+  for (const source of ['/platform', '/auth/login', '/welcome', '/api/auth/login', '/display']) {
+    const exact = source.split('/').length === 2 ? bySource.get(source) : null
+    const root = '/' + source.split('/')[1]
+    const rule = exact || bySource.get(root + '/:path*')
+    assert.ok(rule, source)
+    assert.equal(rule.basePath, false)
+    assert.equal(rule.permanent, false)
+    assert.equal(rule.destination.startsWith('/hms/'), true)
+  }
+  assert.equal(bySource.get('/platform')?.destination, '/hms/platform')
+  assert.equal(bySource.get('/auth/:path*')?.destination, '/hms/auth/:path*')
+  assert.equal(bySource.get('/welcome')?.destination, '/hms/welcome')
+  assert.equal(bySource.get('/favicon.ico')?.destination, '/hms/icon.svg')
+  assert.ok(legacyRoots.includes('platform'))
+  assert.ok(legacyRoots.includes('api'))
+  assert.equal(rules.some(r => r.source === '/' || r.source.startsWith('/hms')), false)
+  const src = readFileSync(new URL('../next.config.mjs', import.meta.url), 'utf8')
+  assert.match(src, /legacyRedirects\(\)/)
+  assert.match(src, /source: '\/', destination: '\/hms', permanent: false, basePath: false/)
+})
+
 test('Next serves the app at /hms and does not offer the cross-origin embed', () => {
   const src = readFileSync(new URL('../next.config.mjs', import.meta.url), 'utf8')
   assert.match(src, /basePath:\s*'\/hms'/)
@@ -85,6 +119,9 @@ test('Next serves the app at /hms and does not offer the cross-origin embed', ()
   assert.match(src, /SAMEORIGIN/)
   assert.doesNotMatch(src, /frame-ancestors \*/)
   assert.doesNotMatch(src, /greynova\.in/)
+  const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8')
+  assert.doesNotMatch(layout, /icon:\s*'\/icon\.svg'/)
+  assert.doesNotMatch(layout, /apple:\s*'\/apple-icon\.png'/)
   const crons = readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')
   assert.match(crons, /\/hms\/api\/cron\/lifecycle/)
   assert.match(crons, /\/hms\/api\/cron\/outbox/)
