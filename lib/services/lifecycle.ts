@@ -1,7 +1,11 @@
-/** Subscription lifecycle: trial (TRIAL_MONTHS) → on_hold (read-only renew screen) → purge after HOLD_MONTHS,
+/** Subscription lifecycle: trial (TRIAL_DAYS, default 30) → on_hold (read-only renew screen) → purge after HOLD_MONTHS,
  *  keeping only a minimal patient register (name, phone, address). Idempotent: safe to run any number of times. */
 import {Db,HttpError} from './core';import {tx} from './auth'
-export const TRIAL_MONTHS=()=>Number(process.env.TRIAL_MONTHS||2),HOLD_MONTHS=()=>Number(process.env.HOLD_MONTHS||6)
+import {TRIAL_DAYS} from '../plans'
+export {TRIAL_DAYS}
+/** @deprecated use TRIAL_DAYS; kept so old env TRIAL_MONTHS still roughly works if set alone. */
+export const TRIAL_MONTHS=()=>{const d=process.env.TRIAL_DAYS;if(d)return Math.max(1,Math.round(Number(d)/30));return Number(process.env.TRIAL_MONTHS||1)}
+export const HOLD_MONTHS=()=>Number(process.env.HOLD_MONTHS||6)
 export const WARN_DAYS=[30,7,1]
 const addMonths=(d:Date,m:number)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x}
 const DAY=86400000

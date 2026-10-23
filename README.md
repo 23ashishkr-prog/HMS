@@ -20,8 +20,19 @@ A floating button on every screen (Ctrl J). Type or scan a UHID, today's token (
 - `/status`: public patient page. It needs hospital code + UHID or token + the registered phone, and shows only stage, next step and location (no clinical details).
 - Optional AI Q&A: set `LLM_API_URL` (OpenAI-compatible), `LLM_API_KEY` and `LLM_MODEL`. Without them the assistant says Q&A is disabled and everything else still works.
 
+
+## Plans (India list, ex-GST)
+
+| Plan | Monthly | Annual | Includes |
+|------|---------|--------|----------|
+| **Clinic** | ₹1,999 | ₹19,990 | Online + token booking, front desk queue, doctor consult for booked visits, basic patient register |
+| **Basic** | ₹19,999 | ₹1,99,990 | Full hospital ops (registration, OPD, billing, lab, pharmacy, IPD, Excel import, patient portal). **30-day free trial defaults here.** |
+| **AI + Customer Engagement** | ₹49,999 | ₹4,99,990 | Basic + AI doctor assistant + WhatsApp/e-mail engagement + video Meet |
+
+Single source of truth: `lib/plans.ts`. DB seed: migration `033_three_plans.sql`.
+
 ## Subscription lifecycle
-- **Trial**: `TRIAL_MONTHS` (default 2) from sign-up.
+- **Trial**: `TRIAL_DAYS` (default 30) from sign-up. Free signup is always on the **Basic** plan (never Clinic, never AI/engagement). After trial → hold → purge after `HOLD_MONTHS` (default 6), keeping name/phone/address.
 - **On hold**: when the trial ends without an active paid plan (or the payment provider reports halted, cancelled or expired), users can still log in but see only the renew screen. Every API refuses clinical access and data changes (HTTP 402). Subscribing restores everything instantly.
 - **Purge**: `HOLD_MONTHS` (default 6) after the hold starts, all clinical, financial, scheduling, inventory and audit data is deleted. Only a minimal **patient register** is kept (UHID + name + phone + address, still linked to the hospital, so it comes back on resubscription). All users except the primary admin are deactivated.
 - **Warnings**: in-app banners and notices at 30, 7 and 1 days before the hold and before the purge. Email is sent only if an email provider is configured (`RESEND_API_KEY` / `SMTP_URL`); otherwise notices are in-app only.
@@ -52,7 +63,7 @@ The project already exists at https://hms-dun-delta.vercel.app, and pushing to a
    - `DATABASE_URL`: Neon / Vercel Postgres connection string (already set if login works today)
    - `SESSION_SECRET`: long random string (already set if login works today)
    - Migrations run **automatically on production builds** (`VERCEL_ENV=production`) using `DATABASE_URL`. They're idempotent, and `006` deactivates the legacy `@aegishms.test` demo logins without deleting anything. Preview builds migrate only if `RUN_MIGRATIONS=true`.
-   - **`CRON_SECRET`** (required for the lifecycle job; it refuses to run without it), `TRIAL_MONTHS=2`, `HOLD_MONTHS=6`
+   - **`CRON_SECRET`** (required for the lifecycle job; it refuses to run without it), `TRIAL_DAYS=30`, `HOLD_MONTHS=6`
    - Optional: `LLM_API_URL`/`LLM_API_KEY`/`LLM_MODEL`, `RESEND_API_KEY`, `ALLOW_PUBLIC_SIGNUP`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `WHATSAPP_*`
    - Use a **separate database for Preview** if you don't want preview builds to migrate production.
 2. Redeploy. Then open `/onboarding` to create a hospital, or keep using your existing admin login (existing hospitals are moved to the Enterprise plan).
@@ -142,7 +153,7 @@ New env vars:
 ## AI doctor assistant (doctor-in-the-loop)
 Assistive only — **not a diagnostic or treatment device**. Every output is labelled **"AI suggestion – verify"**. Nothing goes into the clinical record or out to a patient until a clinician accepts it: accepting only fills the form; the record is saved when the doctor clicks *Finish*, and patient messages go through the consent-gated outbox only after acceptance.
 
-**Turning it on:** Pro/Enterprise plan → Settings → AI: enable, tick "patients are informed…", set the monthly token cap (default 200,000 tokens per hospital per month; the assistant returns 429 when it is reached). Configure `LLM_PROVIDER`, `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL` (+ `LLM_API_VERSION` for Azure, `LLM_TIMEOUT_MS`). Without a provider, the deterministic parts still work: lab flags and trends, history card, ICD-10 table matching, and prescription safety checks.
+**Turning it on:** AI + Customer Engagement plan → Settings → AI: enable, tick "patients are informed…", set the monthly token cap (default 200,000 tokens per hospital per month; the assistant returns 429 when it is reached). Configure `LLM_PROVIDER`, `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL` (+ `LLM_API_VERSION` for Azure, `LLM_TIMEOUT_MS`). Without a provider, the deterministic parts still work: lab flags and trends, history card, ICD-10 table matching, and prescription safety checks.
 
 **Features** (Doctor desk → AI panel): lab/radiology summary (flags and trends computed in code from reference ranges; the LLM only phrases the text) · history card · Rx suggestions with deterministic safety checks (allergy, duplicate therapy, drug interactions, age/weight dose limits; blocking warnings must be ticked before you can accept) · ICD-10 plus suggested tests · discharge summary draft (`POST /api/ai/discharge`) · voice dictation (Web Speech API, English/Hindi; works in Chrome/Edge) structured into fields · patient-friendly English/Hindi rewrite.
 
