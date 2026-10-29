@@ -15,9 +15,10 @@ const DAY=86400000
 export function purgeAt(s:any){if(!s.hold_started_at)return null;const p=addMonths(new Date(s.hold_started_at),HOLD_MONTHS());const e=s.hold_extended_until?new Date(s.hold_extended_until):null;return e&&e>p?e:p}
 export function lifecycleView(s:any,now=new Date()){if(!s)return null;const st=s.status;const trialEnd=s.trial_ends_at?new Date(s.trial_ends_at):null;const pAt=purgeAt(s)
  const onHold=st==='on_hold'||(st==='trialing'&&!!trialEnd&&trialEnd<=now)||['past_due','cancelled','expired'].includes(st)
- const daysLeft=st==='trialing'&&trialEnd&&!onHold?trialDaysRemaining(trialEnd,now):null
+ const paid=st==='active'
+ const daysLeft=!paid&&st==='trialing'&&trialEnd&&!onHold?trialDaysRemaining(trialEnd,now):null
  const daysToPurge=onHold&&pAt&&!s.purged_at?Math.max(0,Math.ceil((pAt.getTime()-now.getTime())/DAY)):null
- return {status:onHold?'on_hold':st,onHold,trialEndsAt:trialEnd,trialDaysLeft:daysLeft,holdStartedAt:s.hold_started_at,purgeAt:pAt,daysToPurge,purgedAt:s.purged_at}}
+ return {status:onHold?'on_hold':st,onHold,paid,trialEndsAt:paid?null:trialEnd,trialDaysLeft:daysLeft,holdStartedAt:s.hold_started_at,purgeAt:pAt,daysToPurge,purgedAt:s.purged_at}}
 const emailConfigured=()=>!!(process.env.RESEND_API_KEY||process.env.SMTP_URL)
 async function notice(db:Db,h:string,kind:string,days:number,cycle:Date){const r=await db.query('insert into lifecycle_notices(hospital_id,kind,days_left,channel,cycle_start) values($1,$2,$3,$4,$5) on conflict do nothing returning id',[h,kind,days,emailConfigured()?'in_app+email':'in_app',cycle]);return r.rows.length}
 /** Email via the existing outbox (cron sends it). Dedupe key makes a replay a no-op. */

@@ -8,6 +8,8 @@ import {encrypt,decrypt,mask} from './integrations'
 import {appUrl} from './notify'
 
 export const GATEWAY_ROLES:Array<'admin'|'billing'>=['admin','billing']
+/** Staff who can take a patient payment (settings stay admin + billing). */
+export const COLLECT_ROLES:Array<'admin'|'billing'|'reception'>=['admin','billing','reception']
 export type HospGwProvider='razorpay' // structure for payu|cashfree later
 export type HospGwCreds={configured:boolean;enabled:boolean;provider:HospGwProvider;mode:'test'|'live';keyId:string;keySecret:string;webhookSecret:string}
 
@@ -124,46 +126,121 @@ async function rzp(creds:HospGwCreds,path:string,method:'GET'|'POST',body?:unkno
   return j
 }
 
-/** Create Razorpay order for an open invoice balance — hospital keys only. */
-export async function createInvoiceGatewayOrder(db:Db,ctx:Ctx,invoiceId:string){
-  requireRole(ctx,GATEWAY_ROLES)
-  const creds=await getHospitalGatewayCreds(db,ctx.hospitalId)
-  if(!creds.enabled)throw new HttpError(503,'Online payments are off. Configure this hospital\'s Razorpay keys under Billing → Payment gateway.')
-  const inv=(await db.query(
-    `select i.id,i.invoice_no,i.status,i.patient_id,p.full_name,p.mobile,p.uhid,
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const PAY_MODES=['cash','upi','card','netbanking','insurance','other','razorpay']
+
+async function money(db:Db,invoiceId:string){
+  const t=await db.query(
+    `select coalesce((select sum(quantity*unit_price) from invoice_items where invoice_id=$1),0)::numeric gross,
+      coalesce((select discount from invoices where id=$1),0)::numeric discount,
+      coalesce((select sum(amount) from payments where invoice_id=$1),0)::numeric paid`,[invoiceId])
+  const g=Number(t.rows[0].gross),d=Number(t.rows[0].discount),p=Number(t.rows[0].paid)
+  return {gross:g,discount:d,paid:p,balance:Math.max(g-d-p,0)}
+}
+
+async function loadInvoice(db:Db,invoiceId:string,hospitalId?:string){
+  const params:unknown[]=[invoiceId]
+  let hid=''
+  if(hospitalId){params.push(hospitalId);hid=' and i.hospital_id=$2'}
+  return (await db.query(
+    `select i.id,i.hospital_id,i.invoice_no,i.status,i.patient_id,i.discount,
+      h.name hospital_name,h.code hospital_code,
+      p.full_name,p.mobile,
       coalesce((select sum(quantity*unit_price) from invoice_items x where x.invoice_id=i.id),0)::numeric gross,
-      coalesce(i.discount,0)::numeric discount,
       coalesce((select sum(amount) from payments y where y.invoice_id=i.id),0)::numeric paid
-     from invoices i join patients p on p.id=i.patient_id
-     where i.id=$1 and i.hospital_id=$2`,[invoiceId,ctx.hospitalId])).rows[0]
+     from invoices i
+     join hospitals h on h.id=i.hospital_id
+     left join patients p on p.id=i.patient_id
+     where i.id=$1${hid}`,params)).rows[0]||null
+}
+
+function chargeOf(balance:number,requested?:number|null){
+  if(requested==null||requested===(undefined as any))return balance
+  const n=Number(requested)
+  if(!Number.isFinite(n)||n<1)throw new HttpError(400,'Amount must be at least ₹1.')
+  if(n>balance+0.001)throw new HttpError(400,'Amount exceeds the balance ₹'+balance.toFixed(2)+'.')
+  return Math.round(n*100)/100
+}
+
+/** Staff checkout and the public payment link share this. Hospital keys only — never platform SaaS keys. */
+async function openGatewayOrder(db:Db,hospitalId:string,invoiceId:string,requested:number|null,userId:string|null,includePatient:boolean){
+  const inv=await loadInvoice(db,invoiceId,hospitalId)
   if(!inv)throw new HttpError(404,'Invoice not found.')
   if(inv.status==='cancelled'||inv.status==='paid')throw new HttpError(409,'Invoice is '+inv.status)
-  const balance=Math.max(Number(inv.gross)-Number(inv.discount)-Number(inv.paid),0)
+  const balance=Math.max(Number(inv.gross)-Number(inv.discount||0)-Number(inv.paid),0)
   if(balance<1)throw new HttpError(400,'Nothing due on this invoice.')
-  const amountPaise=Math.round(balance*100)
-  const h=(await db.query('select code from hospitals where id=$1',[ctx.hospitalId])).rows[0]
+  const charge=chargeOf(balance,requested)
+  const creds=await getHospitalGatewayCreds(db,hospitalId)
+  if(!creds.enabled)throw new HttpError(503,'Online payments are off. Configure this hospital\'s Razorpay keys under Settings → Payments.')
+  const amountPaise=Math.round(charge*100)
   const receipt=('inv_'+String(inv.invoice_no).replace(/\W/g,'').slice(0,20)+'_'+Date.now()).slice(0,40)
-  const notes={hospital_id:ctx.hospitalId,invoice_id:invoiceId,invoice_no:inv.invoice_no,patient_id:inv.patient_id,product:'hms_invoice'}
+  const notes={hospital_id:hospitalId,invoice_id:invoiceId,invoice_no:inv.invoice_no,patient_id:inv.patient_id,product:'hms_invoice'}
   const order=await rzp(creds,'/orders','POST',{amount:amountPaise,currency:'INR',receipt,notes,payment_capture:1})
   await db.query(
     `insert into hospital_gateway_payments(hospital_id,invoice_id,patient_id,gateway,amount_inr,status,provider_order_id,raw,created_by)
      values($1,$2,$3,'razorpay',$4,'created',$5,$6,$7)`,
-    [ctx.hospitalId,invoiceId,inv.patient_id,balance,order.id,JSON.stringify({order,notes}),ctx.userId]
+    [hospitalId,invoiceId,inv.patient_id,charge,order.id,JSON.stringify({order,notes}),userId]
   )
   return {
     orderId:order.id as string,
-    amount:balance,
+    amount:charge,
     amountPaise,
     currency:'INR',
     keyId:creds.keyId,
     mode:creds.mode,
     invoiceId,
     invoiceNo:inv.invoice_no,
-    patientName:inv.full_name,
-    description:`Invoice ${inv.invoice_no} · ${inv.full_name}`,
-    prefill:{name:inv.full_name,contact:inv.mobile||undefined},
-    hospitalCode:h?.code,
+    hospitalName:inv.hospital_name,
+    hospitalCode:inv.hospital_code,
+    description:includePatient?`Invoice ${inv.invoice_no} · ${inv.full_name}`:`Invoice ${inv.invoice_no}`,
+    ...(includePatient?{patientName:inv.full_name,prefill:{name:inv.full_name,contact:inv.mobile||undefined}}:{ }),
   }
+}
+
+/** Create Razorpay order for some or all of the balance — hospital keys only. */
+export async function createInvoiceGatewayOrder(db:Db,ctx:Ctx,invoiceId:string,requested?:number|null){
+  requireRole(ctx,COLLECT_ROLES)
+  return openGatewayOrder(db,ctx.hospitalId,invoiceId,requested??null,ctx.userId,true)
+}
+
+/** Public payment link. Invoice number, amount due and hospital name only — no clinical record. */
+export async function publicPayView(db:Db,invoiceId:string){
+  if(!UUID.test(String(invoiceId||'')))throw new HttpError(404,'Invoice not found.')
+  const inv=await loadInvoice(db,invoiceId)
+  if(!inv)throw new HttpError(404,'Invoice not found.')
+  const balance=Math.max(Number(inv.gross)-Number(inv.discount||0)-Number(inv.paid),0)
+  const creds=await getHospitalGatewayCreds(db,inv.hospital_id)
+  const online=!!creds.enabled&&balance>=1&&inv.status!=='cancelled'&&inv.status!=='paid'
+  return {
+    hospitalName:inv.hospital_name,
+    invoiceNo:inv.invoice_no,
+    amountDue:balance,
+    currency:'INR' as const,
+    status:inv.status,
+    online,
+    keyId:online?creds.keyId:null,
+  }
+}
+
+export async function publicInvoiceCheckout(db:Db,invoiceId:string,requested?:number|null){
+  if(!UUID.test(String(invoiceId||'')))throw new HttpError(404,'Invoice not found.')
+  const inv=await loadInvoice(db,invoiceId)
+  if(!inv)throw new HttpError(404,'Invoice not found.')
+  const amount=requested==null||(requested as any)===''?null:Number(requested)
+  return openGatewayOrder(db,inv.hospital_id,invoiceId,amount,null,false)
+}
+
+export async function publicConfirmPayment(db:Db,invoiceId:string,b:any){
+  if(!UUID.test(String(invoiceId||'')))throw new HttpError(404,'Invoice not found.')
+  const inv=await loadInvoice(db,invoiceId)
+  if(!inv)throw new HttpError(404,'Invoice not found.')
+  const orderId=String(b?.razorpay_order_id||b?.orderId||'')
+  const paymentId=String(b?.razorpay_payment_id||b?.paymentId||'')
+  const signature=String(b?.razorpay_signature||b?.signature||'')
+  if(!orderId||!paymentId||!signature)throw new HttpError(400,'Missing payment confirmation')
+  await verifyHospitalCheckoutSignature(db,inv.hospital_id,orderId,paymentId,signature)
+  await captureHospitalGatewayPayment(db,{hospitalId:inv.hospital_id,orderId,paymentId,signatureOk:true,raw:{public:true}})
+  return publicPayView(db,invoiceId)
 }
 
 export async function verifyHospitalCheckoutSignature(db:Db,hospitalId:string,orderId:string,paymentId:string,signature:string){
@@ -183,66 +260,90 @@ export async function verifyHospitalWebhookSignature(db:Db,hospitalId:string,raw
   return creds
 }
 
-/** Apply confirmed online payment to invoice + ledger. Idempotent on provider_payment_id. */
+async function findPayment(db:Db,hospitalId:string,paymentId?:string|null,orderId?:string|null){
+  if(paymentId){
+    const byId=(await db.query(
+      `select id,invoice_id,amount from payments where hospital_id=$1 and provider='razorpay' and provider_payment_id=$2`,
+      [hospitalId,paymentId])).rows[0]
+    if(byId)return byId
+  }
+  if(orderId){
+    return (await db.query(
+      `select id,invoice_id,amount from payments where hospital_id=$1 and provider='razorpay' and provider_order_id=$2 limit 1`,
+      [hospitalId,orderId])).rows[0]||null
+  }
+  return null
+}
+
+async function markLedger(db:Db,ledger:any,opts:{hospitalId:string;orderId?:string|null;paymentId?:string|null;signatureOk?:boolean;raw?:unknown;userId?:string|null},invoiceId:string,amount:number){
+  const paymentId=opts.paymentId||ledger?.provider_payment_id||null
+  if(ledger){
+    await db.query(
+      `update hospital_gateway_payments set status='captured',provider_payment_id=coalesce($2,provider_payment_id),
+        provider_signature_ok=$3,amount_inr=coalesce(nullif($4,0),amount_inr),raw=coalesce($5,raw),paid_at=coalesce(paid_at,now())
+       where id=$1`,
+      [ledger.id,paymentId,opts.signatureOk??true,amount||0,opts.raw?JSON.stringify(opts.raw):null])
+    return
+  }
+  if(!paymentId&&!opts.orderId)return
+  const patient=(await db.query('select patient_id from invoices where id=$1 and hospital_id=$2',[invoiceId,opts.hospitalId])).rows[0]
+  await db.query(
+    `insert into hospital_gateway_payments(hospital_id,invoice_id,patient_id,gateway,amount_inr,status,provider_order_id,provider_payment_id,provider_signature_ok,paid_at,raw,created_by)
+     values($1,$2,$3,'razorpay',$4,'captured',$5,$6,$7,now(),$8,$9)
+     on conflict (hospital_id, provider_payment_id) where provider_payment_id is not null
+     do update set status='captured',provider_signature_ok=excluded.provider_signature_ok,paid_at=coalesce(hospital_gateway_payments.paid_at,now())`,
+    [opts.hospitalId,invoiceId,patient?.patient_id||null,amount,opts.orderId||null,paymentId,opts.signatureOk??true,opts.raw?JSON.stringify(opts.raw):null,opts.userId||null])
+}
+
+/** Apply a confirmed online payment to the invoice. Idempotent on provider payment id (and order id). */
 export async function captureHospitalGatewayPayment(db:Db,opts:{
   hospitalId:string;orderId?:string|null;paymentId?:string|null;amountInr?:number|null;
   signatureOk?:boolean;raw?:unknown;userId?:string|null
 }){
   if(!opts.paymentId&&!opts.orderId)throw new HttpError(400,'Payment id required')
-  if(opts.paymentId){
-    const dup=await db.query(
-      `select 1 from hospital_gateway_payments where hospital_id=$1 and provider_payment_id=$2 and status in ('captured','authorized')`,
-      [opts.hospitalId,opts.paymentId])
-    if(dup.rows[0])return {ok:true,duplicate:true}
-  }
   let ledger=opts.orderId?(await db.query(
     `select * from hospital_gateway_payments where hospital_id=$1 and provider_order_id=$2 order by created_at desc limit 1`,
     [opts.hospitalId,opts.orderId])).rows[0]:null
-  if(!ledger&&opts.paymentId){
+  const paymentId=opts.paymentId||ledger?.provider_payment_id||null
+  if(!ledger&&paymentId){
     ledger=(await db.query(
       `select * from hospital_gateway_payments where hospital_id=$1 and provider_payment_id=$2 limit 1`,
-      [opts.hospitalId,opts.paymentId])).rows[0]
+      [opts.hospitalId,paymentId])).rows[0]
   }
-  const invoiceId=ledger?.invoice_id||opts.raw&&(opts.raw as any)?.payload?.payment?.entity?.notes?.invoice_id
-  const amount=Number(opts.amountInr!=null?opts.amountInr:ledger?.amount_inr||0)
-  if(ledger){
-    await db.query(
-      `update hospital_gateway_payments set status='captured',provider_payment_id=coalesce($2,provider_payment_id),
-        provider_signature_ok=$3,amount_inr=coalesce(nullif($4,0),amount_inr),raw=coalesce($5,raw),paid_at=now()
-       where id=$1`,
-      [ledger.id,opts.paymentId||null,opts.signatureOk??true,amount||0,opts.raw?JSON.stringify(opts.raw):null]
-    )
+  const notes=(opts.raw as any)?.payload?.payment?.entity?.notes||(opts.raw as any)?.payload?.order?.entity?.notes||null
+  const existing=await findPayment(db,opts.hospitalId,paymentId,opts.orderId||ledger?.provider_order_id||null)
+  if(existing){
+    await markLedger(db,ledger,{...opts,paymentId},existing.invoice_id,Number(existing.amount))
+    return {ok:true,duplicate:true,invoiceId:existing.invoice_id,amount:Number(existing.amount)}
   }
-  if(invoiceId&&amount>0){
-    const inv=(await db.query('select id,status from invoices where id=$1 and hospital_id=$2',[invoiceId,opts.hospitalId])).rows[0]
-    if(inv&&inv.status!=='cancelled'){
-      const exist=opts.paymentId?(await db.query(
-        `select 1 from payments where hospital_id=$1 and provider='razorpay' and provider_payment_id=$2`,
-        [opts.hospitalId,opts.paymentId])).rows[0]:null
-      if(!exist){
-        const receivedBy=opts.userId||ledger?.created_by
-        let uid=receivedBy
-        if(!uid){
-          uid=(await db.query(`select id from users where hospital_id=$1 and role='admin' and active order by created_at limit 1`,[opts.hospitalId])).rows[0]?.id
-        }
-        if(uid){
-          await db.query(
-            `insert into payments(hospital_id,invoice_id,amount,mode,reference,received_by,provider,provider_order_id,provider_payment_id)
-             values($1,$2,$3,'razorpay',$4,$5,'razorpay',$6,$7)`,
-            [opts.hospitalId,invoiceId,amount,opts.paymentId||opts.orderId,uid,opts.orderId||null,opts.paymentId||null]
-          )
-          const t=await db.query(
-            `select coalesce((select sum(quantity*unit_price) from invoice_items where invoice_id=$1),0)::numeric gross,
-              coalesce((select discount from invoices where id=$1),0)::numeric discount,
-              coalesce((select sum(amount) from payments where invoice_id=$1),0)::numeric paid`,[invoiceId])
-          const g=Number(t.rows[0].gross),d=Number(t.rows[0].discount),p=Number(t.rows[0].paid)
-          const bal=Math.max(g-d-p,0)
-          await db.query(`update invoices set status=$2 where id=$1`,[invoiceId,bal<=0.001?'paid':'partially_paid'])
-        }
-      }
-    }
+  const invoiceId=ledger?.invoice_id||notes?.invoice_id||null
+  let amount=Math.round(Number(opts.amountInr!=null?opts.amountInr:ledger?.amount_inr||0)*100)/100
+  if(!(amount>0))throw new HttpError(400,'Payment amount required')
+  if(!invoiceId)throw new HttpError(404,'Invoice for this payment was not found.')
+  const inv=(await db.query('select id,status,patient_id from invoices where id=$1 and hospital_id=$2',[invoiceId,opts.hospitalId])).rows[0]
+  if(!inv)throw new HttpError(404,'Invoice not found.')
+  if(inv.status==='cancelled')throw new HttpError(409,'Invoice is cancelled.')
+  const totals=await money(db,invoiceId)
+  if(amount>totals.balance+0.01)throw new HttpError(409,'Online amount exceeds the balance on this invoice.')
+  let uid=opts.userId||ledger?.created_by||null
+  if(uid){
+    const ok=(await db.query('select id from users where id=$1 and hospital_id=$2 and active',[uid,opts.hospitalId])).rows[0]
+    if(!ok)uid=null
   }
-  return {ok:true,invoiceId,amount}
+  if(!uid)uid=(await db.query(`select id from users where hospital_id=$1 and role='admin' and active order by created_at limit 1`,[opts.hospitalId])).rows[0]?.id||null
+  if(!uid)throw new HttpError(409,'No staff user is available to record this payment.')
+  const ins=await db.query(
+    `insert into payments(hospital_id,invoice_id,amount,mode,reference,received_by,provider,provider_order_id,provider_payment_id)
+     values($1,$2,$3,'razorpay',$4,$5,'razorpay',$6,$7)
+     on conflict (hospital_id, provider, provider_payment_id) where provider is not null and provider_payment_id is not null
+     do nothing returning id`,
+    [opts.hospitalId,invoiceId,amount,paymentId||opts.orderId||null,uid,opts.orderId||ledger?.provider_order_id||null,paymentId])
+  if(ins.rows[0]){
+    const now=await money(db,invoiceId)
+    await db.query(`update invoices set status=$2 where id=$1`,[invoiceId,now.balance<=0.001?'paid':'partially_paid'])
+  }
+  await markLedger(db,ledger,{...opts,paymentId,userId:uid},invoiceId,amount)
+  return {ok:true,duplicate:!ins.rows[0],invoiceId,amount}
 }
 
 export async function markHospitalGatewayFailed(db:Db,hospitalId:string,orderId:string|null,paymentId:string|null,raw:unknown){
@@ -250,40 +351,87 @@ export async function markHospitalGatewayFailed(db:Db,hospitalId:string,orderId:
     await db.query(
       `update hospital_gateway_payments set status='failed',provider_payment_id=coalesce($3,provider_payment_id),raw=$4,paid_at=now()
        where hospital_id=$1 and provider_order_id=$2 and status in ('created','authorized')`,
-      [hospitalId,orderId,paymentId,JSON.stringify(raw)]
-    )
+      [hospitalId,orderId,paymentId,JSON.stringify(raw)])
   }
 }
 
-/** Confirmation list for admin/billing. */
+/** Every recorded bill payment (cash, UPI, card, online) plus gateway attempts that have not posted yet. */
 export async function listHospitalGatewayPayments(db:Db,ctx:Ctx,q:any={}){
   requireRole(ctx,GATEWAY_ROLES)
   const params:any[]=[ctx.hospitalId]
-  const where:string[]=['g.hospital_id=$1']
+  const where:string[]=['true']
   const search=String(q.q||'').trim()
   const status=opt(q.status)
   const after=opt(q.after)||opt(q.from)
   const before=opt(q.before)||opt(q.to)
-  if(search){params.push('%'+search.toLowerCase()+'%');where.push(`(lower(coalesce(p.full_name,'')) like $${params.length} or lower(coalesce(i.invoice_no,'')) like $${params.length} or lower(coalesce(p.uhid,'')) like $${params.length})`)}
-  if(status){params.push(status);where.push(`g.status=$${params.length}`)}
-  if(after){params.push(after);where.push(`coalesce(g.paid_at,g.created_at)>=$${params.length}::timestamptz`)}
-  if(before){params.push(before);where.push(`coalesce(g.paid_at,g.created_at)<($${params.length}::timestamptz + interval '1 day')`)}
+  if(search){
+    params.push('%'+search.toLowerCase()+'%')
+    where.push(`(lower(coalesce(patient_name,'')) like $${params.length} or lower(coalesce(invoice_no,'')) like $${params.length} or lower(coalesce(uhid,'')) like $${params.length} or lower(coalesce(reference,'')) like $${params.length} or lower(coalesce(provider_payment_id,'')) like $${params.length})`)
+  }
+  if(status&&PAY_MODES.includes(status)){params.push(status);where.push(`mode=$${params.length}`)}
+  else if(status&&['created','authorized','failed','refunded'].includes(status)){params.push(status);where.push(`status=$${params.length}`)}
+  if(after){params.push(after);where.push(`coalesce(paid_at,created_at)>=$${params.length}::timestamptz`)}
+  if(before){params.push(before);where.push(`coalesce(paid_at,created_at)<($${params.length}::timestamptz + interval '1 day')`)}
   const rows=(await db.query(
-    `select g.id,g.invoice_id,g.patient_id,g.gateway,g.amount_inr,g.currency,g.status,
-      g.provider_order_id,g.provider_payment_id,g.paid_at,g.created_at,
-      i.invoice_no,p.full_name patient_name,p.uhid
-     from hospital_gateway_payments g
-     left join invoices i on i.id=g.invoice_id
-     left join patients p on p.id=g.patient_id
-     where ${where.join(' and ')}
-     order by coalesce(g.paid_at,g.created_at) desc
-     limit 500`,params)).rows
-  const stats=(await db.query(
-    `select count(*)::int as total,
-      count(*) filter (where status='created')::int as created,
-      count(*) filter (where status in ('captured','authorized'))::int as paid,
-      count(*) filter (where status='failed')::int as failed,
-      coalesce(sum(amount_inr) filter (where status in ('captured','authorized')),0)::numeric as paid_inr
-     from hospital_gateway_payments where hospital_id=$1`,[ctx.hospitalId])).rows[0]
-  return {payments:rows,stats,gateway:await getHospitalGatewayView(db,ctx)}
+    `with recorded as (
+      select p.id::text id,'payment'::text source,p.invoice_id,i.patient_id,p.mode,
+        p.amount::numeric amount_inr,p.reference,p.provider_order_id,p.provider_payment_id,
+        'recorded'::text status,p.received_at paid_at,p.received_at created_at,
+        i.invoice_no,pt.full_name patient_name,pt.uhid,u.full_name entered_by
+      from payments p
+      join invoices i on i.id=p.invoice_id
+      join patients pt on pt.id=i.patient_id
+      left join users u on u.id=p.received_by
+      where p.hospital_id=$1
+    ),
+    attempts as (
+      select g.id::text,'attempt'::text,g.invoice_id,g.patient_id,g.gateway mode,
+        g.amount_inr,null::text reference,g.provider_order_id,g.provider_payment_id,
+        g.status,g.paid_at,g.created_at,
+        i.invoice_no,pt.full_name,pt.uhid,u.full_name
+      from hospital_gateway_payments g
+      left join invoices i on i.id=g.invoice_id
+      left join patients pt on pt.id=g.patient_id
+      left join users u on u.id=g.created_by
+      where g.hospital_id=$1
+        and g.status<>'captured'
+        and not exists (
+          select 1 from payments p
+          where p.hospital_id=g.hospital_id and p.provider_payment_id is not null and p.provider_payment_id=g.provider_payment_id
+        )
+    )
+    select * from (select * from recorded union all select * from attempts) x
+    where ${where.join(' and ')}
+    order by coalesce(paid_at,created_at) desc
+    limit 500`,params)).rows
+  const sums=(await db.query(
+    `select coalesce(sum(amount),0)::float payments_total,
+      coalesce(sum(amount) filter (where mode='razorpay'),0)::float online_total,
+      coalesce(sum(amount) filter (where mode<>'razorpay'),0)::float manual_total,
+      count(*)::int n
+     from payments where hospital_id=$1`,[ctx.hospitalId])).rows[0]
+  const invPaid=Number((await db.query(
+    `select coalesce(sum((select coalesce(sum(amount),0) from payments y where y.invoice_id=i.id)),0)::float paid
+     from invoices i where i.hospital_id=$1`,[ctx.hospitalId])).rows[0].paid)
+  const attempts=Number((await db.query(
+    `select count(*)::int n from hospital_gateway_payments g
+     where g.hospital_id=$1 and g.status in ('created','authorized','failed')
+       and not exists (select 1 from payments p where p.hospital_id=g.hospital_id and p.provider_payment_id is not null and p.provider_payment_id=g.provider_payment_id)`,
+    [ctx.hospitalId])).rows[0].n)
+  const paymentsTotal=Number(sums.payments_total)
+  return {
+    payments:rows,
+    stats:{
+      total:rows.length,
+      recorded:Number(sums.n),
+      attempts,
+      payments_total:paymentsTotal,
+      online_total:Number(sums.online_total),
+      manual_total:Number(sums.manual_total),
+      invoice_paid:invPaid,
+      reconciled:Math.abs(paymentsTotal-invPaid)<0.05,
+      paid_inr:Number(sums.online_total),
+    },
+    gateway:await getHospitalGatewayView(db,ctx),
+  }
 }

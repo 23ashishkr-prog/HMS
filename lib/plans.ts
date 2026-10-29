@@ -37,6 +37,12 @@ export function trialDaysRemaining(endsAt:Date|string|null|undefined,now=new Dat
  if(ms<=0)return 0
  return Math.ceil(ms/DAY_MS)
 }
+/** Trial copy is only for a live trial. The cross-app banner waits until the last 7 days; a paid (active) plan never qualifies. */
+export function showTrialCountdown(status?:string|null,daysLeft?:number|null,opts?:{banner?:boolean}){
+ if(status!=='trialing'||daysLeft==null)return false
+ if(opts?.banner&&daysLeft>7)return false
+ return true
+}
 /** Which reminder thresholds are due when this many days remain (positive only). */
 export function dueTrialReminders(daysLeft:number|null):number[]{
  if(daysLeft==null||daysLeft<=0)return []
