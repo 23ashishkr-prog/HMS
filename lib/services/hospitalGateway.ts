@@ -399,8 +399,18 @@ export async function listHospitalGatewayPayments(db:Db,ctx:Ctx,q:any={}){
           select 1 from payments p
           where p.hospital_id=g.hospital_id and p.provider_payment_id is not null and p.provider_payment_id=g.provider_payment_id
         )
+    ),
+    receipts as (
+      select r.id::text id,'receipt'::text source,null::uuid invoice_id,r.patient_id,r.mode,
+        r.amount::numeric amount_inr,r.reference,null::text provider_order_id,null::text provider_payment_id,
+        'recorded'::text status,r.received_at paid_at,r.received_at created_at,
+        'Receipt'::text invoice_no,pt.full_name patient_name,pt.uhid,u.full_name entered_by
+      from desk_receipts r
+      join patients pt on pt.id=r.patient_id
+      left join users u on u.id=r.received_by
+      where r.hospital_id=$1
     )
-    select * from (select * from recorded union all select * from attempts) x
+    select * from (select * from recorded union all select * from attempts union all select * from receipts) x
     where ${where.join(' and ')}
     order by coalesce(paid_at,created_at) desc
     limit 500`,params)).rows
@@ -418,18 +428,23 @@ export async function listHospitalGatewayPayments(db:Db,ctx:Ctx,q:any={}){
      where g.hospital_id=$1 and g.status in ('created','authorized','failed')
        and not exists (select 1 from payments p where p.hospital_id=g.hospital_id and p.provider_payment_id is not null and p.provider_payment_id=g.provider_payment_id)`,
     [ctx.hospitalId])).rows[0].n)
-  const paymentsTotal=Number(sums.payments_total)
+  const rec=(await db.query(
+    `select coalesce(sum(amount),0)::float total,count(*)::int n from desk_receipts where hospital_id=$1`,
+    [ctx.hospitalId])).rows[0]
+  const invoicePayments=Number(sums.payments_total)
+  const paymentsTotal=invoicePayments+Number(rec.total)
   return {
     payments:rows,
     stats:{
       total:rows.length,
-      recorded:Number(sums.n),
+      recorded:Number(sums.n)+Number(rec.n),
       attempts,
       payments_total:paymentsTotal,
       online_total:Number(sums.online_total),
-      manual_total:Number(sums.manual_total),
+      manual_total:Number(sums.manual_total)+Number(rec.total),
       invoice_paid:invPaid,
-      reconciled:Math.abs(paymentsTotal-invPaid)<0.05,
+      receipts_total:Number(rec.total),
+      reconciled:Math.abs(invoicePayments-invPaid)<0.05,
       paid_inr:Number(sums.online_total),
     },
     gateway:await getHospitalGatewayView(db,ctx),

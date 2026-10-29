@@ -12,7 +12,7 @@ export default function HospitalDetail(){
  const {id}=useParams<{id:string}>()
  const[d,setD]=useState<any>(null)
  const[err,setErr]=useState('')
- const[msg,setMsg]=useState('')
+ const[msg,setMsg]=useState('');const[ok,setOk]=useState('')
  const[admins,setAdmins]=useState<any[]>([])
  const[tempPw,setTempPw]=useState<any>(null)
  const[resetBusy,setResetBusy]=useState(false)
@@ -33,7 +33,7 @@ export default function HospitalDetail(){
    description={<>Live tenant · code <code>{h.code}</code>{h.status!=='active'&&<> · <span className="err">tenant deactivated</span></>}</>}
    actions={<Link className="chip" href="/platform/hospitals">← All hospitals</Link>}
   >
-   {msg&&<p className="err">{msg}</p>}
+   {msg&&<p className="err" role="alert">{msg}</p>}
 
    <div className="platStats">
     <div className="platStat"><b>{PLAN[h.plan_code]||h.plan_code||'—'}</b><small>Plan</small></div>
@@ -61,12 +61,13 @@ export default function HospitalDetail(){
      <button className="chip" type="button" onClick={()=>{if(window.confirm('Change tenant status?'))act({action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Deactivate':'Reactivate'}</button>
      <Link className="chip" href={'/platform/payments?hospitalId='+h.id}>All payments</Link>
     </div>
-    <form className="platForm" style={{marginTop:16,maxWidth:'100%',boxShadow:'none',padding:0}} onSubmit={async e=>{e.preventDefault();try{await call('/api/platform/hospitals/'+id,'PATCH',formObj(e));load();setMsg('')}catch(er:any){setMsg(er.message)}}}>
+    <form className="platForm" style={{marginTop:16,maxWidth:'100%',boxShadow:'none',padding:0}} onSubmit={async e=>{e.preventDefault();setMsg('');setOk('');try{await call('/api/platform/hospitals/'+id,'PATCH',formObj(e));load();setOk('Plan and status saved.')}catch(er:any){setMsg(er.message)}}}>
      <div className="platFilters" style={{marginBottom:0}}>
       <label>Plan<select name="planCode" defaultValue={h.plan_code||'basic'}><option value="clinic">clinic</option><option value="basic">basic</option><option value="ai_engage">ai_engage</option></select></label>
       <label>Status<select name="status" defaultValue={h.sub_status||'trialing'}>{['trialing','active','on_hold','past_due','cancelled','expired'].map(s=><option key={s}>{s}</option>)}</select></label>
       <div className="platFilterBtns"><button type="submit" className="primary">Save plan / status</button></div>
      </div>
+     {ok&&<p className="ok" role="status" style={{marginTop:12}}>{ok}</p>}
     </form>
    </section>
 

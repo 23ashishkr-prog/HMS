@@ -64,7 +64,7 @@ test('incidents: scrubbed, de-duplicated by fingerprint, notify once, quiet when
  assert.doesNotMatch(JSON.stringify((await db2.query('select * from incidents')).rows),/9876543210/)
 })
 test('auto-correction rules + idempotency key', async()=>{
- const fx=new Fixes();assert.equal(personName('  rAHUL   kumar  sharma ',fx),'Rahul Kumar Sharma');assert.equal(indianMobile('098765 43210',fx),'+919876543210');assert.equal(indianMobile('+91-98765-43210'),'+919876543210');assert.throws(()=>indianMobile('12345'))
+ const fx=new Fixes();assert.equal(personName('  rAHUL   kumar  sharma ',fx),'rAHUL kumar sharma');assert.equal(personName('QA Patient Ravi'),'QA Patient Ravi');assert.equal(indianMobile('098765 43210',fx),'+919876543210');assert.equal(indianMobile('+91-98765-43210'),'+919876543210');assert.throws(()=>indianMobile('12345'))
  assert.deepEqual(pincode('560 001',null,fx),{pincode:'560001',state:'Karnataka'});const f2=new Fixes();pincode('110001','Kerala',f2);assert.match(f2.sug[0].message,/Delhi/)
  assert.equal(dateIN('05/03/1990'),'1990-03-05');assert.throws(()=>dateIN('31/02/2020'));assert.throws(()=>dateIN('01/01/2099',undefined,'DOB',{past:true}))
  assert.deepEqual(icd10('j029',null),{code:'J02.9',description:'Acute pharyngitis, unspecified'});const f3=new Fixes();icd10('', 'typhoid',f3);assert.match(f3.sug[0].message,/A01\.0/)

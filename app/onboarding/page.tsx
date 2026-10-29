@@ -61,7 +61,7 @@ export default function Page(){
        <button className="primary full" disabled={busy}>{busy?'Sending…':'Contact sales'}</button>
        {msg&&<div className="authMessage" role="alert">{msg}</div>}
       </form>}
-      <div className="authNote"><button type="button" className="ghost" onClick={()=>setPlan('basic')}>Start a Basic trial instead</button> · <Link href="/welcome#pricing">Pricing</Link></div>
+      <div className="authNote"><button type="button" className="ghost" onClick={()=>setPlan('basic')}>Start a Basic trial instead</button> · <a href={withBase('/welcome#pricing')}>Pricing</a></div>
      </>
     ):(<>
      <div className="authBrand"><Link href="/welcome"><Logo size={36}/></Link><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
@@ -82,9 +82,9 @@ export default function Page(){
       <label>Your name *<input name="adminName" required autoComplete="name"/></label>
       <div className="onb2"><label>Your email *<input name="adminEmail" type="email" required autoComplete="email"/></label><label>Password (10+) *<input name="password" type="password" minLength={10} required autoComplete="new-password"/></label></div>
       <button className="primary full" disabled={busy}>{busy?'Creating…':`Start ${days}-day ${plan==='clinic'?'Clinic':'Basic'} trial`}</button>
-      {msg&&<div className="authMessage" role="alert">{msg} {/already used|paid plan|pricing/i.test(msg)&&<Link href="/welcome#pricing">See pricing</Link>}</div>}
+      {msg&&<div className="authMessage" role="alert">{msg} {/already used|paid plan|pricing/i.test(msg)&&<a href={withBase('/welcome#pricing')}>See pricing</a>}</div>}
      </form>
-     <div className="authNote">Already registered? <Link href="/auth/login">Sign in</Link> · <Link href="/welcome#pricing">Compare plans</Link></div>
+     <div className="authNote">Already registered? <Link href="/auth/login">Sign in</Link> · <a href={withBase('/welcome#pricing')}>Compare plans</a></div>
     </>)}
    </section>
   </main>

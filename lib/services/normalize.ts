@@ -4,9 +4,8 @@ import {HttpError} from './core'
 export type Fix={field:string;from:unknown;to:unknown;note:string}
 export type Suggest={field:string;message:string;value?:unknown}
 export class Fixes{list:Fix[]=[];sug:Suggest[]=[];add(field:string,from:unknown,to:unknown,note:string){if(String(from??'')!==String(to??''))this.list.push({field,from,to,note})};suggest(field:string,message:string,value?:unknown){this.sug.push({field,message,value})}}
-const SMALL=new Set(['bin','binti','d','da','de','del','van','von','al','el'])
-/** "  rAHUL   kumar " → "Rahul Kumar"; keeps initials like "A.K." upper-case. */
-export function personName(v:unknown,fx?:Fixes,field='name'){if(v==null)return v as any;const raw=String(v);let s=raw.replace(/\s+/g,' ').trim().replace(/\s*\.\s*/g,'. ').trim();s=s.split(' ').map((w,i)=>{if(/^[a-z]\.?$/i.test(w))return w.toUpperCase();if(i>0&&SMALL.has(w.toLowerCase()))return w.toLowerCase();return w.split(/([-'])/).map(p=>p.length>1?p[0].toUpperCase()+p.slice(1).toLowerCase():p.toUpperCase()).join('')}).join(' ').replace(/\s+/g,' ').trim();fx?.add(field,raw,s,'Name spacing and capitalisation tidied');return s}
+/** Collapse whitespace only. Do not change capitalisation ("QA Patient Ravi" stays as typed). */
+export function personName(v:unknown,fx?:Fixes,field='name'){if(v==null)return v as any;const raw=String(v);const s=raw.replace(/\s+/g,' ').trim();fx?.add(field,raw,s,'Extra spaces removed');return s}
 /** Indian mobile → E.164 (+91XXXXXXXXXX). Accepts 0/91/+91 prefixes, spaces, dashes. */
 export function indianMobile(v:unknown,fx?:Fixes,field='mobile'){if(v==null||String(v).trim()==='')return null;const raw=String(v);const d=raw.replace(/\D/g,'').replace(/^(?:0091|091|91|0)(?=[6-9]\d{9}$)/,'');if(!/^[6-9]\d{9}$/.test(d))throw new HttpError(400,`${field==='mobile'?'Mobile':field} must be a valid 10-digit Indian number (starts with 6-9).`);const e='+91'+d;fx?.add(field,raw,e,'Phone number converted to +91 format');return e}
 /** First digit of an Indian PIN → postal region; first two/three digits → state (offline India Post circle table). */
