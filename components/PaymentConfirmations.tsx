@@ -19,7 +19,7 @@ export default function PaymentConfirmations(){
  if(!d)return <p className="muted">Loading…</p>
  const st=d.stats||{}
  return <div>
-  <p className="muted"><small>Cash, UPI, card and online payments recorded on bills. Open gateway attempts stay here until they post. {st.reconciled?'Bill totals match this list.':'Bill totals do not match this list yet.'}</small></p>
+  <p className="muted"><small>Cash, UPI, card, online payments and front-desk receipts. Open gateway attempts stay here until they post. {st.reconciled?'Invoice payments match invoice totals.':'Invoice payments do not match invoice totals yet.'}</small></p>
   <div className="platStats">
    <div className="platStat"><b>{inr(st.payments_total||0)}</b><small>Recorded</small></div>
    <div className="platStat"><b>{inr(st.online_total||0)}</b><small>Online</small></div>

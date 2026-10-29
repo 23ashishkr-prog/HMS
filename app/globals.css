@@ -1050,3 +1050,14 @@ html body .favHome h2{margin:0 0 8px;font-size:1.15rem}
 html body .favTile{position:relative}
 html body .favTile .navStar{position:absolute;top:4px;right:4px;background:#fff}
 html body .trialQuiet{margin:0 0 12px}
+html body header.top,html body .top{z-index:40!important}
+html body .drawer{top:64px!important;height:calc(100dvh - 64px)!important;z-index:6!important}
+@media (max-width:767px){html body .drawer{top:60px!important;height:calc(100dvh - 60px)!important}}
+html body .side nav button .navStar,html body .sheetGrid button .navStar,html body .sideFoot .pinSet .navStar{opacity:1!important;visibility:visible!important;min-width:36px!important;min-height:36px!important;width:36px!important;height:36px!important;font-size:18px!important;border-radius:10px!important;background:rgba(0,113,227,.12)!important}
+html body .side nav button .navStar.on,html body .sheetGrid button .navStar.on{color:#0071e3!important;background:rgba(0,113,227,.18)!important}
+html body .sideFoot .pinSet{display:flex!important;align-items:center;gap:8px;min-height:44px;margin-bottom:8px;padding:8px 10px!important;background:#fff!important;border:1px solid rgba(0,0,0,.08)!important;border-radius:12px!important;font-weight:600;color:#1d1d1f!important}
+html body .sideFoot .pinSet.act{box-shadow:0 0 0 2px #0071e3}
+html body .aiLine{margin:0 0 12px;padding:8px 14px;border-radius:999px;background:#f5f5f7;border:1px solid rgba(0,0,0,.08);font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+html body .spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;margin-right:8px;vertical-align:-3px;animation:hmsSpin .7s linear infinite}
+@keyframes hmsSpin{to{transform:rotate(360deg)}}
+html body .navLocked{display:none}
