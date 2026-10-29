@@ -19,9 +19,9 @@ export default function AppMotion(){const path=usePathname(),router=useRouter();
   document.addEventListener('click',onClick,true);return()=>document.removeEventListener('click',onClick,true)},[router])
  useEffect(()=>{const w=win.current;document.documentElement.classList.remove('appLaunching');if(w){win.current=null;const m=document.querySelector('.mainCol, main') as HTMLElement|null;m?.animate([{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'none'}],{duration:300,easing:OUT})
    const a=w.animate([{opacity:1},{opacity:0}],{duration:240,delay:60,easing:OUT,fill:'forwards'});a.onfinish=()=>w.remove()}
-  if(path==='/'&&sessionStorage.getItem('appReturn')){sessionStorage.removeItem('appReturn');if(!reduced())(document.querySelector('.mainCol') as HTMLElement|null)?.animate([{transform:'scale(.94)',filter:'blur(6px)',opacity:.6},{transform:'none',filter:'none',opacity:1}],{duration:340,easing:OUT})}
-  setBar(false);const t=setInterval(()=>{if(document.querySelector('.mainCol')){setBar(path!=='/');clearInterval(t)}},150);const k=setTimeout(()=>clearInterval(t),6000);return()=>{clearInterval(t);clearTimeout(k)}},[path])
- function close(){let o:any=null;try{o=JSON.parse(sessionStorage.getItem('appOrigin')||'null')}catch{};const back=toRouterPath(o?.from||'/');sessionStorage.setItem('appReturn','1')
+  if((path==='/'||path==='/dashboard')&&sessionStorage.getItem('appReturn')){sessionStorage.removeItem('appReturn');if(!reduced())(document.querySelector('.mainCol') as HTMLElement|null)?.animate([{transform:'scale(.94)',filter:'blur(6px)',opacity:.6},{transform:'none',filter:'none',opacity:1}],{duration:340,easing:OUT})}
+  setBar(false);const t=setInterval(()=>{if(document.querySelector('.mainCol')){setBar(path!=='/'&&path!=='/dashboard');clearInterval(t)}},150);const k=setTimeout(()=>clearInterval(t),6000);return()=>{clearInterval(t);clearTimeout(k)}},[path])
+ function close(){let o:any=null;try{o=JSON.parse(sessionStorage.getItem('appOrigin')||'null')}catch{};const back=toRouterPath(o?.from||'/dashboard');sessionStorage.setItem('appReturn','1')
   const m=document.querySelector('.mainCol')?.parentElement as HTMLElement|null||document.body
   if(reduced()||!m){router.push(back);return}
   const W=innerWidth,H=innerHeight,tx=o?o.x+o.w/2-W/2:0,ty=o?o.y+o.h/2-H/2:H*.35,s=o?Math.max(o.w/W,.08):.2

@@ -912,3 +912,94 @@ html body main.authPremium{padding:0!important;margin:0!important;width:100%}
 .platTabsInline{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .platTabsInline button{border:1px solid var(--p-line,#e2e8f0);background:#fff;border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer}
 .platTabsInline button.on{background:#0f172a;color:#fff;border-color:#0f172a}
+
+/* ===== Apple-style tokens. Shared variables replace the previous navy/coral/glass theme. ===== */
+:root{
+ --apple-bg:#f5f5f7;--apple-surface:#ffffff;--apple-ink:#1d1d1f;--apple-mut:#6e6e73;--apple-blue:#0071e3;--apple-blue-hover:#0077ed;--apple-link:#0066cc;--apple-line:rgba(0,0,0,.08);
+ --apple-shadow:0 2px 8px rgba(0,0,0,.04),0 12px 32px rgba(0,0,0,.06);
+ --apple-font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+ --font:var(--apple-font);--fontH:var(--apple-font);--font-body:var(--apple-font);--font-heading:var(--apple-font);
+ --ink:#1d1d1f;--ink2:#1d1d1f;--muted:#6e6e73;--mut:#6e6e73;--bg:#f5f5f7;--bg2:#f5f5f7;--card:#fff;--white:#fff;
+ --line:rgba(0,0,0,.08);--ln:rgba(0,0,0,.08);--accent:#0071e3;--red:#0071e3;--red2:#0077ed;
+ --sd-navy:#0071e3;--sd-navy2:#1d1d1f;--sd-navy3:#0077ed;--sd-blue:#0071e3;--sd-coral:#0071e3;--sd-coralTxt:#0071e3;
+ --sd-ink:#1d1d1f;--sd-mut:#6e6e73;--sd-panel:#f5f5f7;--sd-tint:#f5f5f7;--sd-line:rgba(0,0,0,.08);--sd-bg:#f5f5f7;--sd-surface:#fff;--sd-side:#f5f5f7;--sd-sideInk:#1d1d1f;--sd-sideMut:#6e6e73;
+ --p-navy:#0071e3;--p-navy2:#1d1d1f;--p-navy3:#0077ed;--p-steel:#0071e3;--p-coral:#0071e3;--p-coralT:#b42318;--p-ink:#1d1d1f;--p-mut:#6e6e73;--p-line:rgba(0,0,0,.08);--p-tint:#f5f5f7;--p-bg:#f5f5f7;
+ --p-glass:#fff;--p-shadow:var(--apple-shadow);--p-shadow2:0 8px 28px rgba(0,0,0,.08);--p-r:18px;--p-ring:0 0 0 3px rgba(0,113,227,.35);
+ --glass:#fff;--gborder:rgba(0,0,0,.06);--gshadow:var(--apple-shadow);--r:18px;
+ --mk1:#0071e3;--mk2:#0071e3;
+}
+html,html body,html.lite body{background:#f5f5f7!important;color:#1d1d1f!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif!important;-webkit-font-smoothing:antialiased}
+body,input,select,textarea,button{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif!important}
+h1,h2,h3,h4,.pageHead h1,.sideBrand b,.stat3d b,.stats b,.overline,.side .sideBrand b,.authCard h1,.mkHero h1{
+ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif!important;color:#1d1d1f!important;letter-spacing:-.03em;font-weight:600;background:none!important;-webkit-text-fill-color:#1d1d1f}
+a{color:#0066cc}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #0071e3!important;outline-offset:2px;box-shadow:none!important}
+
+html body .top{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:saturate(180%) blur(20px)!important;backdrop-filter:saturate(180%) blur(20px)!important;border-bottom:1px solid rgba(0,0,0,.06)!important;box-shadow:none!important}
+html body .side{background:#f5f5f7!important;color:#1d1d1f!important;border-right:1px solid rgba(0,0,0,.06)!important;box-shadow:none!important;background-image:none!important}
+html body .side,html body .side *{color:#1d1d1f}
+html body .side .sideBrand small,html body .side small,html body .side kbd{color:#6e6e73!important}
+html body .side nav a,html body .side nav button,html body .side .navItem,html body .side .moreBtn,html body .side .sec{
+ background:transparent!important;color:#1d1d1f!important;border:0!important;box-shadow:none!important;border-radius:999px!important}
+html body .side nav a:hover,html body .side nav button:hover,html body .side .navItem:hover{background:rgba(0,0,0,.04)!important;color:#1d1d1f!important}
+html body .side nav a.act,html body .side nav button.act,html body .side .act,html body .side .navItem.on{
+ background:rgba(0,113,227,.12)!important;color:#0071e3!important;box-shadow:none!important}
+html body .sideBrand{border-bottom:1px solid rgba(0,0,0,.06)!important}
+html body .sideFoot button,html body .side .moreBtn{background:transparent!important;color:#1d1d1f!important;border:1px solid rgba(0,0,0,.08)!important;border-radius:999px!important}
+
+html body .card,html body .panel,html body .modulePanel,html body .stat3d,html body .drawer,html body .modal,html body .whoMenu,html body .authCard,html body .kpi,html body .assist,html body .widget{
+ background:#fff!important;border:0!important;box-shadow:0 2px 8px rgba(0,0,0,.04),0 12px 32px rgba(0,0,0,.06)!important;border-radius:18px!important;color:#1d1d1f!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+html body .stat3d,html body .stats>*{border-top:0!important}
+html body .primary,html body button.primary,html body a.primary,html body .mkBtn:not(.ghostL){
+ background:#0071e3!important;color:#fff!important;border:0!important;border-radius:980px!important;box-shadow:none!important;font-weight:500;padding:10px 20px;text-decoration:none}
+html body .primary:hover,html body button.primary:hover,html body a.primary:hover{background:#0077ed!important}
+html body .ghost,html body button.ghost{background:transparent!important;color:#0071e3!important;border:0!important;border-radius:980px!important;box-shadow:none!important}
+html body .chip,html body .tabs button{border-radius:980px!important;background:#fff!important;color:#1d1d1f!important;border:1px solid rgba(0,0,0,.08)!important}
+html body .chip.on,html body .tabs button.on{background:#0071e3!important;color:#fff!important;border-color:#0071e3!important}
+html body input:not([type=checkbox]):not([type=radio]),html body select,html body textarea{border:1px solid rgba(0,0,0,.12)!important;border-radius:12px!important;background:#fff!important;color:#1d1d1f!important}
+html body input:focus,html body select:focus,html body textarea:focus{border-color:#0071e3!important;box-shadow:0 0 0 3px rgba(0,113,227,.25)!important;outline:none!important}
+html body .page{background:transparent}
+html body .pageHead h1{font-size:clamp(1.8rem,3vw,2.5rem);font-weight:600;letter-spacing:-.035em}
+html body .eyebrow2,html body .eyebrow{color:#6e6e73!important;letter-spacing:.08em;font-weight:600}
+html body .avatarBtn{background:#0071e3!important;color:#fff!important;box-shadow:none!important}
+html body .whoMenu{min-width:200px;padding:8px}
+html body .whoMenu button{border-radius:12px!important;border:0!important;background:transparent!important;text-align:left}
+html body .whoMenu button:hover{background:#f5f5f7!important;color:#0071e3!important}
+html body .banner.warn{background:#f5f5f7!important;color:#1d1d1f!important;border:0!important;border-radius:16px!important}
+html body .dataTable th{background:transparent!important;color:#6e6e73!important;font-family:inherit!important}
+html body .gsearch{background:#fff!important;border:1px solid rgba(0,0,0,.08)!important;border-radius:980px!important}
+
+html body .mk{background:#fff!important;color:#1d1d1f!important}
+html body .mkNav{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
+html body .mkBtn.ghostL{background:transparent!important;color:#0071e3!important;box-shadow:none!important;border-radius:980px}
+html body .mkHero{padding:72px 8vw 48px}
+html body .mkHero h1{font-size:clamp(2.6rem,6vw,4.4rem)!important;line-height:1.05;letter-spacing:-.04em;color:#1d1d1f!important;background:none!important;-webkit-text-fill-color:#1d1d1f}
+html body .mkHero p{color:#6e6e73;font-size:1.2rem}
+html body .mkPill{background:#f5f5f7;color:#1d1d1f}
+html body .mkGrid article,html body .mkPlans article{background:#f5f5f7!important;color:#1d1d1f!important;border-radius:20px!important;box-shadow:none!important}
+html body .mkPlans .hot{background:#fff!important;color:#1d1d1f!important;box-shadow:0 2px 8px rgba(0,0,0,.04),0 18px 40px rgba(0,0,0,.08)!important}
+html body .mkPlans .hot small,html body .mkPlans .hot p,html body .mkPlans .hot ul{color:#6e6e73!important}
+html body .mkTag{background:#0071e3;color:#fff}
+html body .mkDemo{background:#f5f5f7!important;color:#1d1d1f!important;border-radius:28px}
+html body .mkDemo h2,html body .mkDemo p{color:#1d1d1f!important}
+html body .mkPhone{background:#1d1d1f;box-shadow:0 24px 60px rgba(0,0,0,.18);transform:none}
+html body .mkLogo .mark{background:#0071e3!important}
+html body .authPremium{background:#f5f5f7!important}
+html body .authPremium .authSide{background:#fff!important;color:#1d1d1f!important}
+html body .authSideIn h2{color:#1d1d1f!important}
+html body .authPremium .authCard{background:#fff!important;border-radius:20px!important;border-top:0!important;box-shadow:0 2px 8px rgba(0,0,0,.04),0 20px 50px rgba(0,0,0,.08)!important}
+html body .plat,html body .platTop{background:#f5f5f7}
+html body .platStat,html body .platQuickCard{background:#fff;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+html body .trialCard h2,html body .aiCard h2{margin:6px 0 8px}
+html body .wBig b,html body .stat3d b,html body .platStat b,html body .stats b{color:#1d1d1f!important}
+html body .featList{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+html body .featList b{display:block;color:#0071e3;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+html body .featList span,html body .featList small{display:block;font-weight:400}
+html body .featList small{color:#6e6e73}
+html body .upgradeCard{margin-top:16px;padding:16px 18px;border-radius:16px;background:#f5f5f7}
+html body .fab{background:#0071e3!important;box-shadow:0 8px 24px rgba(0,113,227,.28)!important}
+@media(max-width:820px){
+ html body .mkHero{padding:40px 20px 24px}
+ html body .page{padding:16px 16px 88px}
+ html body .top{padding:10px 14px}
+}

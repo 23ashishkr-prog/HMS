@@ -19,4 +19,4 @@ export async function syncQueue(f:typeof fetch=fetch):Promise<{done:number;faile
   if(r.ok){await putQueued({...q,status:'done',result:j});done++}else{await putQueued({...q,status:'failed',error:j.error||('HTTP '+r.status)});failed++}}
   for(const q of await listQueue())if(q.status==='done'&&Date.now()-q.createdAt>864e5)await removeQueued(q.id)}finally{syncing=false;notify()}
  const left=(await listQueue()).filter(q=>q.status==='pending').length;return {done,failed,left,needLogin}}
-export function registerSW(){if(typeof window!=='undefined'&&'serviceWorker' in navigator)navigator.serviceWorker.register(withBase('/sw.js')).catch(()=>{})}
+export function registerSW(){if(typeof window!=='undefined'&&'serviceWorker' in navigator)navigator.serviceWorker.register(withBase('/sw.js'),{scope:'/hms/'}).catch(()=>{})}

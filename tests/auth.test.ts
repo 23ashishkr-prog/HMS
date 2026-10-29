@@ -9,7 +9,7 @@ test('regression: hospital sign-up then login (case/whitespace, codes, rollback)
  await assert.rejects(authenticate(db,'owner.test@gmail.com','wrong-password'),(e:any)=>e.status===401)
  await assert.rejects(authenticate(db,'owner.test@gmail.com',pw,'OTHER'),(e:any)=>e.status===401)
  // same email in a second hospital → login asks for hospital code
- await tx(db,d=>onboardHospital(d,{hospitalName:'Second Hosp',adminName:'Owner',adminEmail:'owner.test@gmail.com',password:pw}))
+ await tx(db,d=>onboardHospital(d,{hospitalName:'Second Hosp',adminName:'Owner',adminEmail:'owner.test@gmail.com',password:pw,paid:true}))
  await assert.rejects(authenticate(db,'owner.test@gmail.com',pw),(e:any)=>e.status===409&&e.needHospitalCode)
  // failed sign-up leaves nothing behind (so the user can retry with the same name)
  await assert.rejects(tx(db,d=>onboardHospital(d,{hospitalName:'Broken Hosp',adminName:'',adminEmail:'b@b.in',password:pw})))

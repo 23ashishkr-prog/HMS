@@ -1,7 +1,7 @@
 export type Db={query:(text:string,params?:unknown[])=>Promise<{rows:any[]}>}
 export type Role='admin'|'reception'|'doctor'|'nurse'|'lab'|'pharmacy'|'billing'|'patient'
 export type Ctx={hospitalId:string;userId:string;role:Role}
-export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
+export class HttpError extends Error{extra?:Record<string,unknown>;constructor(public status:number,message:string,extra?:Record<string,unknown>){super(message);if(extra)this.extra=extra}}
 /** Hospital admin is a superuser: allowed everywhere a staff role is (actions are audit-logged by the API layer). */
 export function requireRole(ctx:Ctx,roles:Role[]){if(ctx.role==='admin'&&!roles.includes('patient' as Role))return;if(!roles.includes(ctx.role))throw new HttpError(403,'Your role ('+ctx.role+') cannot perform this action.')}
 export function required(v:unknown,name:string):string{const s=typeof v==='string'?v.trim():v==null?'':String(v).trim();if(!s)throw new HttpError(400,name+' is required.');return s}

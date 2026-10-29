@@ -19,10 +19,48 @@ export const PLAN_MODULES:Record<PlanCode,readonly string[]>={
  basic:['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','bulk'],
  ai_engage:['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','bulk','ai','engagement'],
 }
-/** Free trial: Basic only, 30 days. Never Clinic, never AI/engagement. */
+/** Self-serve 30-day trials: Clinic and Basic. AI + Customer Engagement is Contact Sales. */
+export const SELF_SERVE_TRIALS=['clinic','basic'] as const
+/** Default when ?plan is missing or not clinic/basic. */
 export const TRIAL_PLAN:PlanCode='basic'
 export const TRIAL_DAYS_DEFAULT=30
 export const TRIAL_DAYS=()=>Number(process.env.TRIAL_DAYS||TRIAL_DAYS_DEFAULT)
+/** In-app and outbox reminders. Idempotent per hospital + day threshold + trial end. */
+export const TRIAL_REMINDER_DAYS=[7,3,1] as const
+const DAY_MS=86400000
+/** Whole days remaining until trial end. 0 means expired. null if there is no end date. */
+export function trialDaysRemaining(endsAt:Date|string|null|undefined,now=new Date()):number|null{
+ if(endsAt==null||endsAt==='')return null
+ const end=endsAt instanceof Date?endsAt:new Date(endsAt)
+ if(Number.isNaN(end.getTime()))return null
+ const ms=end.getTime()-now.getTime()
+ if(ms<=0)return 0
+ return Math.ceil(ms/DAY_MS)
+}
+/** Which reminder thresholds are due when this many days remain (positive only). */
+export function dueTrialReminders(daysLeft:number|null):number[]{
+ if(daysLeft==null||daysLeft<=0)return []
+ return TRIAL_REMINDER_DAYS.filter(d=>daysLeft<=d)
+}
+/** ?plan=clinic|basic. Unknown values, including empty, fall back to basic. ai_engage is not a trial. */
+export function trialPlanFromParam(raw:unknown):PlanCode{
+ const x=String(raw??'').trim().toLowerCase()
+ if(x==='clinic'||x==='basic')return x
+ return 'basic'
+}
+/** pro/enterprise are legacy names for AI + Customer Engagement. */
+export function isContactSalesPlan(raw:unknown):boolean{
+ const x=String(raw??'').trim().toLowerCase()
+ return x==='ai_engage'||x==='pro'||x==='enterprise'
+}
+export const AI_FEATURES=[
+ {id:'ai',name:'AI doctor assistant',detail:'History card, ICD suggestions, prescription checks, dictation and patient-friendly rewrite'},
+ {id:'engagement',name:'Customer engagement',detail:'WhatsApp and e-mail reminders, booking and follow-up messages'},
+] as const
+export function aiFeaturesFor(code:PlanCode){
+ const mods=PLAN_MODULES[code]
+ return AI_FEATURES.map(f=>({...f,included:mods.includes(f.id)}))
+}
 /** Which paid plan unlocks a missing module (for upgrade CTAs). */
 export function upgradePlanFor(module:string):PlanCode{
  if(PLAN_MODULES.clinic.includes(module))return 'clinic'

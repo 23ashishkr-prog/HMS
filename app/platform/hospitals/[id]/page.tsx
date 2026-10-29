@@ -6,6 +6,7 @@ import {call,dt,formObj} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
+function trialLeft(iso?:string|null){if(!iso)return '—';const ms=new Date(iso).getTime()-Date.now();if(ms<=0)return '0';return String(Math.ceil(ms/86400000))}
 
 export default function HospitalDetail(){
  const {id}=useParams<{id:string}>()
@@ -38,6 +39,8 @@ export default function HospitalDetail(){
     <div className="platStat"><b>{PLAN[h.plan_code]||h.plan_code||'—'}</b><small>Plan</small></div>
     <div className="platStat"><b>{h.sub_status||'—'}</b><small>Subscription</small></div>
     <div className="platStat"><b>{dt(h.current_period_start)||dt(h.created_at)}</b><small>Start</small></div>
+    <div className="platStat"><b>{dt(h.trial_started_at)||dt(h.created_at)}</b><small>Trial start</small></div>
+    <div className="platStat"><b>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at):'—'}</b><small>Trial days left</small></div>
     <div className="platStat"><b>{dt(h.current_period_end)||dt(h.trial_ends_at)}</b><small>Expiry / trial end</small></div>
     <div className="platStat"><b>{h.users}</b><small>Users</small></div>
     <div className="platStat"><b>{h.patients}</b><small>Patients</small></div>
@@ -50,7 +53,10 @@ export default function HospitalDetail(){
     <p><b>{h.admin_name||'—'}</b><br/><small>{h.admin_email||h.contact_email||'—'}</small><br/><small>{h.admin_phone||h.contact_phone||'—'}</small></p>
     <p className="muted"><small>Address: {h.address||'—'} · GSTIN: {h.gstin||'—'}</small></p>
     <div className="chips">
-     <button className="chip" type="button" onClick={()=>act({action:'extend',what:'trial',days:30})}>+30d trial</button>
+     <button className="chip" type="button" onClick={()=>act({action:'extend',what:'trial',days:30})}>Extend trial 30d</button>
+     <button className="chip" type="button" onClick={()=>{if(window.confirm('End the trial now? The account goes on hold. Data is not deleted.'))act({action:'end_trial'})}}>End trial</button>
+     <button className="chip" type="button" onClick={()=>{if(window.confirm('Convert this hospital to a paid subscription on the current plan?'))act({action:'convert_paid'})}}>Convert to paid</button>
+     <button className="chip" type="button" onClick={()=>{if(window.confirm('Clear the one-trial block so this organisation can register a trial again?'))act({action:'reset_trial_block'})}}>Reset trial block</button>
      <button className="chip" type="button" onClick={()=>act({action:'extend',what:'hold',days:30})}>+30d hold</button>
      <button className="chip" type="button" onClick={()=>{if(window.confirm('Change tenant status?'))act({action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Deactivate':'Reactivate'}</button>
      <Link className="chip" href={'/platform/payments?hospitalId='+h.id}>All payments</Link>

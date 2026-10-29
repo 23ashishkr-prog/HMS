@@ -1,22 +1,40 @@
 /** Subscription lifecycle: trial (TRIAL_DAYS, default 30) → on_hold (read-only renew screen) → purge after HOLD_MONTHS,
  *  keeping only a minimal patient register (name, phone, address). Idempotent: safe to run any number of times. */
 import {Db,HttpError} from './core';import {tx} from './auth'
-import {TRIAL_DAYS} from '../plans'
+import {TRIAL_DAYS,TRIAL_REMINDER_DAYS,trialDaysRemaining,canonicalPlan} from '../plans'
+import {appUrl} from './notify'
+import {resetTrialBlock} from './trialIdentity'
 export {TRIAL_DAYS}
 /** @deprecated use TRIAL_DAYS; kept so old env TRIAL_MONTHS still roughly works if set alone. */
 export const TRIAL_MONTHS=()=>{const d=process.env.TRIAL_DAYS;if(d)return Math.max(1,Math.round(Number(d)/30));return Number(process.env.TRIAL_MONTHS||1)}
 export const HOLD_MONTHS=()=>Number(process.env.HOLD_MONTHS||6)
-export const WARN_DAYS=[30,7,1]
+/** Purge warnings stay on the hold clock. Trial expiry reminders are TRIAL_REMINDER_DAYS (7, 3, 1). */
+export const WARN_DAYS=[7,3,1]
 const addMonths=(d:Date,m:number)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x}
 const DAY=86400000
 export function purgeAt(s:any){if(!s.hold_started_at)return null;const p=addMonths(new Date(s.hold_started_at),HOLD_MONTHS());const e=s.hold_extended_until?new Date(s.hold_extended_until):null;return e&&e>p?e:p}
 export function lifecycleView(s:any,now=new Date()){if(!s)return null;const st=s.status;const trialEnd=s.trial_ends_at?new Date(s.trial_ends_at):null;const pAt=purgeAt(s)
  const onHold=st==='on_hold'||(st==='trialing'&&!!trialEnd&&trialEnd<=now)||['past_due','cancelled','expired'].includes(st)
- const daysLeft=st==='trialing'&&trialEnd&&!onHold?Math.ceil((trialEnd.getTime()-now.getTime())/DAY):null
+ const daysLeft=st==='trialing'&&trialEnd&&!onHold?trialDaysRemaining(trialEnd,now):null
  const daysToPurge=onHold&&pAt&&!s.purged_at?Math.max(0,Math.ceil((pAt.getTime()-now.getTime())/DAY)):null
  return {status:onHold?'on_hold':st,onHold,trialEndsAt:trialEnd,trialDaysLeft:daysLeft,holdStartedAt:s.hold_started_at,purgeAt:pAt,daysToPurge,purgedAt:s.purged_at}}
 const emailConfigured=()=>!!(process.env.RESEND_API_KEY||process.env.SMTP_URL)
 async function notice(db:Db,h:string,kind:string,days:number,cycle:Date){const r=await db.query('insert into lifecycle_notices(hospital_id,kind,days_left,channel,cycle_start) values($1,$2,$3,$4,$5) on conflict do nothing returning id',[h,kind,days,emailConfigured()?'in_app+email':'in_app',cycle]);return r.rows.length}
+/** Email via the existing outbox (cron sends it). Dedupe key makes a replay a no-op. */
+async function queueTrialReminder(db:Db,hospitalId:string,days:number,cycle:Date){
+ const row=(await db.query(`select h.name, coalesce(nullif(trim(h.contact_email),''), a.email) as to_addr
+  from hospitals h
+  left join lateral (select email from users where hospital_id=h.id and role='admin' and active order by created_at limit 1) a on true
+  where h.id=$1`,[hospitalId])).rows[0]
+ if(!row?.to_addr)return 0
+ const when=days===1?'1 day':days+' days'
+ const link=appUrl()+'/admin/settings'
+ const body=`${row.name}: your HMS trial ends in ${when}. Choose a paid plan to keep working. Your records stay — nothing is deleted when the trial expires.\n\nPlans and payment: ${link}\nPricing: ${appUrl()}/welcome#pricing`
+ const key=`trial_ending:${hospitalId}:${days}:${new Date(cycle).toISOString()}`
+ const r=await db.query(`insert into notification_outbox(hospital_id,patient_id,channel,kind,to_address,subject,body,dedupe_key)
+  values($1,null,'email','trial_ending',$2,$3,$4,$5) on conflict(dedupe_key) do nothing returning id`,[hospitalId,row.to_addr,`HMS trial ends in ${when}`,body,key])
+ return r.rows.length
+}
 /** Delete all clinical/financial data; keep hospital, primary admin, and patients(uhid, full_name, mobile, address). */
 export async function purgeHospital(db:Db,h:string){
  const del=['medicine_adherence','notification_outbox','followup_offers','idempotency_keys','insurance_claims','payments','invoice_items:invoice_id in (select id from invoices where hospital_id=$1)','invoices','diagnoses','vitals','diagnostic_orders','dispensed_items','prescription_items:prescription_id in (select id from prescriptions where hospital_id=$1)','prescriptions','clinical_notes','encounters','lab_reports','doctor_queue','appointments','patient_assignments','admissions','beds','medicine_batches','medicines','service_catalog','doctor_availability','doctor_time_off','audit_log','hospital_counters']
@@ -29,12 +47,42 @@ export async function runLifecycle(db:Db,now=new Date()){const out={held:0,purge
  const subs=(await db.query("select s.* from subscriptions s join hospitals h on h.id=s.hospital_id where coalesce(h.status,'active')='active'")).rows
  for(const s of subs){const v=lifecycleView(s,now)!
   if(v.onHold&&!s.hold_started_at){await db.query("update subscriptions set status='on_hold',hold_started_at=$2,updated_at=now() where hospital_id=$1 and hold_started_at is null",[s.hospital_id,now]);s.hold_started_at=now;s.status='on_hold';out.held++;out.notices+=await notice(db,s.hospital_id,'on_hold',0,now)}
-  if(s.status==='trialing'&&v.trialDaysLeft!=null)for(const d of WARN_DAYS)if(v.trialDaysLeft<=d)out.notices+=await notice(db,s.hospital_id,'trial_ending',d,new Date(s.trial_ends_at))
+  if(s.status==='trialing'&&v.trialDaysLeft!=null)for(const d of TRIAL_REMINDER_DAYS)if(v.trialDaysLeft<=d){const n=await notice(db,s.hospital_id,'trial_ending',d,new Date(s.trial_ends_at));out.notices+=n;if(n)await queueTrialReminder(db,s.hospital_id,d,new Date(s.trial_ends_at))}
   if(s.status==='on_hold'&&!s.purged_at){const p=purgeAt(s)!;const left=Math.ceil((p.getTime()-now.getTime())/DAY);for(const d of WARN_DAYS)if(left<=d&&left>0)out.notices+=await notice(db,s.hospital_id,'purge_pending',d,new Date(s.hold_started_at));if(p<=now){await tx(db,d=>purgeHospital(d,s.hospital_id));out.purged++;out.notices+=await notice(db,s.hospital_id,'purged',0,new Date(s.hold_started_at))}}}
  return out}
 export async function activeNotices(db:Db,h:string){return (await db.query('select kind,days_left,created_at from lifecycle_notices where hospital_id=$1 and dismissed_at is null order by created_at desc limit 5',[h])).rows}
-export async function platformExtend(db:Db,h:string,b:any){const days=Number(b.days);if(!Number.isFinite(days)||days<1||days>730)throw new HttpError(400,'days must be 1-730');const s=(await db.query('select * from subscriptions where hospital_id=$1',[h])).rows[0];if(!s)throw new HttpError(404,'Hospital not found')
+export async function platformExtend(db:Db,h:string,b:any,by?:{id:string;email:string}){const days=Number(b.days);if(!Number.isFinite(days)||days<1||days>730)throw new HttpError(400,'days must be 1-730');const s=(await db.query('select * from subscriptions where hospital_id=$1',[h])).rows[0];if(!s)throw new HttpError(404,'Hospital not found')
  if(b.what==='trial'){await db.query("update subscriptions set status='trialing',trial_ends_at=greatest(coalesce(trial_ends_at,now()),now())+make_interval(days=>$2::int),hold_started_at=null,hold_extended_until=null,updated_at=now() where hospital_id=$1",[h,days])}
  else if(b.what==='hold'){const base=purgeAt(s)||new Date();await db.query('update subscriptions set hold_extended_until=$2,updated_at=now() where hospital_id=$1',[h,new Date(Math.max(base.getTime(),Date.now())+days*DAY)])}
- else throw new HttpError(400,'what must be trial or hold')}
+ else throw new HttpError(400,'what must be trial or hold')
+ if(by)await platAudit(db,h,'platform_extend',by,{what:b.what,days})}
 export async function platformSetHospitalStatus(db:Db,h:string,status:string){if(!['active','deactivated'].includes(status))throw new HttpError(400,'Invalid status');const r=await db.query('update hospitals set status=$2,updated_at=now() where id=$1 returning id',[h,status]);if(!r.rows[0])throw new HttpError(404,'Hospital not found')}
+
+async function platAudit(db:Db,hospitalId:string,action:string,by:{id:string;email:string},details:Record<string,unknown>){
+ await db.query(`insert into audit_log(hospital_id,user_id,action,entity,entity_id,details) values($1,null,$2,'subscription',$4,$3)`,[hospitalId,action,JSON.stringify({...details,byPlatformAdminId:by.id,byPlatformEmail:by.email}),hospitalId])
+}
+/** End the trial now: account goes on hold and the existing retention clock starts. No data is deleted here. */
+export async function platformEndTrial(db:Db,h:string,by:{id:string;email:string}){
+ const r=await db.query(`update subscriptions set status='on_hold',trial_ends_at=least(coalesce(trial_ends_at,now()),now()),hold_started_at=coalesce(hold_started_at,now()),updated_at=now() where hospital_id=$1 returning status,trial_ends_at`,[h])
+ if(!r.rows[0])throw new HttpError(404,'Hospital not found')
+ await platAudit(db,h,'platform_end_trial',by,{status:'on_hold'})
+ return r.rows[0]
+}
+/** Mark the subscription paid without a new checkout (owner conversion). */
+export async function platformConvertPaid(db:Db,h:string,by:{id:string;email:string},planCode?:string|null){
+ const plan=planCode?canonicalPlan(planCode):null
+ const r=await db.query(`update subscriptions set status='active',plan_code=coalesce($2,plan_code),billing_period=coalesce(billing_period,'monthly'),
+  current_period_start=now(),current_period_end=now()+interval '1 month',hold_started_at=null,hold_extended_until=null,provider=coalesce(provider,'manual'),updated_at=now()
+  where hospital_id=$1 returning plan_code,status,current_period_end`,[h,plan])
+ if(!r.rows[0])throw new HttpError(404,'Hospital not found')
+ await db.query(`update hospitals set status='active',updated_at=now() where id=$1 and status<>'active'`,[h])
+ await platAudit(db,h,'platform_convert_paid',by,{plan:r.rows[0].plan_code,status:'active'})
+ return r.rows[0]
+}
+export async function platformResetTrialBlock(db:Db,h:string,by:{id:string;email:string}){
+ const exists=(await db.query('select 1 from hospitals where id=$1',[h])).rows[0]
+ if(!exists)throw new HttpError(404,'Hospital not found')
+ const r=await resetTrialBlock(db,h,by.email)
+ await platAudit(db,h,'platform_reset_trial_block',by,{cleared:r.cleared})
+ return r
+}

@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import {Ctx,Db,HttpError,audit,opt,required,requireRole} from './core'
-import {canonicalPlan,TRIAL_DAYS,TRIAL_PLAN,upgradeLabel,PlanCode,PLAN_PRICE_INR,PLAN_ANNUAL_INR} from '../plans'
+import {canonicalPlan,TRIAL_DAYS,upgradeLabel,PlanCode,PLAN_PRICE_INR,PLAN_ANNUAL_INR,isContactSalesPlan,trialPlanFromParam,aiFeaturesFor} from '../plans'
+import {assertTrialAvailable,recordTrialClaim} from './trialIdentity'
 export {canonicalPlan,upgradeLabel}
 export const MODULES=['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','bulk','ai','engagement'] as const
 export type Module=typeof MODULES[number]
@@ -10,7 +11,7 @@ import {envPaymentsConfigured,paymentsConfiguredAsync} from './platformGateway'
 const subMemo=new WeakMap<object,any>()
 export function memoSubscription(ctx:object,sub:any){subMemo.set(ctx,sub)}
 export async function getSubscription(db:Db,hospitalId:string){const r=await db.query('select s.*,p.name plan_name,p.modules,p.max_users,p.max_patients from subscriptions s join plans p on p.code=s.plan_code where s.hospital_id=$1',[hospitalId]);const s=r.rows[0];if(!s)return null;const lc=lifecycleView(s)!;return {...s,usable:!lc.onHold&&['active','trialing'].includes(s.status),trialOver:lc.onHold,lifecycle:lc}}
-export function entitlements(s:any){const mods:string[]=s?.modules||[];const has=(m:string)=>mods.includes(m);return {planCode:s?.plan_code as PlanCode|undefined,planName:s?.plan_name,modules:mods,has,clinic:s?.plan_code==='clinic',basicOps:s?.plan_code==='basic'||s?.plan_code==='ai_engage',aiEngage:s?.plan_code==='ai_engage',upgradeFor:upgradeLabel}}
+export function entitlements(s:any){const mods:string[]=s?.modules||[];const has=(m:string)=>mods.includes(m);const code=(s?.plan_code||'basic') as PlanCode;return {planCode:code,planName:s?.plan_name,modules:mods,has,clinic:code==='clinic',basicOps:code==='basic'||code==='ai_engage',aiEngage:code==='ai_engage',aiFeatures:aiFeaturesFor(canonicalPlan(code)),upgradeFor:upgradeLabel}}
 /** Central feature gate: every module API calls this with the session's hospital. */
 export async function requireModule(db:Db,ctx:Ctx,module:Module){const s=subMemo.has(ctx)?subMemo.get(ctx):await getSubscription(db,ctx.hospitalId);if(!s||!s.usable)throw new HttpError(402,'Account on hold: subscription inactive or trial ended. Renew to continue.');if(!s.modules.includes(module))throw new HttpError(402,`${upgradeLabel(module)} (your plan: ${s.plan_name}).`);return s}
 export async function assertLimit(db:Db,ctx:Ctx,kind:'users'|'patients'){const s=await getSubscription(db,ctx.hospitalId);const max=kind==='users'?s?.max_users:s?.max_patients;if(max==null)return;const r=await db.query(`select count(*)::int n from ${kind==='users'?'users':'patients'} where hospital_id=$1${kind==='users'?' and active=true':''}`,[ctx.hospitalId]);if(r.rows[0].n>=max)throw new HttpError(402,`Your plan allows ${max} ${kind}. Upgrade to add more.`)}
@@ -26,13 +27,14 @@ export async function generateHospitalCode(db:Db,name:string){const c=codeCandid
  throw new HttpError(409,'Could not generate a hospital code. Please contact support.')}
 const slug=(s:string)=>s.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10)
 /** Public onboarding: creates tenant + first admin + trial subscription. */
-export async function onboardHospital(db:Db,b:any){const name=required(b.hospitalName,'Hospital name');const email=required(b.adminEmail,'Admin email').toLowerCase().replace(/\s+/g,'');if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))throw new HttpError(400,'Admin email is invalid.');const pw=String(b.password||'');if(pw.length<10)throw new HttpError(400,'Password must be at least 10 characters.');const requested=opt(b.planCode)?canonicalPlan(opt(b.planCode)):TRIAL_PLAN;const freeTrial=b.paid!==true;const plan=freeTrial?TRIAL_PLAN:requested;const p=await db.query('select code from plans where code=$1 and active',[plan]);if(!p.rows[0])throw new HttpError(400,'Unknown plan.');
+export async function onboardHospital(db:Db,b:any){const name=required(b.hospitalName,'Hospital name');const email=required(b.adminEmail,'Admin email').toLowerCase().replace(/\s+/g,'');if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))throw new HttpError(400,'Admin email is invalid.');const pw=String(b.password||'');if(pw.length<10)throw new HttpError(400,'Password must be at least 10 characters.');const freeTrial=b.paid!==true;const requestedRaw=opt(b.planCode);if(freeTrial&&isContactSalesPlan(requestedRaw))throw new HttpError(403,'AI + Customer Engagement is Contact Sales. There is no self-serve trial. Send a note from the onboarding page, or start a Clinic or Basic trial.',{contactSales:true,pricingPath:'/welcome#pricing'});const plan:PlanCode=freeTrial?trialPlanFromParam(requestedRaw):canonicalPlan(requestedRaw);const p=await db.query('select code from plans where code=$1 and active',[plan]);if(!p.rows[0])throw new HttpError(400,'Unknown plan.');if(freeTrial)await assertTrialAvailable(db,{...b,adminEmail:email,hospitalName:name});
  let code:string;if(opt(b.code)){code=slug(opt(b.code)!);if(code.length<3)throw new HttpError(400,'Hospital code must have at least 3 letters/digits.');const ex=await db.query('select 1 from hospitals where code=$1',[code]);if(ex.rows[0])throw new HttpError(409,'Hospital code '+code+' is taken. Choose another.')}else code=await generateHospitalCode(db,name)
  const gstin=opt(b.gstin);if(gstin&&!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin.toUpperCase()))throw new HttpError(400,'GSTIN format is invalid.')
  const h=(await db.query('insert into hospitals(name,code,address,gstin,uhid_prefix,contact_email,contact_phone) values($1,$2,$3,$4,$2,$5,$6) returning id,code',[name,code,opt(b.address),gstin?.toUpperCase()||null,email,opt(b.phone)])).rows[0]
  const u=(await db.query("insert into users(hospital_id,email,full_name,role,password_hash,must_change_password) values($1,$2,$3,'admin',crypt($4,gen_salt('bf',12)),false) returning id",[h.id,email,required(b.adminName,'Admin name'),pw])).rows[0]
- await db.query("insert into subscriptions(hospital_id,plan_code,status,trial_ends_at) values($1,$2,'trialing',now()+make_interval(days=>$3::int))",[h.id,plan,TRIAL_DAYS()])
- await audit(db,{hospitalId:h.id,userId:u.id,role:'admin'},'onboard','hospital',h.id,{plan,trialDays:TRIAL_DAYS(),forcedBasicTrial:freeTrial&&requested!==TRIAL_PLAN});return {hospitalId:h.id,code:h.code,adminUserId:u.id,plan,trialDays:TRIAL_DAYS()}}
+ await db.query("insert into subscriptions(hospital_id,plan_code,status,trial_started_at,trial_ends_at) values($1,$2,'trialing',now(),now()+make_interval(days=>$3::int))",[h.id,plan,TRIAL_DAYS()])
+ if(freeTrial)await recordTrialClaim(db,h.id,{adminEmail:email,phone:b.phone,hospitalName:name,gstin:b.gstin})
+ await audit(db,{hospitalId:h.id,userId:u.id,role:'admin'},'onboard','hospital',h.id,{plan,trialDays:TRIAL_DAYS(),freeTrial});return {hospitalId:h.id,code:h.code,adminUserId:u.id,plan,trialDays:TRIAL_DAYS()}}
 export async function updateSettings(db:Db,ctx:Ctx,b:any){requireRole(ctx,['admin']);const gstin=opt(b.gstin)?.toUpperCase()||null;if(gstin&&!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin))throw new HttpError(400,'GSTIN format is invalid.');const pb=opt(b.pharmacyBilling);if(pb&&!['patient_bill','cash_sale'].includes(pb))throw new HttpError(400,'Pharmacy billing must be patient_bill or cash_sale.');const prefix=opt(b.uhidPrefix)?.toUpperCase()||null;if(prefix&&!/^[A-Z0-9]{2,10}$/.test(prefix))throw new HttpError(400,'UHID prefix: 2-10 letters/digits.');let fd:number|null=null;if(b.followupFreeDays!==undefined&&b.followupFreeDays!==''&&b.followupFreeDays!==null){fd=Number(b.followupFreeDays);if(!Number.isInteger(fd)||fd<0||fd>60)throw new HttpError(400,'Free follow-up window must be 0-60 days.')}const r=await db.query('update hospitals set name=coalesce($2,name),address=$3,gstin=$4,uhid_prefix=coalesce($5,uhid_prefix,code),contact_email=$6,contact_phone=$7,pharmacy_billing=coalesce($8,pharmacy_billing),followup_free_days=coalesce($9,followup_free_days),updated_at=now() where id=$1 returning id,name,code,address,gstin,uhid_prefix,contact_email,contact_phone,logo_url,pharmacy_billing,followup_free_days',[ctx.hospitalId,opt(b.name),opt(b.address),gstin,prefix,opt(b.contactEmail),opt(b.contactPhone),pb||null,fd]);await audit(db,ctx,'update','hospital_settings',ctx.hospitalId,pb?{pharmacyBilling:pb}:undefined);return r.rows[0]}
 export async function getSettings(db:Db,ctx:Ctx){const r=await db.query('select id,name,code,address,gstin,coalesce(uhid_prefix,code) uhid_prefix,contact_email,contact_phone,logo_url,pharmacy_billing,followup_free_days from hospitals where id=$1',[ctx.hospitalId]);return {hospital:r.rows[0],subscription:await getSubscription(db,ctx.hospitalId),plans:(await db.query('select * from plans where active order by sort')).rows}}
 export const ROLES_STAFF=['admin','reception','doctor','nurse','lab','pharmacy','billing'] as const
@@ -162,7 +164,7 @@ export async function platformPaymentStats(db:Db){
 export async function platformHospitalDetail(db:Db,hospitalId:string){
  const h=(await db.query(
   `select h.id,h.name,h.code,h.status,h.created_at,h.contact_email,h.contact_phone,h.address,h.gstin,
-    s.plan_code,s.status sub_status,s.trial_ends_at,s.current_period_start,s.current_period_end,
+    s.plan_code,s.status sub_status,s.trial_started_at,s.trial_ends_at,s.current_period_start,s.current_period_end,
     s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,
     s.last_payment_id,s.last_order_id,s.updated_at sub_updated_at,
     a.full_name admin_name,a.email admin_email,a.phone admin_phone,
@@ -220,7 +222,7 @@ export async function platformListHospitals(db:Db,q:any={}){
  if(plan){params.push(canonicalPlan(plan));where.push(`s.plan_code=$${params.length}`)}
  if(status){params.push(status);where.push(`s.status=$${params.length}`)}
  const sql=`select h.id,h.name,h.code,h.status,h.created_at,h.contact_email,h.contact_phone,
-  s.plan_code,s.status sub_status,s.trial_ends_at,s.current_period_start,s.current_period_end,
+  s.plan_code,s.status sub_status,s.trial_started_at,s.trial_ends_at,s.current_period_start,s.current_period_end,
   s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,
   s.last_payment_id,s.last_order_id,s.updated_at sub_updated_at,
   a.full_name admin_name,a.email admin_email,
