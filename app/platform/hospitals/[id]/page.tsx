@@ -33,7 +33,6 @@ export default function HospitalDetail(){
    description={<>Live tenant · code <code>{h.code}</code>{h.status!=='active'&&<> · <span className="err">tenant deactivated</span></>}</>}
    actions={<Link className="chip" href="/platform/hospitals">← All hospitals</Link>}
   >
-   {ok&&<p className="ok" role="status">{ok}</p>}
    {msg&&<p className="err" role="alert">{msg}</p>}
 
    <div className="platStats">
@@ -68,6 +67,7 @@ export default function HospitalDetail(){
       <label>Status<select name="status" defaultValue={h.sub_status||'trialing'}>{['trialing','active','on_hold','past_due','cancelled','expired'].map(s=><option key={s}>{s}</option>)}</select></label>
       <div className="platFilterBtns"><button type="submit" className="primary">Save plan / status</button></div>
      </div>
+     {ok&&<p className="ok" role="status" style={{marginTop:12}}>{ok}</p>}
     </form>
    </section>
 
