@@ -21,7 +21,7 @@ test('clinic front-desk cash is a receipt in today\'s collections, and the name 
  const v=await frontDeskVisit(db,rec,{patient:{fullName:'QA Patient Ravi',mobile:'9123456780',gender:'Male'},doctorId:doc.userId,collectMode:'cash',reference:'CASH-1'})
  assert.equal(v.patient.full_name,'QA Patient Ravi')
  assert.equal(v.token.token_no,1)
- assert.equal(v.bill!.kind,'receipt');assert.equal(v.bill!.paid,1000);assert.equal(v.bill!.balance,0)
+ const bill:any=v.bill;assert.equal(bill.kind,'receipt');assert.equal(bill.paid,1000);assert.equal(bill.balance,0)
  assert.equal((await db.query('select count(*)::int n from invoices where hospital_id=$1',[admin.hospitalId])).rows[0].n,0)
  const w=await widgetData(db,rec,['collections']);assert.equal(w.collections.total,1000);assert.equal(w.collections.n,1)
  assert.equal((await dashboard(db,admin)).collections_today,1000)
