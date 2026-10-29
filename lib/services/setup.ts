@@ -18,7 +18,7 @@ export async function setupStatus(db:Db,ctx:Ctx){requireRole(ctx,['admin']);cons
  const steps=[{id:'profile',title:'Hospital profile',detail:'Address, phone and GSTIN print on invoices',done:!!(r.address&&r.phone),href:'/admin/hospital-profile'},
   {id:'services',title:'Services & prices',detail:`${r.services} services (${r.consult} consultation)`,done:r.consult>0&&r.services>=5,href:'/admin/settings',defaults:'services'},
   {id:'departments',title:'Departments',detail:`${r.depts} departments`,done:r.depts>0,href:'/admin/import',defaults:'departments'},
-  {id:'users',title:'Staff accounts',detail:`${r.roles} of 6 staff roles have a user`,done:r.roles>=3,href:'/admin/users'},
+  {id:'users',title:'Staff accounts',detail:`${r.roles} of 6 staff roles have a user`,done:r.roles>=3,href:'/admin/settings?tab=users'},
   {id:'schedules',title:'Doctor OPD timings',detail:`${r.scheduled} of ${r.doctors} doctors have timings`,done:r.doctors>0&&r.scheduled>=r.doctors,href:'/schedules',defaults:'schedules'},
   {id:'beds',title:'Wards & beds',detail:`${r.beds} beds`,done:r.beds>0,href:'/ipd',defaults:'beds',optional:true},
   {id:'pharmacy',title:'Medicines',detail:`${r.meds} medicines`,done:r.meds>0,href:'/admin/import',optional:true},

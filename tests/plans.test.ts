@@ -1,8 +1,16 @@
 import {test} from 'node:test';import assert from 'node:assert/strict'
 import {freshDb,tenant} from './helpers'
 import {onboardHospital,getSubscription,requireModule} from '../lib/services/tenancy'
-import {PLAN_PRICE_INR,TRIAL_DAYS,TRIAL_PLAN,canonicalPlan} from '../lib/plans'
+import {PLAN_PRICE_INR,TRIAL_DAYS,TRIAL_PLAN,canonicalPlan,showTrialCountdown} from '../lib/plans'
 const DAY=86400000
+test('trial countdown is hidden once a plan is active',()=>{
+ assert.equal(showTrialCountdown('active',12),false)
+ assert.equal(showTrialCountdown('active',null),false)
+ assert.equal(showTrialCountdown('trialing',20),true)
+ assert.equal(showTrialCountdown('trialing',20,{banner:true}),false)
+ assert.equal(showTrialCountdown('trialing',3,{banner:true}),true)
+ assert.equal(showTrialCountdown('on_hold',1),false)
+})
 test('catalogue prices match Market PMS finals',()=>{
  assert.equal(PLAN_PRICE_INR.clinic,1999)
  assert.equal(PLAN_PRICE_INR.basic,19999)

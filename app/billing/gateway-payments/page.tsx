@@ -1,2 +1,2 @@
 import {redirect} from 'next/navigation'
-export default function Page(){redirect('/settings/payments/confirmations')}
+export default function Page(){redirect('/admin/settings?tab=payments&section=confirmations')}

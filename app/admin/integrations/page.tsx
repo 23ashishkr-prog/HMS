@@ -31,7 +31,7 @@ export default function Integrations(){const[d,setD]=useState<any>(null),[err,se
    <Card kind="email" title="E-mail sender" desc="Invoices, OTP fallback, lab reports and staff invites." fields={EM} d={d.email} reload={setD}/>
    <div className="panel modulePanel intCard">
     <div className="intHead"><div><h2>Payment gateway</h2><p className="muted">This hospital&apos;s own Razorpay (or later PayU/Cashfree) for <b>patient invoice</b> payments. Separate from SaaS plan billing. Admin and billing (accounts) only.</p></div></div>
-    <p><a className="primary btnLink" href={withBase('/settings/payments')}>Open gateway settings</a> <a className="ghost btnLink" href={withBase('/settings/payments/confirmations')}>Payment confirmations</a></p>
+    <p><a className="primary btnLink" href={withBase('/admin/settings?tab=payments')}>Open gateway settings</a> <a className="ghost btnLink" href={withBase('/admin/settings?tab=payments&section=confirmations')}>Payment confirmations</a></p>
    </div>
    <p className="muted small">Encryption: {d.encryption}. Every change is recorded in the audit log.</p></div>}
  </ModuleShell>}

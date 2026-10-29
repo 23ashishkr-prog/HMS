@@ -31,3 +31,13 @@ test('lifecycle: 30-day Basic trial → warnings → on hold → resubscribe →
  const users=(await db.query('select role,active from users where hospital_id=$1',[h.hospitalId])).rows;assert.equal(users.filter(u=>u.active).length,1);assert.equal(users.find(u=>u.active).role,'admin')
 })
 test('lifecycle only touches the expired tenant', async()=>{const db=await freshDb();const A=await tenant(db,'Alpha Exp','basic'),B=await tenant(db,'Beta Ok','basic');await db.query("update subscriptions set trial_ends_at=now()-interval '1 day' where hospital_id=$1",[A.admin.hospitalId]);await runLifecycle(db);assert.equal((await getSubscription(db,A.admin.hospitalId)).status,'on_hold');assert.equal((await getSubscription(db,B.admin.hospitalId)).status,'trialing')})
+test('an active paid plan keeps the old trial date in the database but hides it', async()=>{
+ const db=await freshDb();const {admin}=await tenant(db,'Paid Clinic','clinic')
+ const before=await getSubscription(db,admin.hospitalId)
+ assert.equal(before.status,'trialing');assert.ok(before.trial_ends_at);assert.ok(before.lifecycle.trialDaysLeft!=null)
+ await applyProviderEvent(db,admin.hospitalId,{type:'payment.captured',planCode:'clinic',period:'monthly',paymentId:'pay_hide_trial',orderId:'order_hide_trial',amountInr:1999},{})
+ const s=await getSubscription(db,admin.hospitalId)
+ assert.equal(s.status,'active');assert.equal(s.lifecycle.status,'active');assert.equal(s.lifecycle.paid,true)
+ assert.ok(s.trial_ends_at,'historical trial end stays stored')
+ assert.equal(s.lifecycle.trialEndsAt,null);assert.equal(s.lifecycle.trialDaysLeft,null)
+})
