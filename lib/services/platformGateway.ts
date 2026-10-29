@@ -3,6 +3,7 @@
  *  Prefer platform-stored keys over env; never expose raw secrets to hospital JWTs or hospital UI. */
 import {Db,HttpError} from './core'
 import {encrypt,decrypt,mask} from './integrations'
+import {basePath} from '../basePath'
 
 export type RzpMode='test'|'live'
 export type RzpCreds={
@@ -15,6 +16,8 @@ export type RzpCreds={
 }
 
 const KEY='razorpay'
+/** Public path Razorpay should call. Includes basePath so greynova.in/hms proxies it. */
+export const PLATFORM_WEBHOOK_PATH=basePath+'/api/subscription/razorpay/webhook'
 const s=(v:unknown,max=500)=>String(v??'').trim().slice(0,max)
 
 function envCreds():RzpCreds|null{
@@ -79,7 +82,7 @@ export async function getGatewayView(db:Db){
     hasPlatformRow:!!(row&&row.secrets),
     updatedAt:row?.updated_at||null,
     encryption:process.env.INTEGRATIONS_ENC_KEY?'INTEGRATIONS_ENC_KEY':'derived from SESSION_SECRET (set INTEGRATIONS_ENC_KEY)',
-    webhookPath:'/api/subscription/razorpay/webhook',
+    webhookPath:PLATFORM_WEBHOOK_PATH,
     note:'Hospital plan subscriptions only (Clinic / Basic / AI+). Patient bills stay cash/UPI/card in-app.',
   }
 }

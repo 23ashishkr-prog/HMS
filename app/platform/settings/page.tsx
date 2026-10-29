@@ -1,6 +1,7 @@
 'use client'
 import {useEffect,useState} from 'react'
 import {call,formObj} from '@/lib/client'
+import {withBase} from '@/lib/basePath'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
 
 export default function GatewaySettings(){
@@ -67,7 +68,7 @@ export default function GatewaySettings(){
      <input name="webhookSecret" type="password" autoComplete="new-password" placeholder={d.webhookSecret||'••••'} defaultValue=""/>
      <small className="muted">Stored: {d.webhookSecret||'—'}. Leave blank to keep.</small>
     </label>
-    <p className="muted"><small>Webhook URL (Razorpay Dashboard → Webhooks): <code>{typeof location!=='undefined'?location.origin:''}{d.webhookPath}</code> · events: <code>payment.captured</code>, <code>order.paid</code>, <code>payment.failed</code></small></p>
+    <p className="muted"><small>Webhook URL (Razorpay Dashboard → Webhooks): <code>{typeof location!=='undefined'?location.origin:''}{withBase(d.webhookPath||'/api/subscription/razorpay/webhook')}</code> · events: <code>payment.captured</code>, <code>order.paid</code>, <code>payment.failed</code></small></p>
     <div className="chips">
      <button className="primary" disabled={busy} type="submit">{busy?'Saving…':'Save gateway keys'}</button>
      <button type="button" className="ghost" disabled={busy||!d.hasPlatformRow} onClick={clear}>Clear platform keys</button>
