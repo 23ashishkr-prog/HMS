@@ -9,10 +9,15 @@ test('lifecycle: 30-day Basic trial → warnings → on hold → resubscribe →
  const p=await registerPatient(db,rec,{fullName:'Keep Me',mobile:'9811122233',address:'12 MG Road',gender:'Female',allergies:'Penicillin',abhaNumber:'11112222333344'})
  const t=await checkIn(db,rec,{patientId:p.id,doctorId:doc.userId});const e=await startEncounter(db,doc,{queueId:t.id});await recordVitals(db,doc,{encounterId:e.id,pulse:80});await prescribe(db,doc,{encounterId:e.id,items:[{medicine:'X'}]});await createInvoice(db,rec,{patientId:p.id})
  const end=new Date(s.trial_ends_at).getTime()
- // 30-day trial: WARN_DAYS [30,7,1] — fire the 30-day notice near start, then 7-day near end
+ // Reminders at 7, 3 and 1 days. Day 29 is too early; day 6 fires only the 7-day notice.
  let r=await runLifecycle(db,new Date(end-29*DAY));assert.equal(r.held,0)
- r=await runLifecycle(db,new Date(end-6*DAY));assert.equal(r.held,0);const n=(await db.query('select kind,days_left from lifecycle_notices where kind=\'trial_ending\' order by days_left')).rows;assert.deepEqual(n.map(x=>x.days_left),[7,30])
- await runLifecycle(db,new Date(end-6*DAY));assert.equal((await db.query('select count(*)::int n from lifecycle_notices where kind=\'trial_ending\'')).rows[0].n,2,'idempotent notices')
+ r=await runLifecycle(db,new Date(end-6*DAY));assert.equal(r.held,0);let n=(await db.query('select kind,days_left from lifecycle_notices where kind=\'trial_ending\' order by days_left')).rows;assert.deepEqual(n.map(x=>x.days_left),[7])
+ await runLifecycle(db,new Date(end-6*DAY));assert.equal((await db.query('select count(*)::int n from lifecycle_notices where kind=\'trial_ending\'')).rows[0].n,1,'idempotent notices')
+ r=await runLifecycle(db,new Date(end-2*DAY));n=(await db.query('select days_left from lifecycle_notices where kind=\'trial_ending\' order by days_left')).rows;assert.deepEqual(n.map(x=>x.days_left),[3,7])
+ r=await runLifecycle(db,new Date(end-12*3600000));n=(await db.query('select days_left from lifecycle_notices where kind=\'trial_ending\' order by days_left')).rows;assert.deepEqual(n.map(x=>x.days_left),[1,3,7])
+ const mailed=(await db.query("select count(*)::int n from notification_outbox where kind='trial_ending'")).rows[0].n
+ assert.equal(mailed,3,'one outbox row per reminder threshold')
+ await runLifecycle(db,new Date(end-12*3600000));assert.equal((await db.query("select count(*)::int n from notification_outbox where kind='trial_ending'")).rows[0].n,3,'idempotent outbox')
  r=await runLifecycle(db,new Date(end+DAY));assert.equal(r.held,1);s=await getSubscription(db,admin.hospitalId);assert.equal(s.status,'on_hold');assert.equal(s.usable,false)
  assert.equal((await runLifecycle(db,new Date(end+2*DAY))).held,0,'idempotent hold')
  await applyProviderEvent(db,admin.hospitalId,{type:'subscription.activated'},{});s=await getSubscription(db,admin.hospitalId);assert.equal(s.usable,true);assert.equal(s.hold_started_at,null)

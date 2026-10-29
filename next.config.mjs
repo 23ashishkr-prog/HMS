@@ -17,7 +17,7 @@ const nextConfig = {
   async redirects() {
     return [
       // Owner/dev visits to the bare Vercel host land on the app. GreyNova does not proxy "/".
-      {source: '/', destination: '/hms', permanent: false, basePath: false},
+      {source: '/', destination: '/hms/welcome', permanent: false, basePath: false},
       ...legacyRedirects(),
     ]
   },

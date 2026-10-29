@@ -5,6 +5,7 @@ import {call,dt} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
+function trialLeft(iso?:string|null){if(!iso)return '—';const ms=new Date(iso).getTime()-Date.now();if(ms<=0)return '0';return String(Math.ceil(ms/86400000))}
 
 export default function HospitalsPage(){
  const[d,setD]=useState<any>(null)
@@ -80,7 +81,7 @@ export default function HospitalsPage(){
         <td>{PLAN[h.plan_code]||h.plan_code||'—'}</td>
         <td><span className={'pill pill-'+h.sub_status}>{h.sub_status||'—'}</span></td>
         <td>{dt(h.current_period_start)||dt(h.created_at)}</td>
-        <td>{dt(h.current_period_end)||dt(h.trial_ends_at)||'—'}</td>
+        <td>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at)+'d · ':''}{dt(h.current_period_end)||dt(h.trial_ends_at)||'—'}</td>
         <td className="platAdmin"><b>{h.admin_name||'—'}</b><small>{h.admin_email||h.contact_email||'—'}</small></td>
         <td className="platRowActions">
          <Link className="chip" href={'/platform/hospitals/'+h.id}>Open</Link>
@@ -88,7 +89,10 @@ export default function HospitalsPage(){
           <button type="button" className="chip" aria-expanded={openMenu===h.id} onClick={()=>setOpenMenu(openMenu===h.id?null:h.id)}>⋯</button>
           {openMenu===h.id&&(
            <div className="platMenu" role="menu">
-            <button type="button" onClick={()=>act(h.id,{action:'extend',what:'trial',days:30})}>+30d trial</button>
+            <button type="button" onClick={()=>act(h.id,{action:'extend',what:'trial',days:30})}>Extend trial</button>
+            <button type="button" onClick={()=>act(h.id,{action:'end_trial'})}>End trial</button>
+            <button type="button" onClick={()=>act(h.id,{action:'convert_paid'})}>Convert to paid</button>
+            <button type="button" onClick={()=>act(h.id,{action:'reset_trial_block'})}>Reset trial block</button>
             <button type="button" onClick={()=>act(h.id,{action:'extend',what:'hold',days:30})}>+30d hold</button>
             <button type="button" onClick={()=>{if(window.confirm('Toggle tenant active?'))act(h.id,{action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Deactivate':'Reactivate'}</button>
             <Link href={'/platform/payments?hospitalId='+h.id}>Payments</Link>
@@ -118,13 +122,17 @@ export default function HospitalsPage(){
       </div>
       <dl className="platHospMeta">
        <div><dt>Start</dt><dd>{dt(h.current_period_start)||dt(h.created_at)||'—'}</dd></div>
+       <div><dt>Trial days</dt><dd>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at):'—'}</dd></div>
        <div><dt>Expiry</dt><dd>{dt(h.current_period_end)||dt(h.trial_ends_at)||'—'}</dd></div>
        <div><dt>Admin</dt><dd>{h.admin_name||'—'}<br/><small>{h.admin_email||h.contact_email||'—'}</small></dd></div>
       </dl>
       <details className="platHospMore">
        <summary>Actions</summary>
        <div className="chips">
-        <button type="button" className="chip" onClick={()=>act(h.id,{action:'extend',what:'trial',days:30})}>+30d trial</button>
+        <button type="button" className="chip" onClick={()=>act(h.id,{action:'extend',what:'trial',days:30})}>Extend trial</button>
+        <button type="button" className="chip" onClick={()=>act(h.id,{action:'end_trial'})}>End trial</button>
+        <button type="button" className="chip" onClick={()=>act(h.id,{action:'convert_paid'})}>Convert to paid</button>
+        <button type="button" className="chip" onClick={()=>act(h.id,{action:'reset_trial_block'})}>Reset trial block</button>
         <button type="button" className="chip" onClick={()=>act(h.id,{action:'extend',what:'hold',days:30})}>+30d hold</button>
         <button type="button" className="chip" onClick={()=>{if(window.confirm('Toggle tenant?'))act(h.id,{action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Deactivate':'Reactivate'}</button>
         <Link className="chip" href={'/platform/payments?hospitalId='+h.id}>Payments</Link>

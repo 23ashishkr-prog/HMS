@@ -1,18 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {basePath, publicOriginUrl, toRouterPath, withBase} from '../lib/basePath'
+import {baseBoot, basePath, publicOriginUrl, toRouterPath, withBase} from '../lib/basePath'
 import {legacyRedirects, legacyRoots} from '../lib/legacyRedirects.mjs'
 import {applySessionCookie, serializeLegacyClear, serializeSessionCookie, sessionCookieOptions} from '../lib/sessionCookie'
 
 test('withBase prefixes root-relative paths once', () => {
   assert.equal(basePath, '/hms')
-  assert.equal(withBase('/'), '/hms')
+  assert.equal(withBase('/'), '/hms/dashboard')
+  assert.equal(withBase('/hms'), '/hms/dashboard')
+  assert.equal(withBase('/hms/'), '/hms/dashboard')
   assert.equal(withBase('/auth/login'), '/hms/auth/login')
   assert.equal(withBase('/api/auth/me'), '/hms/api/auth/me')
   assert.equal(withBase('/api/invoices/1/pdf?download=1'), '/hms/api/invoices/1/pdf?download=1')
   assert.equal(withBase('/hms/welcome'), '/hms/welcome')
-  assert.equal(withBase('/hms'), '/hms')
   assert.equal(withBase('https://greynova.in/hms/'), 'https://greynova.in/hms/')
   assert.equal(withBase('//greynova.in/hms'), '//greynova.in/hms')
   assert.equal(withBase('#pricing'), '#pricing')
@@ -80,10 +81,11 @@ test('login response sets Path=/hms and clears the legacy Path=/ cookie', () => 
 
 test('router paths drop one /hms prefix so next/navigation does not double it', () => {
   assert.equal(toRouterPath('/hms/frontdesk'), '/frontdesk')
-  assert.equal(toRouterPath('/hms'), '/')
+  assert.equal(toRouterPath('/hms'), '/dashboard')
+  assert.equal(toRouterPath('/hms/'), '/dashboard')
   assert.equal(toRouterPath('/hms/platform/hospitals'), '/platform/hospitals')
   assert.equal(toRouterPath('/frontdesk'), '/frontdesk')
-  assert.equal(toRouterPath('/'), '/')
+  assert.equal(toRouterPath('/'), '/dashboard')
   assert.equal(toRouterPath('https://greynova.in/hms'), 'https://greynova.in/hms')
 })
 
@@ -108,7 +110,7 @@ test('old bookmarks redirect onto /hms without matching /hms itself', () => {
   assert.equal(rules.some(r => r.source === '/' || r.source.startsWith('/hms')), false)
   const src = readFileSync(new URL('../next.config.mjs', import.meta.url), 'utf8')
   assert.match(src, /legacyRedirects\(\)/)
-  assert.match(src, /source: '\/', destination: '\/hms', permanent: false, basePath: false/)
+  assert.match(src, /source: '\/', destination: '\/hms\/welcome', permanent: false, basePath: false/)
 })
 
 test('Next serves the app at /hms and does not offer the cross-origin embed', () => {
@@ -127,6 +129,25 @@ test('Next serves the app at /hms and does not offer the cross-origin embed', ()
   assert.match(crons, /\/hms\/api\/cron\/outbox/)
   const sw = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
   assert.match(sw, /B='\/hms'/)
+  assert.match(sw, /B\+'\/dashboard'/)
   assert.match(sw, /frontdesk/)
   assert.match(sw, /_next\/static/)
+})
+
+test('boot script maps bare / and /hms onto the dashboard', () => {
+  const m = baseBoot.match(/function fix\(u\)\{([\s\S]*?)\}var of/)
+  assert.ok(m, 'fix() present')
+  const fix = new Function('u', "var B='/hms';var H=B+'/dashboard';" + m![1]) as (u: string) => string
+  assert.equal(fix('/'), '/hms/dashboard')
+  assert.equal(fix('/hms'), '/hms/dashboard')
+  assert.equal(fix('/hms/'), '/hms/dashboard')
+  assert.equal(fix('/hms?x=1'), '/hms/dashboard?x=1')
+  assert.equal(fix('/auth/login'), '/hms/auth/login')
+  assert.equal(fix('/hms/opd'), '/hms/opd')
+  assert.equal(fix('/hms/dashboard'), '/hms/dashboard')
+  assert.equal(fix('https://greynova.in/hms'), 'https://greynova.in/hms')
+  assert.equal(fix('//greynova.in/hms'), '//greynova.in/hms')
+  const auth = readFileSync(new URL('../lib/auth.ts', import.meta.url), 'utf8')
+  assert.match(auth, /admin:'\/dashboard'/)
+  assert.doesNotMatch(auth, /admin:'\/'/)
 })
