@@ -5,7 +5,8 @@ async function allocateToken(db:Db,ctx:Ctx,patientId:string,doctorId:string,day:
  const once=async(c:Db)=>{const open=await c.query("select token_no from doctor_queue where hospital_id=$1 and patient_id=$2 and doctor_user_id=$3 and visit_date=$4 and status<>'checked'",[ctx.hospitalId,patientId,doctorId,day]);if(open.rows[0])throw new HttpError(409,'Patient is already in this doctor\'s queue (token '+open.rows[0].token_no+').')
   const t=await c.query('select coalesce(max(token_no),0)+1 n from doctor_queue where hospital_id=$1 and doctor_user_id=$2 and visit_date=$3',[ctx.hospitalId,doctorId,day])
   const r=await c.query("insert into doctor_queue(hospital_id,patient_id,doctor_user_id,status,token_no,visit_date,appointment_id) values($1,$2,$3,'waiting',$4,$5,$6) returning id,token_no",[ctx.hospitalId,patientId,doctorId,t.rows[0].n,day,apptId]);return r.rows[0]}
- if(typeof (db as any).connect==='function')return tx(db,async c=>{await c.query('select pg_advisory_xact_lock(hashtext($1::text))',[`hms-token:${ctx.hospitalId}:${doctorId}:${day}`]);return once(c)})
+ const pool=typeof (db as any).connect==='function'&&typeof (db as any).totalCount==='number'
+ if(pool)return tx(db,async c=>{await c.query('select pg_advisory_xact_lock(hashtext($1::text))',[`hms-token:${ctx.hospitalId}:${doctorId}:${day}`]);return once(c)})
  for(let i=0;i<6;i++){try{return await once(db)}catch(e){if(e instanceof HttpError||!dupToken(e))throw e}}
  throw new HttpError(409,'Could not allocate a token number. Please try again.')}
 /** Reception check-in → per-doctor daily token number. */
