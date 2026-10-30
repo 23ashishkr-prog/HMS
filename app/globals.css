@@ -1059,3 +1059,4 @@ html body .aiLine{margin:0 0 12px;padding:8px 14px;border-radius:999px;backgroun
 html body .spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;margin-right:8px;vertical-align:-3px;animation:hmsSpin .7s linear infinite}
 @keyframes hmsSpin{to{transform:rotate(360deg)}}
 html body .navLocked{display:none}
+html body .authPremium .authSideIn h2,html body .authPremium .authSide .mkLogo{color:#fff!important}
