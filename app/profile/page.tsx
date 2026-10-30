@@ -19,7 +19,7 @@ export default function ProfilePage(){
    <div className="chips">
     <button type="button" className="chip" onClick={()=>setAppear(true)}>Appearance</button>
     <button type="button" className="chip" onClick={()=>{const n=!lite;setLite(n);localStorage.setItem('hms.lite',n?'1':'0');document.documentElement.classList.toggle('lite',n)}}>{lite?'Motion: reduced':'Motion: on'}</button>
-    {u.role==='admin'&&<Link className="chip" href="/admin/hospital-profile">Logo & colours</Link>}
+
     {u.role==='admin'&&<Link className="chip" href="/admin/settings">Settings</Link>}
     {(u.role==='admin'||u.role==='billing')&&<Link className="chip" href="/admin/settings?tab=payments">Payments</Link>}
     {u.role==='admin'&&<Link className="chip" href="/admin/settings?tab=users">Users & access</Link>}
