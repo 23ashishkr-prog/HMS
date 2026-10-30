@@ -43,7 +43,7 @@ export default function Page(){
       <p>Your hospital is set up on the <b>{done.plan||plan}</b> plan. Staff sign in with this hospital code:</p>
       <label>Hospital code<input readOnly value={done.code} className="codeOut" onFocus={e=>e.currentTarget.select()} aria-label="Hospital code"/></label>
       <p className="muted">We&apos;ve also e-mailed it to you when e-mail is configured. It is also your UHID prefix.</p>
-      <a className="primary full btnLink" href={withBase(done.redirect||'/admin/setup')}>Continue to setup</a>
+      <a className="primary full btnLink" href={withBase(done.redirect||'/admin/settings?tab=setup')}>Continue to setup</a>
      </div>
     ):sales?(
      <>

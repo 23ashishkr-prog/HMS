@@ -16,12 +16,9 @@ export const NAV:NavItem[]=[
  {name:'Doctor schedules',icon:'calendar',path:'/schedules',roles:['admin','doctor','reception'],more:true,module:'appointments'},
  {name:'Follow-ups',icon:'calendar',path:'/followups',roles:['admin','reception','doctor'],more:true,module:'appointments'},
  {name:'Insurance / TPA',icon:'insurance',path:'/insurance',roles:['admin','billing'],more:true,module:'insurance'},
- {name:'Waiting-room TV',icon:'queue',path:'/display',roles:['admin','reception'],more:true,module:'queue'},
  {name:'Self check-in QR',icon:'queue',path:'/checkin-qr',roles:['admin','reception'],more:true,module:'queue'},
  {name:'Daily close-out',icon:'money',path:'/admin/closeout',roles:['admin'],more:true,module:'billing'},
  {name:'Settings',icon:'settings',path:'/admin/settings',roles:['admin','billing'],more:true},
- {name:'Integrations',icon:'settings',path:'/admin/integrations',roles:['admin'],more:true},
- {name:'Setup wizard',icon:'settings',path:'/admin/setup',roles:['admin'],more:true},
  {name:'Bulk import',icon:'audit',path:'/admin/import',roles:['admin'],more:true,module:'bulk'},
  {name:'Audit log',icon:'audit',path:'/admin/audit',roles:['admin'],more:true,module:'audit'}]
 export const HOME:Record<Role,string>={admin:'/dashboard',reception:'/frontdesk',doctor:'/opd',nurse:'/opd',lab:'/laboratory',pharmacy:'/pharmacy',billing:'/billing',patient:'/auth/login'}

@@ -1,10 +1,2 @@
-'use client'
-import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call} from '@/lib/client';import {toast} from '@/lib/toast';import {withBase} from '@/lib/basePath'
-const LABEL:Record<string,string>={services:'Add 28 standard Indian services',departments:'Add 13 common departments',schedules:'Mon–Sat 9–1 & 5–8 for doctors without timings',beds:'Create 10 general, 4 private, 2 ICU beds'}
-export default function Setup(){const[s,setS]=useState<any>(null),[busy,setBusy]=useState('')
- const load=()=>call('/api/setup').then(setS).catch(e=>toast(e.message,'err'));useEffect(()=>{load()},[])
- const apply=async(what:string)=>{setBusy(what);try{const x=await call('/api/setup','POST',{what});setS(x);toast(x.added?`Added ${x.added} items`:'Already set up — nothing to add')}catch(e:any){toast(e.message,'err')}finally{setBusy('')}}
- return <ModuleShell title="Set up your hospital" eyebrow="SETUP WIZARD" description="Follow the steps in order. Every 'Use defaults' button only adds what is missing, so it is safe to press again." actions={<button className="primary" disabled={!!busy} onClick={()=>apply('all')}>Use all defaults</button>}>
-  {!s?<p className="muted">Loading…</p>:<><div className="setupProg"><div><b>{s.progress}%</b><span>{s.done?'Ready to go live':'complete'}</span></div><div className="wBar"><span style={{width:s.progress+'%'}}/></div></div>
-  <ol className="setupSteps">{s.steps.map((st:any,i:number)=><li key={st.id} className={st.done?'done':''}><i>{st.done?'✓':i+1}</i><div><b>{st.title}{st.optional&&<small> · optional</small>}</b><small>{st.detail}</small></div><span className="setupActs">{st.defaults&&!st.done&&<button className="ghost" disabled={!!busy} title={LABEL[st.defaults]} onClick={()=>apply(st.defaults)}>{busy===st.defaults?'Adding…':'Use defaults'}</button>}<a className={st.done?'ghost btnLink':'primary btnLink'} href={withBase(st.href)}>{st.done?'Review':'Open'}</a></span></li>)}</ol>
-  <p className="muted small">Tip: bulk-load your own price list, staff and medicines from Excel in <a href={withBase('/admin/import')}>Bulk import</a>.</p></>}</ModuleShell>}
+import {redirect} from 'next/navigation'
+export default function P(){redirect('/admin/settings?tab=setup')}
