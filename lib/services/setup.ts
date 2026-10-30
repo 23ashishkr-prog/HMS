@@ -22,7 +22,7 @@ export async function setupStatus(db:Db,ctx:Ctx){requireRole(ctx,['admin']);cons
   {id:'schedules',title:'Doctor OPD timings',detail:`${r.scheduled} of ${r.doctors} doctors have timings`,done:r.doctors>0&&r.scheduled>=r.doctors,href:'/schedules',defaults:'schedules'},
   {id:'beds',title:'Wards & beds',detail:`${r.beds} beds`,done:r.beds>0,href:'/ipd',defaults:'beds',optional:true},
   {id:'pharmacy',title:'Medicines',detail:`${r.meds} medicines`,done:r.meds>0,href:'/admin/import',optional:true},
-  {id:'integrations',title:'WhatsApp / e-mail',detail:r.integ?'connected':'not set up — patients get no messages',done:r.integ>0,href:'/admin/integrations'},
+  {id:'integrations',title:'WhatsApp / e-mail',detail:r.integ?'connected':'not set up — patients get no messages',done:r.integ>0,href:'/admin/settings?tab=integrations'},
   {id:'selfservice',title:'QR check-in / online booking',detail:r.selfsvc?'on':'off',done:!!r.selfsvc,href:'/checkin-qr',optional:true}]
  const req=steps.filter(s=>!s.optional);return {steps,progress:Math.round(100*req.filter(s=>s.done).length/req.length),done:req.every(s=>s.done)}}
 export async function applyDefaults(db:Db,ctx:Ctx,what:string){requireRole(ctx,['admin']);const h=ctx.hospitalId;let n=0
