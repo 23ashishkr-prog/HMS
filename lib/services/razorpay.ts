@@ -41,8 +41,8 @@ export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode
  // Ledger row (created) so platform Payment check shows the attempt before capture
  try{
   await db.query(
-   `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,status,provider,provider_order_id,raw)
-    values($1,$2,$3,$4,'created','razorpay',$5,$6)`,
+   `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,amount_in_inr,currency,status,provider,provider_order_id,raw)
+    values($1,$2,$3,$4,$4,'INR','created','razorpay',$5,$6)`,
    [opts.hospitalId,plan,period,amountInr,order.id,JSON.stringify({order,notes})]
   )
  }catch{/* non-fatal */}

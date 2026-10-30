@@ -3,11 +3,14 @@ import {useEffect,useState} from 'react'
 import Link from 'next/link'
 import {call,dt} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
+import {MoneyCell,TailDeskState,productPath,tenantHref,usePlatformProduct} from '@/components/PlatformProduct'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
 function trialLeft(iso?:string|null){if(!iso)return '—';const ms=new Date(iso).getTime()-Date.now();if(ms<=0)return '0';return String(Math.ceil(ms/86400000))}
 
 export default function HospitalsPage(){
+ const {product,ready}=usePlatformProduct()
+ const tail=product==='taildesk'
  const[d,setD]=useState<any>(null)
  const[err,setErr]=useState('')
  const[q,setQ]=useState('')
@@ -22,12 +25,12 @@ export default function HospitalsPage(){
   if(Q.trim())qs.set('q',Q.trim())
   if(S)qs.set('status',S)
   if(P)qs.set('plan',P)
-  call('/api/platform/hospitals'+(qs.toString()?'?'+qs:'')).then(setD).catch((e:any)=>setErr(e.message))
+  call(productPath(product,'/api/platform/hospitals',Object.fromEntries(qs.entries()))).then(setD).catch((e:any)=>setErr(e.message))
  }
- useEffect(()=>{load()},[])
+ useEffect(()=>{if(!ready)return;setD(null);setErr('');load()},[ready,product])
 
  if(err&&!d)return <PlatformSignIn title="Hospitals" hint="Sign in as platform owner to manage tenants."/>
- if(!d)return <main className="plat"><p>Loading…</p></main>
+ if(!d)return <PlatformShell title={tail?'Tenants':'Hospitals'}><p>Loading…</p></PlatformShell>
 
  const act=async(id:string,body:any)=>{
   setMsg('');setOpenMenu(null)
@@ -39,10 +42,11 @@ export default function HospitalsPage(){
 
  return (
   <PlatformShell
-   title="Hospitals"
-   eyebrow="SAAS OWNER · TENANTS"
-   description="Live hospital tenants — open a hospital for payment ledger and plan/status changes."
+   title={tail?'Tenants':'Hospitals'}
+   eyebrow={tail?'SAAS OWNER · TAILDESK':'SAAS OWNER · TENANTS'}
+   description={tail?'TailDesk businesses — plan, status, trial, expiry and amount. Read-only.':'Live hospital tenants — open a hospital for payment ledger and plan/status changes.'}
   >
+   <TailDeskState d={d}/>
    {msg&&<p className="err">{msg}</p>}
    <form className="platFilters" onSubmit={e=>{e.preventDefault();load()}}>
     <label>Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="Name or code"/></label>
@@ -55,9 +59,11 @@ export default function HospitalsPage(){
     <label>Plan
      <select value={plan} onChange={e=>setPlan(e.target.value)}>
       <option value="">All</option>
-      <option value="clinic">Clinic</option>
-      <option value="basic">Basic</option>
-      <option value="ai_engage">AI+</option>
+      {tail?(d.plan_counts||[]).map((p:any)=><option key={p.code} value={p.code}>{p.name||p.code}</option>):<>
+       <option value="clinic">Clinic</option>
+       <option value="basic">Basic</option>
+       <option value="ai_engage">AI+</option>
+      </>}
      </select>
     </label>
     <div className="platFilterBtns">
@@ -70,21 +76,23 @@ export default function HospitalsPage(){
    <div className="platTableWrap platDesktopOnly">
     <table className="dataTable platHospTable">
      <thead><tr>
-      <th>Hospital</th><th>Code</th><th>Plan</th><th>Status</th><th>Start</th><th>Expiry</th><th>Admin</th><th></th>
+      <th>{tail?'Tenant':'Hospital'}</th><th>Code</th><th>Plan</th><th>Status</th><th>Start</th><th>Expiry</th><th>Amount</th><th>Admin</th><th></th>
      </tr></thead>
      <tbody>
-      {rows.length===0&&<tr><td colSpan={8}>No hospitals match.</td></tr>}
+      {rows.length===0&&<tr><td colSpan={9}>{tail?'No tenants match.':'No hospitals match.'}</td></tr>}
       {rows.map((h:any)=>(
        <tr key={h.id}>
-        <td><Link href={'/platform/hospitals/'+h.id}><b>{h.name}</b></Link>{h.status!=='active'&&<div><small className="err">tenant off</small></div>}</td>
+        <td><Link href={tenantHref(product,h.id)}><b>{h.name}</b></Link>{h.status!=='active'&&<div><small className="err">tenant off</small></div>}</td>
         <td><code>{h.code}</code></td>
-        <td>{PLAN[h.plan_code]||h.plan_code||'—'}</td>
+        <td>{tail?(h.plan_name||h.plan_code||'—'):(PLAN[h.plan_code]||h.plan_code||'—')}</td>
         <td><span className={'pill pill-'+h.sub_status}>{h.sub_status||'—'}</span></td>
         <td>{dt(h.current_period_start)||dt(h.created_at)}</td>
         <td>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at)+'d · ':''}{dt(h.current_period_end)||dt(h.trial_ends_at)||'—'}</td>
+        <td><MoneyCell row={h}/></td>
         <td className="platAdmin"><b>{h.admin_name||'—'}</b><small>{h.admin_email||h.contact_email||'—'}</small></td>
         <td className="platRowActions">
-         <Link className="chip" href={'/platform/hospitals/'+h.id}>Open</Link>
+         <Link className="chip" href={tenantHref(product,h.id)}>Open</Link>
+         {!tail&&<>
          <div className="platMenuWrap">
           <button type="button" className="chip" aria-expanded={openMenu===h.id} onClick={()=>setOpenMenu(openMenu===h.id?null:h.id)}>⋯</button>
           {openMenu===h.id&&(
@@ -100,6 +108,7 @@ export default function HospitalsPage(){
            </div>
           )}
          </div>
+        </>}
         </td>
        </tr>
       ))}
@@ -109,24 +118,25 @@ export default function HospitalsPage(){
 
    {/* Mobile / tablet cards */}
    <div className="platCardList platMobileOnly">
-    {rows.length===0&&<p className="muted">No hospitals match.</p>}
+    {rows.length===0&&<p className="muted">{tail?'No tenants match.':'No hospitals match.'}</p>}
     {rows.map((h:any)=>(
      <article key={h.id} className="platHospCard">
       <div className="platHospCardTop">
        <div>
-        <Link href={'/platform/hospitals/'+h.id}><b>{h.name}</b></Link>
-        <div><code>{h.code}</code> · {PLAN[h.plan_code]||h.plan_code||'—'} · <span className={'pill pill-'+h.sub_status}>{h.sub_status||'—'}</span></div>
+        <Link href={tenantHref(product,h.id)}><b>{h.name}</b></Link>
+        <div><code>{h.code}</code> · {tail?(h.plan_name||h.plan_code||'—'):(PLAN[h.plan_code]||h.plan_code||'—')} · <span className={'pill pill-'+h.sub_status}>{h.sub_status||'—'}</span></div>
         {h.status!=='active'&&<small className="err">tenant deactivated</small>}
        </div>
-       <Link className="chip" href={'/platform/hospitals/'+h.id}>Open</Link>
+       <Link className="chip" href={tenantHref(product,h.id)}>Open</Link>
       </div>
       <dl className="platHospMeta">
        <div><dt>Start</dt><dd>{dt(h.current_period_start)||dt(h.created_at)||'—'}</dd></div>
        <div><dt>Trial days</dt><dd>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at):'—'}</dd></div>
        <div><dt>Expiry</dt><dd>{dt(h.current_period_end)||dt(h.trial_ends_at)||'—'}</dd></div>
+       <div><dt>Amount</dt><dd><MoneyCell row={h}/></dd></div>
        <div><dt>Admin</dt><dd>{h.admin_name||'—'}<br/><small>{h.admin_email||h.contact_email||'—'}</small></dd></div>
       </dl>
-      <details className="platHospMore">
+      {!tail&&<details className="platHospMore">
        <summary>Actions</summary>
        <div className="chips">
         <button type="button" className="chip" onClick={()=>act(h.id,{action:'extend',what:'trial',days:30})}>Extend trial</button>
@@ -137,7 +147,7 @@ export default function HospitalsPage(){
         <button type="button" className="chip" onClick={()=>{if(window.confirm('Toggle tenant?'))act(h.id,{action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Deactivate':'Reactivate'}</button>
         <Link className="chip" href={'/platform/payments?hospitalId='+h.id}>Payments</Link>
        </div>
-      </details>
+      </details>}
      </article>
     ))}
    </div>

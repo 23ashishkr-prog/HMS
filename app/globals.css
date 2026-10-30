@@ -821,6 +821,10 @@ html body main.authPremium{padding:0!important;margin:0!important;width:100%}
 .platBody{padding:20px 3vw 32px}
 .platTop{position:sticky;top:0;z-index:40;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 3vw;background:rgba(248,250,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid #e2e8f0}
 .platTopBrand{display:flex;flex-direction:column;gap:0;min-width:120px}.platTopBrand b{font-size:14px}
+.platProduct{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:#e2e8f0}
+.platProduct button{border:0;background:transparent;color:#475569;font-weight:800;font-size:13px;padding:6px 14px;border-radius:999px;cursor:pointer;min-height:32px}
+.platProduct button.on{background:#0f172a;color:#fff}
+.platMoney{display:flex;flex-direction:column;gap:2px;align-items:flex-start}.platMoney small{color:#64748b;font-weight:600}
 .platTabs{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
 .platTab{display:inline-flex;align-items:center;padding:8px 12px;border-radius:999px;font-weight:700;font-size:13px;color:#475569;text-decoration:none;border:1px solid transparent}
 .platTab:hover{background:#e2e8f0;color:#0f172a}

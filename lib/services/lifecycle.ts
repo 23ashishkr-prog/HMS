@@ -1,7 +1,7 @@
 /** Subscription lifecycle: trial (TRIAL_DAYS, default 30) → on_hold (read-only renew screen) → purge after HOLD_MONTHS,
  *  keeping only a minimal patient register (name, phone, address). Idempotent: safe to run any number of times. */
 import {Db,HttpError} from './core';import {tx} from './auth'
-import {TRIAL_DAYS,TRIAL_REMINDER_DAYS,trialDaysRemaining,canonicalPlan} from '../plans'
+import {TRIAL_DAYS,TRIAL_REMINDER_DAYS,trialDaysRemaining,canonicalPlan,PLAN_PRICE_INR,PLAN_ANNUAL_INR,PlanCode} from '../plans'
 import {appUrl} from './notify'
 import {resetTrialBlock} from './trialIdentity'
 export {TRIAL_DAYS}
@@ -71,10 +71,15 @@ export async function platformEndTrial(db:Db,h:string,by:{id:string;email:string
 }
 /** Mark the subscription paid without a new checkout (owner conversion). */
 export async function platformConvertPaid(db:Db,h:string,by:{id:string;email:string},planCode?:string|null){
- const plan=planCode?canonicalPlan(planCode):null
+ const existing=(await db.query('select plan_code,billing_period from subscriptions where hospital_id=$1',[h])).rows[0]
+ if(!existing)throw new HttpError(404,'Hospital not found')
+ const plan=canonicalPlan(planCode||existing.plan_code) as PlanCode
+ const period=existing.billing_period==='annual'?'annual':'monthly'
+ const amount=period==='annual'?PLAN_ANNUAL_INR[plan]:PLAN_PRICE_INR[plan]
  const r=await db.query(`update subscriptions set status='active',plan_code=coalesce($2,plan_code),billing_period=coalesce(billing_period,'monthly'),
-  current_period_start=now(),current_period_end=now()+interval '1 month',hold_started_at=null,hold_extended_until=null,provider=coalesce(provider,'manual'),updated_at=now()
-  where hospital_id=$1 returning plan_code,status,current_period_end`,[h,plan])
+  current_period_start=now(),current_period_end=now()+interval '1 month',hold_started_at=null,hold_extended_until=null,provider=coalesce(provider,'manual'),
+  currency='INR',amount_in_inr=$3,updated_at=now()
+  where hospital_id=$1 returning plan_code,status,current_period_end,currency,amount_in_inr`,[h,plan,amount])
  if(!r.rows[0])throw new HttpError(404,'Hospital not found')
  await db.query(`update hospitals set status='active',updated_at=now() where id=$1 and status<>'active'`,[h])
  await platAudit(db,h,'platform_convert_paid',by,{plan:r.rows[0].plan_code,status:'active'})

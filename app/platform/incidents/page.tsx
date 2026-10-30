@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react'
 import {call,dt} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
+import {HmsOnlyNote} from '@/components/PlatformProduct'
 
 export default function IncidentsPage(){
  const[d,setD]=useState<any>(null)
@@ -30,6 +31,7 @@ export default function IncidentsPage(){
    eyebrow="SAAS OWNER · OPS"
    description={<>Auto errors + hospital admin tickets · GitHub {cfg.github?'on':'off'} · Email {cfg.email?'on':'off'}</>}
   >
+   <HmsOnlyNote/>
    <div className="platNote">
     <b>Where this data comes from.</b>{' '}
     <span><b>Errors</b> — {src.errors||'Automatic capture of app errors (server/client), not user-filed tickets.'}</span>

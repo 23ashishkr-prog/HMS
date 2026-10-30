@@ -3,6 +3,7 @@ import Link from 'next/link'
 import {usePathname,useRouter} from 'next/navigation'
 import {ReactNode,useState} from 'react'
 import {call} from '@/lib/client'
+import {ProductSwitch,usePlatformProduct} from '@/components/PlatformProduct'
 
 const TABS:[string,string,((p:string)=>boolean)?][]=[
  ['/platform','Overview',p=>p==='/platform'],
@@ -44,6 +45,7 @@ export default function PlatformShell({title,eyebrow,description,children,action
 }){
  const path=usePathname()||'/platform'
  const router=useRouter()
+ const {product}=usePlatformProduct()
  const[busy,setBusy]=useState(false)
  const signOut=async()=>{
   setBusy(true)
@@ -53,14 +55,16 @@ export default function PlatformShell({title,eyebrow,description,children,action
  return (
   <div className="plat">
    <header className="platTop">
+    <ProductSwitch/>
     <div className="platTopBrand">
      <span className="overline">SAAS OWNER</span>
-     <b>Platform console</b>
+     <b>{product==='taildesk'?'TailDesk':'HMS'} platform</b>
     </div>
     <nav className="platTabs" aria-label="Platform sections">
      {TABS.map(([href,label,match])=>{
       const on=(match||(p=>p===href||p.startsWith(href+'/')))(path)
-      return <Link key={href} href={href} className={on?'platTab on':'platTab'}>{label}</Link>
+      const text=product==='taildesk'&&href==='/platform/hospitals'?'Tenants':product==='taildesk'&&href==='/platform/payments'?'Revenue':label
+      return <Link key={href} href={href} className={on?'platTab on':'platTab'}>{text}</Link>
      })}
     </nav>
     <div className="platTopActions">
