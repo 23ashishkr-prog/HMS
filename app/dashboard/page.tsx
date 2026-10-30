@@ -1,6 +1,6 @@
 'use client'
 import {useCallback,useEffect,useMemo,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,inr,me as whoAmI} from '@/lib/client';import {toast} from '@/lib/toast';import Icon3D,{IconName} from '@/components/Icon3D';import LivePill from '@/components/LivePill';import {withBase} from '@/lib/basePath'
-import {showTrialCountdown} from '@/lib/plans';import AiUpsellLine from '@/components/AiUpsellLine'
+import {NAV} from '@/lib/nav';import {showTrialCountdown} from '@/lib/plans';import AiUpsellLine from '@/components/AiUpsellLine'
 import {DndContext,closestCenter,PointerSensor,TouchSensor,KeyboardSensor,useSensor,useSensors,DragEndEvent} from '@dnd-kit/core'
 import {SortableContext,useSortable,arrayMove,rectSortingStrategy,sortableKeyboardCoordinates} from '@dnd-kit/sortable';import {CSS} from '@dnd-kit/utilities'
 type Item={id:string;size:'s'|'m'|'l'}
@@ -8,7 +8,7 @@ const ICON:Record<string,IconName>={quick_actions:'dashboard',kpi_patients:'pati
 const QA:Record<string,[string,string,IconName][]>={admin:[['Register patient','/frontdesk','frontdesk'],['Doctor desk','/opd','doctor'],['Billing','/billing','billing'],['Users','/admin/settings?tab=users','patients'],['Schedules','/schedules','calendar'],['Integrations','/admin/integrations','settings']],reception:[['Register patient','/frontdesk','frontdesk'],['Appointments','/appointments','calendar'],['Billing','/billing','billing'],['Patients','/patients','patients']],doctor:[['Doctor desk','/opd','doctor'],['Appointments','/appointments','calendar'],['My schedule','/schedules','calendar'],['Follow-ups','/followups','calendar']],nurse:[['Nursing','/opd','doctor'],['IPD beds','/ipd','ipd'],['Patients','/patients','patients']],lab:[['Lab worklist','/laboratory','lab']],pharmacy:[['Prescriptions','/pharmacy','pharmacy']],billing:[['Billing','/billing','billing'],['Insurance','/insurance','insurance'],['IPD beds','/ipd','ipd']]}
 const fmtT=(s:string)=>new Date(s).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit'})
 function Body({id,d,role}:{id:string;d:any;role:string}){if(d==null)return <div className="wSkel"/>
- switch(id){case 'quick_actions':return <div className="wQuick">{(QA[role]||[]).map(([l,h,i])=><a key={h} href={withBase(h)} data-app className="appLaunch"><Icon3D name={i} size={56}/><span>{l}</span></a>)}</div>
+ switch(id){case 'quick_actions':return <div className="wQuick">{(QA[role]||[]).filter(([,h])=>{const n=NAV.find(x=>x.path===h.split('?')[0]);return !n?.module||!d?.modules||d.modules.includes(n.module)}).map(([l,h,i])=><a key={h} href={withBase(h)} data-app className="appLaunch"><Icon3D name={i} size={56}/><span>{l}</span></a>)}</div>
   case 'kpi_patients':return <div className="wBig"><b>{d.registered}</b><small>registered</small><b>{d.seen}</b><small>OPD visits</small></div>
   case 'beds':return <div className="wBig"><b>{d.occupied}<i>/{d.total}</i></b><small>beds occupied</small><div className="wBar"><span style={{width:(d.total?Math.round(100*d.occupied/d.total):0)+'%'}}/></div></div>
   case 'collections':return <div className="wBig"><b>{inr(d.total)}</b><small>{d.n} payments today</small></div>

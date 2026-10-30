@@ -3,7 +3,8 @@ import {Ctx,Db,HttpError} from './core'
 import {Role,navFor} from '../nav'
 import {getSubscription} from './tenancy'
 
-export const AUTO_MIN_HITS=3
+export const AUTO_MIN_HITS=5
+export const AUTO_MIN_DAYS=2
 export const AUTO_LIMIT=4
 export const MANUAL_LIMIT=8
 /** Home is one click from the logo, so it is not auto-starred. A manual star still keeps it. */
@@ -28,10 +29,12 @@ export async function recordHit(db:Db,ctx:Ctx,raw:unknown){
  const menu=await allowed(db,ctx)
  if(!menu.has(path))return {ok:true,ignored:true}
  await db.query(
-  `insert into user_nav_usage(hospital_id,user_id,path,hits,last_opened_at)
-   values($1,$2,$3,1,now())
+  `insert into user_nav_usage(hospital_id,user_id,path,hits,last_opened_at,days,last_day)
+   values($1,$2,$3,1,now(),1,(now() at time zone 'Asia/Kolkata')::date)
    on conflict(user_id,path) do update set
-     hits=user_nav_usage.hits+1,last_opened_at=now(),updated_at=now()`,
+     hits=user_nav_usage.hits+1,last_opened_at=now(),updated_at=now(),
+     days=user_nav_usage.days+case when user_nav_usage.last_day is distinct from (now() at time zone 'Asia/Kolkata')::date then 1 else 0 end,
+     last_day=(now() at time zone 'Asia/Kolkata')::date`,
   [ctx.hospitalId,ctx.userId,path])
  return {ok:true}
 }
@@ -39,7 +42,7 @@ export async function recordHit(db:Db,ctx:Ctx,raw:unknown){
 export async function listFavourites(db:Db,ctx:Ctx){
  const menu=await allowed(db,ctx)
  const rows=(await db.query(
-  `select path,hits,starred,dismissed,last_opened_at,updated_at
+  `select path,hits,days,starred,dismissed,last_opened_at,updated_at
    from user_nav_usage where user_id=$1 and hospital_id=$2`,
   [ctx.userId,ctx.hospitalId])).rows
  const manual:any[]=[]
@@ -49,7 +52,7 @@ export async function listFavourites(db:Db,ctx:Ctx){
   if(!n)continue
   const item={path:r.path,name:n.name,icon:n.icon,hits:Number(r.hits)||0,starred:!!r.starred,auto:false,updatedAt:r.updated_at,lastOpenedAt:r.last_opened_at}
   if(r.starred)manual.push(item)
-  else if(!r.dismissed&&item.hits>=AUTO_MIN_HITS&&!AUTO_SKIP.has(r.path))auto.push({...item,auto:true})
+  else if(!r.dismissed&&item.hits>=AUTO_MIN_HITS&&(Number(r.days)||0)>=AUTO_MIN_DAYS&&!AUTO_SKIP.has(r.path))auto.push({...item,auto:true})
  }
  manual.sort((a,b)=>new Date(b.updatedAt).getTime()-new Date(a.updatedAt).getTime())
  auto.sort((a,b)=>b.hits-a.hits||new Date(b.lastOpenedAt||0).getTime()-new Date(a.lastOpenedAt||0).getTime())
