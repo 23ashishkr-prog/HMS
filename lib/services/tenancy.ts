@@ -32,7 +32,7 @@ export async function onboardHospital(db:Db,b:any){const name=required(b.hospita
  const gstin=opt(b.gstin);if(gstin&&!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin.toUpperCase()))throw new HttpError(400,'GSTIN format is invalid.')
  const h=(await db.query('insert into hospitals(name,code,address,gstin,uhid_prefix,contact_email,contact_phone) values($1,$2,$3,$4,$2,$5,$6) returning id,code',[name,code,opt(b.address),gstin?.toUpperCase()||null,email,opt(b.phone)])).rows[0]
  const u=(await db.query("insert into users(hospital_id,email,full_name,role,password_hash,must_change_password) values($1,$2,$3,'admin',crypt($4,gen_salt('bf',10)),false) returning id",[h.id,email,required(b.adminName,'Admin name'),pw])).rows[0]
- await db.query("insert into subscriptions(hospital_id,plan_code,status,trial_started_at,trial_ends_at) values($1,$2,'trialing',now(),now()+make_interval(days=>$3::int))",[h.id,plan,TRIAL_DAYS()])
+ await db.query("insert into subscriptions(hospital_id,plan_code,status,trial_started_at,trial_ends_at,currency) values($1,$2,'trialing',now(),now()+make_interval(days=>$3::int),'INR')",[h.id,plan,TRIAL_DAYS()])
  if(freeTrial)await recordTrialClaim(db,h.id,{adminEmail:email,phone:b.phone,hospitalName:name,gstin:b.gstin})
  await audit(db,{hospitalId:h.id,userId:u.id,role:'admin'},'onboard','hospital',h.id,{plan,trialDays:TRIAL_DAYS(),freeTrial});return {hospitalId:h.id,code:h.code,adminUserId:u.id,plan,trialDays:TRIAL_DAYS()}}
 export async function updateSettings(db:Db,ctx:Ctx,b:any){requireRole(ctx,['admin']);const gstin=opt(b.gstin)?.toUpperCase()||null;if(gstin&&!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin))throw new HttpError(400,'GSTIN format is invalid.');const pb=opt(b.pharmacyBilling);if(pb&&!['patient_bill','cash_sale'].includes(pb))throw new HttpError(400,'Pharmacy billing must be patient_bill or cash_sale.');const prefix=opt(b.uhidPrefix)?.toUpperCase()||null;if(prefix&&!/^[A-Z0-9]{2,10}$/.test(prefix))throw new HttpError(400,'UHID prefix: 2-10 letters/digits.');let fd:number|null=null;if(b.followupFreeDays!==undefined&&b.followupFreeDays!==''&&b.followupFreeDays!==null){fd=Number(b.followupFreeDays);if(!Number.isInteger(fd)||fd<0||fd>60)throw new HttpError(400,'Free follow-up window must be 0-60 days.')}const r=await db.query('update hospitals set name=coalesce($2,name),address=$3,gstin=$4,uhid_prefix=coalesce($5,uhid_prefix,code),contact_email=$6,contact_phone=$7,pharmacy_billing=coalesce($8,pharmacy_billing),followup_free_days=coalesce($9,followup_free_days),updated_at=now() where id=$1 returning id,name,code,address,gstin,uhid_prefix,contact_email,contact_phone,logo_url,pharmacy_billing,followup_free_days',[ctx.hospitalId,opt(b.name),opt(b.address),gstin,prefix,opt(b.contactEmail),opt(b.contactPhone),pb||null,fd]);await audit(db,ctx,'update','hospital_settings',ctx.hospitalId,pb?{pharmacyBilling:pb}:undefined);return r.rows[0]}
@@ -79,14 +79,14 @@ export async function activatePaidPlan(db:Db,opts:{hospitalId:string;planCode:st
   // Prefer upgrading an existing 'created' row for this order; else insert captured.
   const up=opts.orderId?(await db.query(
    `update subscription_payments set status='captured',provider_payment_id=coalesce($2,provider_payment_id),
-     provider_signature_ok=$3,amount_inr=$4,plan_code=$5,billing_period=$6,raw=$7,paid_at=now()
+     provider_signature_ok=$3,amount_inr=$4,amount_in_inr=$4,currency='INR',plan_code=$5,billing_period=$6,raw=$7,paid_at=now()
     where provider='razorpay' and provider_order_id=$1 and status in ('created','authorized') returning id`,
    [opts.orderId,opts.paymentId||null,opts.signatureOk??true,amount,plan,period,JSON.stringify(opts.raw??{})]
   )).rows[0]:null
   if(!up){
    await db.query(
-    `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,status,provider,provider_order_id,provider_payment_id,provider_signature_ok,raw)
-     values($1,$2,$3,$4,'captured','razorpay',$5,$6,$7,$8)`,
+    `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,amount_in_inr,currency,status,provider,provider_order_id,provider_payment_id,provider_signature_ok,raw)
+     values($1,$2,$3,$4,$4,'INR','captured','razorpay',$5,$6,$7,$8)`,
     [opts.hospitalId,plan,period,amount,opts.orderId||null,opts.paymentId||null,opts.signatureOk??true,JSON.stringify(opts.raw??{})]
    )
   }
@@ -103,8 +103,10 @@ export async function activatePaidPlan(db:Db,opts:{hospitalId:string;planCode:st
    provider='razorpay',
    last_payment_id=coalesce($5,last_payment_id),
    last_order_id=coalesce($6,last_order_id),
+   currency='INR',
+   amount_in_inr=$7,
    updated_at=now()
-  where hospital_id=$1 returning *`,[opts.hospitalId,plan,period,String(months),opts.paymentId||null,opts.orderId||null])
+  where hospital_id=$1 returning *`,[opts.hospitalId,plan,period,String(months),opts.paymentId||null,opts.orderId||null,amount])
  if(!r.rows[0])throw new HttpError(404,'Hospital subscription not found')
  await db.query(`update hospitals set status='active',updated_at=now() where id=$1 and status<>'active'`,[opts.hospitalId])
  return {ok:true,subscription:r.rows[0]}
@@ -113,7 +115,8 @@ export async function activatePaidPlan(db:Db,opts:{hospitalId:string;planCode:st
 /** Platform: payment ledger for one hospital (plan subscriptions only). */
 export async function platformListPayments(db:Db,hospitalId:string){
  return (await db.query(
-  `select sp.id,sp.hospital_id,sp.plan_code,sp.billing_period,sp.amount_inr,sp.currency,sp.status,sp.provider,
+  `select sp.id,sp.hospital_id,sp.plan_code,sp.billing_period,sp.amount_inr,sp.currency,
+    coalesce(sp.amount_in_inr, case when upper(coalesce(sp.currency,'INR'))='INR' then sp.amount_inr end) amount_in_inr,sp.status,sp.provider,
     sp.provider_order_id,sp.provider_payment_id,sp.provider_signature_ok,sp.paid_at,sp.created_at,
     s.current_period_start,s.current_period_end,s.status as sub_status
    from subscription_payments sp
@@ -136,7 +139,8 @@ export async function platformListAllPayments(db:Db,q:any={}){
  if(hid){params.push(hid);where.push(`sp.hospital_id=$${params.length}`)}
  if(after){params.push(after);where.push(`coalesce(sp.paid_at,sp.created_at)>=$${params.length}::timestamptz`)}
  if(before){params.push(before);where.push(`coalesce(sp.paid_at,sp.created_at)<($${params.length}::timestamptz + interval '1 day')`)}
- const sql=`select sp.id,sp.hospital_id,sp.plan_code,sp.billing_period,sp.amount_inr,sp.currency,sp.status,sp.provider,
+ const sql=`select sp.id,sp.hospital_id,sp.plan_code,sp.billing_period,sp.amount_inr,sp.currency,
+   coalesce(sp.amount_in_inr, case when upper(coalesce(sp.currency,'INR'))='INR' then sp.amount_inr end) amount_in_inr,sp.status,sp.provider,
    sp.provider_order_id,sp.provider_payment_id,sp.provider_signature_ok,sp.paid_at,sp.created_at,
    h.name hospital_name,h.code hospital_code,
    s.current_period_start,s.current_period_end,s.status as sub_status,s.plan_code as current_plan
@@ -155,9 +159,14 @@ export async function platformPaymentStats(db:Db){
    count(*) filter (where status='created')::int as created,
    count(*) filter (where status in ('captured','authorized'))::int as paid,
    count(*) filter (where status='failed')::int as failed,
-   coalesce(sum(amount_inr) filter (where status in ('captured','authorized')),0)::numeric as paid_inr
+   coalesce(sum(coalesce(amount_in_inr, case when upper(coalesce(currency,'INR'))='INR' then amount_inr end)) filter (where status in ('captured','authorized')),0)::numeric as paid_inr
   from subscription_payments`)
- return r.rows[0]
+ const by=await db.query(`select coalesce(nullif(upper(btrim(currency)),''),'INR') currency,
+   coalesce(sum(amount_inr) filter (where status in ('captured','authorized')),0)::numeric amount,
+   coalesce(sum(coalesce(amount_in_inr, case when upper(coalesce(currency,'INR'))='INR' then amount_inr end)) filter (where status in ('captured','authorized')),0)::numeric amount_in_inr,
+   count(*) filter (where status in ('captured','authorized'))::int count
+  from subscription_payments group by 1 order by 1`)
+ return {...r.rows[0], by_currency:by.rows, missing_inr:0}
 }
 
 /** Platform: single hospital live tenant detail + recent payments. */
@@ -165,7 +174,7 @@ export async function platformHospitalDetail(db:Db,hospitalId:string){
  const h=(await db.query(
   `select h.id,h.name,h.code,h.status,h.created_at,h.contact_email,h.contact_phone,h.address,h.gstin,
     s.plan_code,s.status sub_status,s.trial_started_at,s.trial_ends_at,s.current_period_start,s.current_period_end,
-    s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,
+    s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,s.currency,s.amount_in_inr,
     s.last_payment_id,s.last_order_id,s.updated_at sub_updated_at,
     a.full_name admin_name,a.email admin_email,a.phone admin_phone,
     (select count(*)::int from users u where u.hospital_id=h.id) users,
@@ -178,7 +187,8 @@ export async function platformHospitalDetail(db:Db,hospitalId:string){
    where h.id=$1`,[hospitalId])).rows[0]
  if(!h)throw new HttpError(404,'Hospital not found')
  const payments=await platformListPayments(db,hospitalId)
- return {hospital:h,payments}
+ const events=await platformListEvents(db,{hospitalId,limit:40})
+ return {hospital:h,payments,events}
 }
 
 
@@ -211,6 +221,44 @@ export async function applyProviderEvent(db:Db,hospitalId:string,event:{type:str
   updated_at=now() where hospital_id=$1`,[hospitalId,status,event.planCode?canonicalPlan(event.planCode):null,event.periodEnd||null,event.subscriptionId||null,event.customerId||null,event.periodStart||null])
 }
 
+function eventMoney(payload:unknown){
+ let p:any=payload
+ if(typeof p==='string'){try{p=JSON.parse(p)}catch{return {}}}
+ if(!p||typeof p!=='object')return {}
+ const pay=p.payload?.payment?.entity
+ const ord=p.payload?.order?.entity
+ if(pay?.amount!=null||ord?.amount!=null){
+  const raw=Number(pay?.amount??ord?.amount)
+  const currency=String(pay?.currency||ord?.currency||'INR').toUpperCase()
+  const amount=Number.isFinite(raw)?Math.round(raw)/100:null
+  return {currency,amount,amount_in_inr:currency==='INR'?amount:null,plan_code:typeof (pay?.notes||ord?.notes)?.plan_code==='string'?(pay?.notes||ord?.notes).plan_code:null}
+ }
+ if(p.amount!=null&&p.payload==null){
+  const amount=Number(p.amount)
+  const currency=String(p.currency||'INR').toUpperCase()
+  if(!Number.isFinite(amount))return {}
+  const inr=p.amount_in_inr!=null?Number(p.amount_in_inr):(currency==='INR'?amount:null)
+  return {currency,amount,amount_in_inr:Number.isFinite(inr)?inr:null,plan_code:typeof p.plan==='string'?p.plan:null}
+ }
+ return {}
+}
+export async function platformListEvents(db:Db,q:any={}){
+ const params:any[]=[]
+ const where:string[]=['true']
+ const hid=opt(q.hospitalId)
+ const limit=Math.min(100,Math.max(1,Number(q.limit)||40))
+ if(hid){params.push(hid);where.push(`e.hospital_id=$${params.length}`)}
+ params.push(limit)
+ const rows=(await db.query(`select e.id,e.hospital_id,e.provider,e.event_type,e.payload,e.received_at,
+   h.name hospital_name,h.code hospital_code
+  from subscription_events e
+  left join hospitals h on h.id=e.hospital_id
+  where ${where.join(' and ')}
+  order by e.received_at desc
+  limit $${params.length}`,params)).rows
+ return rows.map((r:any)=>{const money=eventMoney(r.payload);return {id:r.id,hospital_id:r.hospital_id,hospital_name:r.hospital_name,hospital_code:r.hospital_code,provider:r.provider,event_type:r.event_type,received_at:r.received_at,...money}})
+}
+
 /* ---- Platform super-admin ---- */
 export async function platformListHospitals(db:Db,q:any={}){
  const search=String(q.q||q.search||'').trim()
@@ -223,7 +271,7 @@ export async function platformListHospitals(db:Db,q:any={}){
  if(status){params.push(status);where.push(`s.status=$${params.length}`)}
  const sql=`select h.id,h.name,h.code,h.status,h.created_at,h.contact_email,h.contact_phone,
   s.plan_code,s.status sub_status,s.trial_started_at,s.trial_ends_at,s.current_period_start,s.current_period_end,
-  s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,
+  s.hold_started_at,s.hold_extended_until,s.purged_at,s.provider,s.billing_period,s.currency,s.amount_in_inr,
   s.last_payment_id,s.last_order_id,s.updated_at sub_updated_at,
   a.full_name admin_name,a.email admin_email,
   (select count(*)::int from users u where u.hospital_id=h.id) users,

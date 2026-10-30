@@ -4,24 +4,28 @@ import Link from 'next/link'
 import {useParams} from 'next/navigation'
 import {call,dt,formObj} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
+import {MoneyCell,PlatformEvents,TailDeskState,productPath,usePlatformProduct} from '@/components/PlatformProduct'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
 function trialLeft(iso?:string|null){if(!iso)return '—';const ms=new Date(iso).getTime()-Date.now();if(ms<=0)return '0';return String(Math.ceil(ms/86400000))}
 
 export default function HospitalDetail(){
  const {id}=useParams<{id:string}>()
+ const {product,ready}=usePlatformProduct()
+ const tail=product==='taildesk'
  const[d,setD]=useState<any>(null)
  const[err,setErr]=useState('')
  const[msg,setMsg]=useState('');const[ok,setOk]=useState('')
  const[admins,setAdmins]=useState<any[]>([])
  const[tempPw,setTempPw]=useState<any>(null)
  const[resetBusy,setResetBusy]=useState(false)
- const load=()=>call('/api/platform/hospitals/'+id).then(setD).catch((e:any)=>setErr(e.message))
- const loadAdmins=()=>call('/api/platform/hospitals/'+id+'/reset-admin-password').then((r:any)=>setAdmins(r.admins||[])).catch(()=>{})
- useEffect(()=>{if(id){load();loadAdmins()}},[id])
+ const load=()=>call(productPath(product,'/api/platform/hospitals/'+id)).then(setD).catch((e:any)=>setErr(e.message))
+ const loadAdmins=()=>{if(tail)return;call('/api/platform/hospitals/'+id+'/reset-admin-password').then((r:any)=>setAdmins(r.admins||[])).catch(()=>{})}
+ useEffect(()=>{if(!ready||!id)return;setD(null);setErr('');load();loadAdmins()},[id,ready,product])
 
  if(err&&!d)return <PlatformSignIn title="Hospital" hint="Sign in as platform owner, then open this hospital again."/>
- if(!d)return <main className="plat"><p>Loading…</p></main>
+ if(!d)return <PlatformShell title={tail?'Tenant':'Hospital'}><p>Loading…</p></PlatformShell>
+ if(!d.hospital)return <PlatformShell title={tail?'Tenant':'Hospital'}><TailDeskState d={d}/><p className="muted">This tenant could not be loaded.</p></PlatformShell>
  const h=d.hospital
 
  const act=async(b:any)=>{try{await call('/api/platform/hospitals/'+id+'/lifecycle','POST',b);load()}catch(e:any){setMsg(e.message)}}
@@ -29,14 +33,15 @@ export default function HospitalDetail(){
  return (
   <PlatformShell
    title={h.name}
-   eyebrow="SAAS OWNER · HOSPITAL"
+   eyebrow={tail?'SAAS OWNER · TAILDESK':'SAAS OWNER · HOSPITAL'}
    description={<>Live tenant · code <code>{h.code}</code>{h.status!=='active'&&<> · <span className="err">tenant deactivated</span></>}</>}
-   actions={<Link className="chip" href="/platform/hospitals">← All hospitals</Link>}
+   actions={<Link className="chip" href="/platform/hospitals">{tail?'← All tenants':'← All hospitals'}</Link>}
   >
+   <TailDeskState d={d}/>
    {msg&&<p className="err" role="alert">{msg}</p>}
 
    <div className="platStats">
-    <div className="platStat"><b>{PLAN[h.plan_code]||h.plan_code||'—'}</b><small>Plan</small></div>
+    <div className="platStat"><b>{tail?(h.plan_name||h.plan_code||'—'):(PLAN[h.plan_code]||h.plan_code||'—')}</b><small>Plan</small></div>
     <div className="platStat"><b>{h.sub_status||'—'}</b><small>Subscription</small></div>
     <div className="platStat"><b>{dt(h.current_period_start)||dt(h.created_at)}</b><small>Start</small></div>
     <div className="platStat"><b>{dt(h.trial_started_at)||dt(h.created_at)}</b><small>Trial start</small></div>
@@ -46,13 +51,14 @@ export default function HospitalDetail(){
     <div className="platStat"><b>{h.patients}</b><small>Patients</small></div>
     <div className="platStat"><b>{h.billing_period||'—'}</b><small>Billing period</small></div>
     <div className="platStat"><b>{h.provider||'—'}</b><small>Provider</small></div>
+    <div className="platStat"><b><MoneyCell row={h}/></b><small>{(h.currency||'INR')} · INR equivalent</small></div>
    </div>
 
    <section className="panel modulePanel">
     <h2>Admin contact</h2>
     <p><b>{h.admin_name||'—'}</b><br/><small>{h.admin_email||h.contact_email||'—'}</small><br/><small>{h.admin_phone||h.contact_phone||'—'}</small></p>
     <p className="muted"><small>Address: {h.address||'—'} · GSTIN: {h.gstin||'—'}</small></p>
-    <div className="chips">
+    {!tail&&<div className="chips">
      <button className="chip" type="button" onClick={()=>act({action:'extend',what:'trial',days:30})}>Extend trial 30d</button>
      <button className="chip" type="button" onClick={()=>{if(window.confirm('End the trial now? The account goes on hold. Data is not deleted.'))act({action:'end_trial'})}}>End trial</button>
      <button className="chip" type="button" onClick={()=>{if(window.confirm('Convert this hospital to a paid subscription on the current plan?'))act({action:'convert_paid'})}}>Convert to paid</button>
@@ -60,15 +66,15 @@ export default function HospitalDetail(){
      <button className="chip" type="button" onClick={()=>act({action:'extend',what:'hold',days:30})}>+30d hold</button>
      <button className="chip" type="button" onClick={()=>{if(window.confirm('Change tenant status?'))act({action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Deactivate':'Reactivate'}</button>
      <Link className="chip" href={'/platform/payments?hospitalId='+h.id}>All payments</Link>
-    </div>
-    <form className="platForm" style={{marginTop:16,maxWidth:'100%',boxShadow:'none',padding:0}} onSubmit={async e=>{e.preventDefault();setMsg('');setOk('');try{await call('/api/platform/hospitals/'+id,'PATCH',formObj(e));load();setOk('Plan and status saved.')}catch(er:any){setMsg(er.message)}}}>
+    </div>}
+    {!tail&&<form className="platForm" style={{marginTop:16,maxWidth:'100%',boxShadow:'none',padding:0}} onSubmit={async e=>{e.preventDefault();setMsg('');setOk('');try{await call('/api/platform/hospitals/'+id,'PATCH',formObj(e));load();setOk('Plan and status saved.')}catch(er:any){setMsg(er.message)}}}>
      <div className="platFilters" style={{marginBottom:0}}>
       <label>Plan<select name="planCode" defaultValue={h.plan_code||'basic'}><option value="clinic">clinic</option><option value="basic">basic</option><option value="ai_engage">ai_engage</option></select></label>
       <label>Status<select name="status" defaultValue={h.sub_status||'trialing'}>{['trialing','active','on_hold','past_due','cancelled','expired'].map(s=><option key={s}>{s}</option>)}</select></label>
       <div className="platFilterBtns"><button type="submit" className="primary">Save plan / status</button></div>
      </div>
      {ok&&<p className="ok" role="status" style={{marginTop:12}}>{ok}</p>}
-    </form>
+    </form>}
    </section>
 
    <section className="panel modulePanel" style={{marginTop:24}}>
@@ -79,7 +85,7 @@ export default function HospitalDetail(){
     <div className="platTableWrap platDesktopOnly">
      <table className="dataTable"><thead><tr><th>Date</th><th>Plan</th><th>Period</th><th>Amount</th><th>Status</th><th>Payment id</th><th>Order</th></tr></thead>
       <tbody>{(d.payments||[]).length===0&&<tr><td colSpan={7}>No plan payments yet.</td></tr>}
-       {(d.payments||[]).map((r:any)=><tr key={r.id}><td>{dt(r.paid_at||r.created_at)}</td><td>{PLAN[r.plan_code]||r.plan_code}</td><td>{r.billing_period}</td><td>₹{Number(r.amount_inr).toLocaleString('en-IN')}</td><td>{r.status}</td><td><code>{r.provider_payment_id||'—'}</code></td><td><code>{r.provider_order_id||'—'}</code></td></tr>)}
+       {(d.payments||[]).map((r:any)=><tr key={r.id}><td>{dt(r.paid_at||r.created_at)}</td><td>{tail?(r.plan_name||r.plan_code):(PLAN[r.plan_code]||r.plan_code)}</td><td>{r.billing_period}</td><td><MoneyCell row={r}/></td><td>{r.status}</td><td><code>{r.provider_payment_id||'—'}</code></td><td><code>{r.provider_order_id||'—'}</code></td></tr>)}
       </tbody></table>
     </div>
     <div className="platCardList platMobileOnly">
@@ -87,8 +93,8 @@ export default function HospitalDetail(){
      {(d.payments||[]).map((r:any)=>(
       <article key={r.id} className="platHospCard">
        <div className="platHospCardTop">
-        <div>{PLAN[r.plan_code]||r.plan_code} · {r.billing_period} · {r.status}</div>
-        <b>₹{Number(r.amount_inr).toLocaleString('en-IN')}</b>
+        <div>{tail?(r.plan_name||r.plan_code):(PLAN[r.plan_code]||r.plan_code)} · {r.billing_period} · {r.status}</div>
+        <b><MoneyCell row={r}/></b>
        </div>
        <small className="muted">{dt(r.paid_at||r.created_at)} · <code>{r.provider_payment_id||'—'}</code></small>
       </article>
@@ -96,7 +102,12 @@ export default function HospitalDetail(){
     </div>
    </section>
 
-   <section id="reset-admin" className="panel modulePanel" style={{marginTop:24}}>
+   <section className="panel modulePanel" style={{marginTop:24}}>
+    <h2>Subscription events</h2>
+    <PlatformEvents events={d.events||[]}/>
+   </section>
+
+   {!tail&&<section id="reset-admin" className="panel modulePanel" style={{marginTop:24}}>
     <h2>Reset hospital admin password</h2>
     <p className="muted"><small>Sets a temporary password for an admin of <b>this</b> hospital only. Shown once below — copy it and share privately. They must change it at next hospital login. The password is never e-mailed from this screen and is not written to audit logs.</small></p>
     {(admins.length?admins:[{id:'',email:h.admin_email,full_name:h.admin_name||'Primary admin',active:true}]).map((a:any)=>(
@@ -123,7 +134,7 @@ export default function HospitalDetail(){
       <p className="muted"><small>Hospital code: <code>{tempPw.hospitalCode}</code> · Login e-mail: <code>{tempPw.email}</code></small></p>
      </div>
     )}
-   </section>
+   </section>}
 
   </PlatformShell>
  )

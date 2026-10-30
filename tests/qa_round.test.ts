@@ -23,7 +23,7 @@ test('clinic front-desk cash is a receipt in today\'s collections, and the name 
  assert.equal(v.token.token_no,1)
  const bill:any=v.bill;assert.equal(bill.kind,'receipt');assert.equal(bill.paid,1000);assert.equal(bill.balance,0)
  assert.equal((await db.query('select count(*)::int n from invoices where hospital_id=$1',[admin.hospitalId])).rows[0].n,0)
- const w=await widgetData(db,rec,['collections']);assert.equal(w.collections.total,1000);assert.equal(w.collections.n,1)
+ const w=await widgetData(db,rec,['collections']);assert.equal(w.collections,undefined)
  assert.equal((await dashboard(db,admin)).collections_today,1000)
  const list=await listHospitalGatewayPayments(db,admin,{})
  assert.equal(list.payments.some((p:any)=>p.source==='receipt'&&Number(p.amount_inr)===1000),true)

@@ -4,12 +4,15 @@ import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 import {call,dt} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
+import {CurrencyTotals,MoneyCell,TailDeskState,productPath,tenantHref,usePlatformProduct} from '@/components/PlatformProduct'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
 const ST:Record<string,string>={created:'Created',authorized:'Authorized',captured:'Paid',failed:'Failed',refunded:'Refunded'}
 
 function PaymentsInner(){
  const sp=useSearchParams()
+ const {product,ready}=usePlatformProduct()
+ const tail=product==='taildesk'
  const[q,setQ]=useState(sp.get('q')||'')
  const[status,setStatus]=useState(sp.get('status')||'')
  const[after,setAfter]=useState(sp.get('after')||'')
@@ -26,29 +29,31 @@ function PaymentsInner(){
   if(A)qs.set('after',A)
   if(B)qs.set('before',B)
   if(H)qs.set('hospitalId',H)
-  call('/api/platform/payments'+(qs.toString()?'?'+qs:'')).then(setD).catch((e:any)=>setErr(e.message))
+  call(productPath(product,'/api/platform/payments',Object.fromEntries(qs.entries()))).then(setD).catch((e:any)=>setErr(e.message))
  }
- useEffect(()=>{load()},[])
+ useEffect(()=>{if(!ready)return;setD(null);setErr('');load()},[ready,product])
 
  if(err&&!d)return <PlatformSignIn title="Payment check"/>
- if(!d)return <main className="plat"><p>Loading…</p></main>
+ if(!d)return <PlatformShell title={tail?'Revenue':'Payment check'}><p>Loading…</p></PlatformShell>
  const st=d.stats||{}
  const rows=d.payments||[]
 
  return (
   <PlatformShell
-   title="Payment check"
-   eyebrow="SAAS OWNER · PAYMENTS"
-   description={<>All hospital <b>plan</b> payment confirmations (Clinic / Basic / AI+). Not patient bills.</>}
+   title={tail?'Revenue':'Payment check'}
+   eyebrow={tail?'SAAS OWNER · TAILDESK':'SAAS OWNER · PAYMENTS'}
+   description={tail?'TailDesk subscription revenue in the original currency, with an INR-equivalent total.':<>All hospital <b>plan</b> payment confirmations (Clinic / Basic / AI+). Not patient bills.</>}
   >
+   <TailDeskState d={d}/>
    <div className="platStats">
     <div className="platStat"><b>{st.total||0}</b><small>Total attempts</small></div>
     <div className="platStat"><b>{st.created||0}</b><small>Created</small></div>
     <div className="platStat"><b>{st.paid||0}</b><small>Paid</small></div>
     <div className="platStat"><b>{st.failed||0}</b><small>Failed</small></div>
-    <div className="platStat"><b>₹{Number(st.paid_inr||0).toLocaleString('en-IN')}</b><small>Paid total</small></div>
-    <div className="platStat"><b>{d.paymentsConfigured?'On':'Off'}</b><small>Gateway</small></div>
+    <div className="platStat"><b>₹{Number(st.paid_inr||0).toLocaleString('en-IN')}</b><small>Paid total (INR equivalent)</small></div>
+    {!tail&&<div className="platStat"><b>{d.paymentsConfigured?'On':'Off'}</b><small>Gateway</small></div>}
    </div>
+   <CurrencyTotals stats={st}/>
 
    <form className="platFilters" onSubmit={e=>{e.preventDefault();load()}}>
     <label>Hospital search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="Name or code"/></label>
@@ -72,12 +77,12 @@ function PaymentsInner(){
       {rows.map((r:any)=><tr key={r.id}>
        <td>{dt(r.paid_at||r.created_at)}</td>
        <td><b>{r.hospital_name}</b><div><code>{r.hospital_code}</code></div></td>
-       <td>{PLAN[r.plan_code]||r.plan_code}<div><small>{r.billing_period}</small></div></td>
-       <td>₹{Number(r.amount_inr).toLocaleString('en-IN')}</td>
+       <td>{tail?(r.plan_name||r.plan_code):(PLAN[r.plan_code]||r.plan_code)}<div><small>{r.billing_period}</small></div></td>
+       <td><MoneyCell row={r}/></td>
        <td><span className={'pill pill-'+r.status}>{ST[r.status]||r.status}</span></td>
        <td className="platIds"><code>{r.provider_order_id||'—'}</code><code>{r.provider_payment_id||'—'}</code></td>
        <td>{r.status==='captured'||r.status==='authorized'?<>{dt(r.current_period_start)} → {dt(r.current_period_end)}</>:'—'}</td>
-       <td><Link className="chip" href={'/platform/hospitals/'+r.hospital_id}>Open</Link></td>
+       <td><Link className="chip" href={tenantHref(product,r.hospital_id)}>Open</Link></td>
       </tr>)}
      </tbody>
     </table>
@@ -90,16 +95,16 @@ function PaymentsInner(){
       <div className="platHospCardTop">
        <div>
         <b>{r.hospital_name}</b> · <code>{r.hospital_code}</code>
-        <div>{PLAN[r.plan_code]||r.plan_code} · {r.billing_period} · <span className={'pill pill-'+r.status}>{ST[r.status]||r.status}</span></div>
+        <div>{tail?(r.plan_name||r.plan_code):(PLAN[r.plan_code]||r.plan_code)} · {r.billing_period} · <span className={'pill pill-'+r.status}>{ST[r.status]||r.status}</span></div>
        </div>
-       <b>₹{Number(r.amount_inr).toLocaleString('en-IN')}</b>
+       <b><MoneyCell row={r}/></b>
       </div>
       <dl className="platHospMeta">
        <div><dt>Paid</dt><dd>{dt(r.paid_at||r.created_at)}</dd></div>
        <div><dt>Order</dt><dd><code>{r.provider_order_id||'—'}</code></dd></div>
        <div><dt>Payment</dt><dd><code>{r.provider_payment_id||'—'}</code></dd></div>
       </dl>
-      <Link className="chip" href={'/platform/hospitals/'+r.hospital_id}>Hospital</Link>
+      <Link className="chip" href={tenantHref(product,r.hospital_id)}>{tail?'Tenant':'Hospital'}</Link>
      </article>
     ))}
    </div>
