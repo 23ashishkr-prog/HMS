@@ -20,7 +20,7 @@ export default function HospitalDetail(){
  const[tempPw,setTempPw]=useState<any>(null)
  const[resetBusy,setResetBusy]=useState(false)
  const load=()=>call(productPath(product,'/api/platform/hospitals/'+id)).then(setD).catch((e:any)=>setErr(e.message))
- const loadAdmins=()=>{if(tail)return;call('/api/platform/hospitals/'+id+'/reset-admin-password').then((r:any)=>setAdmins(r.admins||[])).catch(()=>{})}
+ const loadAdmins=()=>{call(productPath(product,'/api/platform/hospitals/'+id+'/reset-admin-password')).then((r:any)=>setAdmins(r.admins||[])).catch(()=>{})}
  useEffect(()=>{if(!ready||!id)return;setD(null);setErr('');load();loadAdmins()},[id,ready,product])
 
  if(err&&!d)return <PlatformSignIn title="Hospital" hint="Sign in as platform owner, then open this hospital again."/>
@@ -28,7 +28,7 @@ export default function HospitalDetail(){
  if(!d.hospital)return <PlatformShell title={tail?'Tenant':'Hospital'}><TailDeskState d={d}/><p className="muted">This tenant could not be loaded.</p></PlatformShell>
  const h=d.hospital
 
- const act=async(b:any)=>{try{await call('/api/platform/hospitals/'+id+'/lifecycle','POST',b);load()}catch(e:any){setMsg(e.message)}}
+ const act=async(b:any)=>{try{await call(productPath(product,'/api/platform/hospitals/'+id+'/lifecycle'),'POST',b);load()}catch(e:any){setMsg(e.message)}}
 
  return (
   <PlatformShell
@@ -46,7 +46,7 @@ export default function HospitalDetail(){
     <div className="platStat"><b>{dt(h.current_period_start)||dt(h.created_at)}</b><small>Start</small></div>
     <div className="platStat"><b>{dt(h.trial_started_at)||dt(h.created_at)}</b><small>Trial start</small></div>
     <div className="platStat"><b>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at):'—'}</b><small>Trial days left</small></div>
-    <div className="platStat"><b>{dt(h.current_period_end)||dt(h.trial_ends_at)}</b><small>Expiry / trial end</small></div>
+    <div className="platStat"><b>{dt(h.current_period_end)||dt(h.trial_ends_at)}</b><small>{tail?'Next renewal / trial end':'Expiry / trial end'}</small></div>
     <div className="platStat"><b>{h.users}</b><small>Users</small></div>
     <div className="platStat"><b>{h.patients}</b><small>Patients</small></div>
     <div className="platStat"><b>{h.billing_period||'—'}</b><small>Billing period</small></div>
@@ -58,6 +58,11 @@ export default function HospitalDetail(){
     <h2>Admin contact</h2>
     <p><b>{h.admin_name||'—'}</b><br/><small>{h.admin_email||h.contact_email||'—'}</small><br/><small>{h.admin_phone||h.contact_phone||'—'}</small></p>
     <p className="muted"><small>Address: {h.address||'—'} · GSTIN: {h.gstin||'—'}</small></p>
+    {tail&&<div className="chips">
+     <button className="chip" type="button" onClick={()=>act({action:'extend',days:7})}>Extend 7 days</button>
+     <button className="chip" type="button" onClick={()=>act({action:'extend',days:30})}>Extend 30 days</button>
+     <button className="chip" type="button" onClick={()=>{if(window.confirm('Change hospital status?'))act({action:'status',status:h.status==='active'?'deactivated':'active'})}}>{h.status==='active'?'Suspend':'Reactivate'}</button>
+    </div>}
     {!tail&&<div className="chips">
      <button className="chip" type="button" onClick={()=>act({action:'extend',what:'trial',days:30})}>Extend trial 30d</button>
      <button className="chip" type="button" onClick={()=>{if(window.confirm('End the trial now? The account goes on hold. Data is not deleted.'))act({action:'end_trial'})}}>End trial</button>
@@ -107,7 +112,7 @@ export default function HospitalDetail(){
     <PlatformEvents events={d.events||[]}/>
    </section>
 
-   {!tail&&<section id="reset-admin" className="panel modulePanel" style={{marginTop:24}}>
+   {<section id="reset-admin" className="panel modulePanel" style={{marginTop:24}}>
     <h2>Reset hospital admin password</h2>
     <p className="muted"><small>Sets a temporary password for an admin of <b>this</b> hospital only. Shown once below — copy it and share privately. They must change it at next hospital login. The password is never e-mailed from this screen and is not written to audit logs.</small></p>
     {(admins.length?admins:[{id:'',email:h.admin_email,full_name:h.admin_name||'Primary admin',active:true}]).map((a:any)=>(
@@ -117,7 +122,7 @@ export default function HospitalDetail(){
         if(!window.confirm('Generate a temporary password for '+((a.full_name||a.email)||'this admin')+'? They will be forced to change it at next login.'))return
         setResetBusy(true);setTempPw(null);setMsg('')
         try{
-          const r=await call('/api/platform/hospitals/'+id+'/reset-admin-password','POST',a.id?{userId:a.id}:{})
+          const r=await call(productPath(product,'/api/platform/hospitals/'+id+'/reset-admin-password'),'POST',a.id?{userId:a.id}:{})
           setTempPw(r);loadAdmins()
         }catch(e:any){setMsg(e.message)}
         finally{setResetBusy(false)}
