@@ -51,7 +51,8 @@ function GatewayForm(){
    <div className="platStat"><b>{d.mode}</b><small>Mode</small></div>
    <div className="platStat"><b>{d.configured?'Yes':'No'}</b><small>Keys saved</small></div>
   </div>
-  <form className="panel modulePanel platForm" onSubmit={save}>
+  {!d.canEdit&&<p className="notice">Only an admin can change the gateway keys or turn online payment on or off.</p>}
+  <form className="panel modulePanel platForm" onSubmit={save}><fieldset disabled={!d.canEdit} style={{border:0,padding:0,margin:0,display:'contents'}}>
    <label>Provider
     <select name="provider" defaultValue={d.provider||'razorpay'}>
      <option value="razorpay">Razorpay</option>
@@ -88,6 +89,6 @@ function GatewayForm(){
     <button className="primary" disabled={busy} type="submit">{busy?'Saving…':'Save gateway'}</button>
     <button type="button" className="ghost" disabled={busy} onClick={clear}>Disconnect</button>
    </div>
-  </form>
+  </fieldset></form>
  </div>
 }

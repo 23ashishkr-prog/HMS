@@ -1,13 +1,14 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {GATEWAY_ROLES,COLLECT_ROLES,captureHospitalGatewayPayment,createInvoiceGatewayOrder,listHospitalGatewayPayments,publicPayView} from '../lib/services/hospitalGateway'
+import {GATEWAY_ROLES,GATEWAY_EDIT_ROLES,COLLECT_ROLES,captureHospitalGatewayPayment,createInvoiceGatewayOrder,listHospitalGatewayPayments,publicPayView} from '../lib/services/hospitalGateway'
 import {mask,encrypt,decrypt} from '../lib/services/integrations'
 import {freshDb,tenant} from './helpers'
 import {registerPatient} from '../lib/services/patients'
 import {createInvoice,recordPayment,getInvoice} from '../lib/services/billing'
 
-test('account role maps to billing — only admin+billing may manage hospital gateway',()=>{
+test('billing may view the hospital gateway; only admin may change its keys',()=>{
  assert.deepEqual(GATEWAY_ROLES,['admin','billing'])
+ assert.deepEqual(GATEWAY_EDIT_ROLES,['admin'])
  assert.ok(!GATEWAY_ROLES.includes('doctor' as any))
  assert.ok(!GATEWAY_ROLES.includes('reception' as any))
  assert.ok(!GATEWAY_ROLES.includes('nurse' as any))

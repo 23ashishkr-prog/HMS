@@ -1,4 +1,5 @@
 'use client'
+import AutoMsg from '@/components/AutoMsg'
 import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,formObj,dt} from '@/lib/client'
 const F=[['fullName','Full name *','text'],['mobile','Mobile (10-digit)','tel'],['gender','Gender','sel:Male,Female,Other'],['dateOfBirth','Date of birth','date'],['bloodGroup','Blood group','sel:A+,A-,B+,B-,AB+,AB-,O+,O-'],['abhaNumber','ABHA number (14 digits)','text'],['abhaAddress','ABHA address (name@abdm)','text'],['email','Email','email'],['address','Address','text'],['city','City','text'],['state','State','text'],['pincode','PIN code','text'],['idProofType','ID proof','sel:Aadhaar,PAN,Voter ID,Passport,Driving licence'],['idProofNumber','ID number','text'],['emergencyContactName','Emergency contact','text'],['emergencyContactPhone','Emergency phone','tel'],['allergies','Known allergies','text']] as const
 const key=(k:string)=>k.replace(/[A-Z]/g,m=>'_'+m.toLowerCase())
@@ -15,7 +16,7 @@ export default function Page(){const[q,setQ]=useState(''),[rows,setRows]=useStat
  {reg&&<form onSubmit={register}><Fields/><button className="primary">Register & generate UHID</button></form>}
  {rows.length===0&&<p className="emptyState">No patients found. Register the first patient above.</p>}
  {rows.map(p=><div className="moduleRow" key={p.id}><div><b>{p.full_name}</b><small>{p.uhid} · {p.gender||'—'} {p.abha_number?'· ABHA '+p.abha_number:''}</small></div><span>{p.mobile||'No mobile'}</span><button onClick={()=>open(p.id)}>Open 360</button></div>)}</div>
- {msg&&<div className="toast" onClick={()=>setMsg('')}>{msg}</div>}
+ <AutoMsg msg={msg} clear={()=>setMsg('')}/>
  {d&&<div className="drawer doctorDrawer"><button className="close" onClick={()=>setD(null)}>×</button><span className="overline">PATIENT 360</span><h2>{d.patient.full_name}</h2><p>{d.patient.uhid} · {d.patient.mobile||'No mobile'} {d.patient.abha_address&&'· '+d.patient.abha_address}</p>
  <div className="patientQuick"><span>Status <b>{d.queue?.status||'Not checked in'}</b></span><span>Doctor <b>{d.assignment?.full_name||'—'}</b></span><span>Blood <b>{d.patient.blood_group||'—'}</b></span><span>Allergies <b>{d.patient.allergies||'None recorded'}</b></span></div>
  {docs.length>0&&<form className="actionRow" onSubmit={checkIn}><select name="doctorId" required className="moduleInput"><option value="">Select doctor…</option>{docs.map(x=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select><button className="primary">Check in (OPD token)</button></form>}

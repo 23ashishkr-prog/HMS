@@ -9,6 +9,8 @@ import {appUrl} from './notify'
 
 export const GATEWAY_ROLES:Array<'admin'|'billing'>=['admin','billing']
 /** Staff who can take a patient payment (settings stay admin + billing). */
+/** Only admin may change the keys or turn the gateway on/off: a billing user must not be able to route patient payments to another account. */
+export const GATEWAY_EDIT_ROLES:Array<'admin'>=['admin']
 export const COLLECT_ROLES:Array<'admin'|'billing'|'reception'>=['admin','billing','reception']
 export type HospGwProvider='razorpay' // structure for payu|cashfree later
 export type HospGwCreds={configured:boolean;enabled:boolean;provider:HospGwProvider;mode:'test'|'live';keyId:string;keySecret:string;webhookSecret:string}
@@ -54,25 +56,25 @@ export async function getHospitalGatewayView(db:Db,ctx:Ctx){
     kind:KIND,
     provider:cfg.provider||'razorpay',
     mode:cfg.mode||creds.mode,
-    enabled:cfg.enabled!==false&&cfg.enabled!=='false',
+    enabled:creds.configured&&cfg.enabled!==false&&cfg.enabled!=='false',
     keyId:mask(sec.keyId),
     keySecret:mask(sec.keySecret),
     webhookSecret:mask(sec.webhookSecret),
     configured:creds.configured,
     active:creds.enabled,
-    status:r?.status||'not_configured',
+    status:creds.configured?(creds.enabled?'active':'off'):(r&&r.status!=='disconnected'?'incomplete':'not_configured'),
+    canEdit:ctx.role==='admin',
     lastError:r?.last_error||null,
     updatedAt:r?.updated_at||null,
-    encryption:process.env.INTEGRATIONS_ENC_KEY?'INTEGRATIONS_ENC_KEY':'derived from SESSION_SECRET (set INTEGRATIONS_ENC_KEY)',
     webhookUrl:`${appUrl()}/api/webhooks/razorpay/${ctx.hospitalId}`,
     note:'This hospital\'s own gateway for patient invoice payments. Separate from platform SaaS plan billing.',
     accountRole:'billing',
-    accountRoleNote:'No separate account role — billing role is the accounts desk. Admin and billing can manage; doctor/lab/reception/nurse/pharmacy cannot.',
+    accountRoleNote:'Billing can see the gateway status and payments. Only an admin can change the keys or turn online payment on or off.',
   }
 }
 
 export async function saveHospitalGateway(db:Db,ctx:Ctx,b:any){
-  requireRole(ctx,GATEWAY_ROLES)
+  requireRole(ctx,GATEWAY_EDIT_ROLES)
   const cur=await row(db,ctx.hospitalId)
   let sec:Record<string,string>={}
   try{sec=decrypt(cur?.secrets)}catch{sec={}}
@@ -106,7 +108,7 @@ export async function saveHospitalGateway(db:Db,ctx:Ctx,b:any){
 }
 
 export async function clearHospitalGateway(db:Db,ctx:Ctx){
-  requireRole(ctx,GATEWAY_ROLES)
+  requireRole(ctx,GATEWAY_EDIT_ROLES)
   await db.query(
     `insert into hospital_integrations(hospital_id,kind,config,secrets,status,updated_by,updated_at)
      values($1,$2,'{}'::jsonb,null,'disconnected',$3,now())

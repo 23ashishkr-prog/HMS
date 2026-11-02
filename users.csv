@@ -1,0 +1,6 @@
+role,email
+admin,23.ashish.kr@gmail.com
+# Add one line per user you create in HMS, e.g.:
+# doctor,doctor1@yourhospital.com
+# nurse,nurse1@yourhospital.com
+# receptionist,frontdesk1@yourhospital.com

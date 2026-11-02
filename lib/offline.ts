@@ -4,11 +4,12 @@ export type Queued={id:string;url:string;method:string;body:any;key:string;label
 const DB='hms-offline',ST='queue'
 function open():Promise<IDBDatabase>{return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{r.result.createObjectStore(ST,{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function tx<T>(mode:IDBTransactionMode,f:(s:IDBObjectStore)=>IDBRequest<T>):Promise<T>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction(ST,mode);const q=f(t.objectStore(ST));q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
-const uid=()=>(crypto as any).randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)
+const uid=()=>typeof crypto!=='undefined'&&(crypto as any).randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)
 export const listQueue=()=>tx<Queued[]>('readonly',s=>s.getAll()).then(a=>a.sort((x,y)=>x.createdAt-y.createdAt))
 export const putQueued=(q:Queued)=>tx('readwrite',s=>s.put(q))
 export const removeQueued=(id:string)=>tx('readwrite',s=>s.delete(id))
-export async function enqueueOffline(url:string,method:string,body:any,label:string){const q:Queued={id:uid(),url,method,body,key:'off-'+uid(),label,createdAt:Date.now(),status:'pending'};await putQueued(q);notify();return q}
+/** Pass the key the online attempt already used, so a request that reached the server before the network dropped is replayed, not duplicated. */
+export async function enqueueOffline(url:string,method:string,body:any,label:string,key?:string){const q:Queued={id:uid(),url,method,body,key:key||'off-'+uid(),label,createdAt:Date.now(),status:'pending'};await putQueued(q);notify();return q}
 const notify=()=>{if(typeof window!=='undefined')window.dispatchEvent(new Event('hms:offline-queue'))}
 export const isNetworkError=(e:any)=>e instanceof TypeError||/Failed to fetch|NetworkError|Load failed/i.test(String(e?.message||''))
 let syncing=false

@@ -87,36 +87,6 @@ async function tdGet(path: string, query: URLSearchParams) {
   return body
 }
 
-/** The only writes HMS sends to TailDesk: admin password reset and trial/suspend actions. */
-export async function tdSend(path: string, method: 'GET' | 'POST', payload?: unknown) {
-  const creds = taildeskCreds()
-  if (!creds) throw new HttpError(400, 'TailDesk is not configured. Set TAILDESK_API_URL and TAILDESK_PLATFORM_API_KEY.')
-  let res: Response
-  try {
-    res = await fetch(new URL(joinUrl(creds.base, path)), {
-      method,
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${creds.key}`,
-        'X-Platform-Api-Key': creds.key,
-      },
-      body: method === 'POST' ? JSON.stringify(payload || {}) : undefined,
-      signal: AbortSignal.timeout(15000),
-    })
-  } catch (e) {
-    throw new HttpError(502, scrub(e instanceof Error ? e.message : 'TailDesk unreachable', creds.key))
-  }
-  const data: any = await res.json().catch(() => ({}))
-  if (!res.ok) throw new HttpError(res.status === 401 || res.status === 403 ? 502 : res.status, scrub(String(data?.error || `TailDesk returned ${res.status}`), creds.key))
-  return data
-}
-
-export function taildeskAdmins(id: string) { return tdSend(`/api/platform/v1/tenants/${encodeURIComponent(id)}/admins`, 'GET') }
-export function taildeskResetAdmin(id: string, payload: unknown) { return tdSend(`/api/platform/v1/tenants/${encodeURIComponent(id)}/reset-admin-password`, 'POST', payload) }
-export function taildeskLifecycle(id: string, payload: unknown) { return tdSend(`/api/platform/v1/tenants/${encodeURIComponent(id)}/lifecycle`, 'POST', payload) }
-
 function asList(raw: any, keys: string[]): any[] {
   if (Array.isArray(raw)) return raw
   if (!raw || typeof raw !== 'object') return []

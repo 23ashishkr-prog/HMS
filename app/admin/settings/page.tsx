@@ -1,4 +1,5 @@
 'use client'
+import AutoMsg from '@/components/AutoMsg'
 import {Suspense,useEffect,useState} from 'react'
 import {useRouter,useSearchParams} from 'next/navigation'
 import ModuleShell from '@/components/ModuleShell'
@@ -29,7 +30,7 @@ function Settings(){const sp=useSearchParams(),router=useRouter();const[role,set
  {tab==='services'&&role==='admin'&&<div className="panel modulePanel"><table className="dataTable"><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Price</th></tr></thead><tbody>{svc.map(x=><tr key={x.id}><td>{x.code}</td><td>{x.name}</td><td>{x.category}</td><td>{inr(x.price)}</td></tr>)}</tbody></table>{svc.length===0&&<p className="emptyState">Add your consultation fees, lab tests and radiology studies here.</p>}<form className="formGrid" onSubmit={sub('/api/catalog','POST','Service added')}><label>Code *<input name="code" required/></label><label>Name *<input name="name" required/></label><label>Category<select name="category">{['consultation','lab','radiology','procedure','bed','other'].map(c=><option key={c}>{c}</option>)}</select></label><label>Price ₹ *<input name="price" type="number" step="0.01" required/></label><button className="primary">Add</button></form></div>}
  {tab==='subscription'&&role==='admin'&&<div className="panel modulePanel"><p>Plan <b>{sb?.plan_name}</b> · status <span className="pill">{subStatus}</span>{subStatus==='trialing'&&sb?.trial_ends_at&&<> · trial ends {dt(sb.trial_ends_at)}</>}{subStatus==='active'&&sb?.current_period_end&&<> · renews {dt(sb.current_period_end)}</>}</p>{!sb?.usable&&<p className="err">Subscription inactive: modules are locked.</p>}<table className="dataTable"><thead><tr><th>Plan</th><th>Modules</th><th>Users</th><th>Patients</th></tr></thead><tbody>{s.plans.map((p:any)=><tr key={p.code}><td><b>{p.name}</b></td><td>{p.modules.join(', ')}</td><td>{p.max_users??'Unlimited'}</td><td>{p.max_patients??'Unlimited'}</td></tr>)}</tbody></table><h3>Upgrade or renew</h3><PayPlan onPaid={load}/><p><small>Hospital admins manage only this hospital. The SaaS owner platform console is separate and not linked from here.</small></p></div>}
   {tab==='support'&&<SupportTickets/>}{tab==='integrations'&&role==='admin'&&<IntegrationsPanel/>}{tab==='setup'&&role==='admin'&&<SetupPanel/>}
-{msg&&<div className="toast" onClick={()=>setMsg('')}>{msg}</div>}</ModuleShell>}
+<AutoMsg msg={msg} clear={()=>setMsg('')}/></ModuleShell>}
 export default function Page(){return <Suspense fallback={null}><Settings/></Suspense>}
 
 function Notif(){const[x,setX]=useState<any>(null),[m,setM]=useState('');useEffect(()=>{call('/api/settings/notifications').then(setX).catch(e=>setM(e.message))},[]);if(!x)return <div className="panel modulePanel">{m||'Loading…'}</div>;const s=x.settings,p=x.providers
