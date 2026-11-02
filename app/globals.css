@@ -1169,3 +1169,9 @@ html[data-theme=dark] body .mkNav{background:rgba(11,18,32,.85)!important;border
 /* Theme cards in the Appearance dialog */
 .tPrev i{background:#0d9488!important}
 .themeCard.t-system .tPrev{background:linear-gradient(135deg,#f8fafc 50%,#0b1220 50%)!important}
+/* Sidebar collapse button: dark icon on the light sidebar, light icon on the dark one. */
+html body .app>.side .railToggle:not(#_):not(#_){background:rgba(15,23,42,.06)!important;color:#0f172a!important}
+html[data-theme=dark] body .app>.side .railToggle:not(#_):not(#_){background:rgba(255,255,255,.08)!important;color:#f8fafc!important}
+html[data-theme=dark] body .stats .stat,html[data-theme=dark] body .stat{background:#111a2e!important;border-color:#1e293b!important;color:#e2e8f0!important}
+html[data-theme=dark] body .stats .stat small,html[data-theme=dark] body .stat small{color:#94a3b8!important}html[data-theme=dark] body .stat b,html[data-theme=dark] body .stats b,html[data-theme=dark] body .stat3d b,html[data-theme=dark] body .sideBrand b,html[data-theme=dark] body .side .sideBrand b{color:#ffffff!important;-webkit-text-fill-color:#ffffff}
+html[data-theme=dark] body .switch{color:#e2e8f0}html[data-theme=dark] body .switch input:not(:checked)+span{background:#334155}html[data-theme=dark] body .switch input:checked+span{background:#0d9488}
