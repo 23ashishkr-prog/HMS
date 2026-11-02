@@ -4,6 +4,7 @@ import {call,formObj} from '@/lib/client'
 import {withBase} from '@/lib/basePath'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
 import {HmsOnlyNote} from '@/components/PlatformProduct'
+import TaildeskEmail from '@/components/TaildeskEmail'
 
 export default function GatewaySettings(){
  const[d,setD]=useState<any>(null)
@@ -42,6 +43,7 @@ export default function GatewaySettings(){
    description={<>Razorpay keys for <b>hospital plan subscriptions only</b> (Clinic / Basic / AI+). Patient bills stay cash/UPI/card inside each hospital — never through this gateway. Secrets encrypted at rest ({d.encryption}), shown masked.</>}
   >
    <HmsOnlyNote/>
+   <TaildeskEmail/>
    <div className="platStats">
     <div className="platStat"><b>{d.configured?'Yes':'No'}</b><small>Configured</small></div>
     <div className="platStat"><b>{d.source}</b><small>Active source</small></div>
