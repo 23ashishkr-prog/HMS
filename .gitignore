@@ -10,3 +10,10 @@
 node_modules/
 npm-debug.log*
 tsconfig.tsbuildinfo
+# QA run notes and helper scripts (kept locally, not part of the app)
+HMS_Test_Report.md
+PR_DESCRIPTION.md
+hms-test-report.html
+hms_login.py
+hms_test_notes.md
+users.csv
