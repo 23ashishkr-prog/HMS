@@ -1,7 +1,7 @@
 import {Ctx,Db,HttpError,audit} from './core'
-export const THEMES=['light','soft','dark'] as const,ACCENTS=['navy','teal','indigo','emerald','plum','coral'] as const,DENSITY=['comfortable','compact'] as const,FONTS=['sm','md','lg'] as const
+export const THEMES=['system','light','dark','soft'] as const,ACCENTS=['navy','teal','indigo','emerald','plum','coral'] as const,DENSITY=['comfortable','compact'] as const,FONTS=['sm','md','lg'] as const
 export type Appearance={theme:string;accent:string;density:string;font:string}
-export const DEFAULT:Appearance={theme:'light',accent:'navy',density:'comfortable',font:'md'}
+export const DEFAULT:Appearance={theme:'system',accent:'navy',density:'comfortable',font:'md'}
 export function clean(b:any,partial=true):Partial<Appearance>{const o:any={};const pick=(k:keyof Appearance,list:readonly string[])=>{if(b?.[k]==null||b[k]==='')return;if(!list.includes(b[k]))throw new HttpError(400,'Invalid '+k+'.');o[k]=b[k]};pick('theme',THEMES);pick('accent',ACCENTS);pick('density',DENSITY);pick('font',FONTS);if(!partial)return {...DEFAULT,...o};return o}
 export async function getAppearance(db:Db,ctx:Ctx){const r=(await db.query('select u.appearance u,h.ui_defaults h from users u join hospitals h on h.id=u.hospital_id where u.id=$1 and u.hospital_id=$2',[ctx.userId,ctx.hospitalId])).rows[0]||{};const hosp={...DEFAULT,...(r.h||{})};return {effective:{...hosp,...(r.u||{})},user:r.u||{},hospital:hosp}}
 export async function setMyAppearance(db:Db,ctx:Ctx,b:any){const v=b?.reset?{}:clean(b);await db.query('update users set appearance=$3 where id=$1 and hospital_id=$2',[ctx.userId,ctx.hospitalId,JSON.stringify(v)]);return getAppearance(db,ctx)}

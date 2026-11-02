@@ -337,3 +337,5 @@ export async function platformResetAdminPassword(db:Db,hospitalId:string,b:any,p
  ).catch(()=>{})
  return {ok:true,userId:target.id,email:target.email,fullName:target.full_name,temporaryPassword:password,mustChangePassword:true,hospitalCode:h.code}
 }
+/** Any staff member sets or removes their own photo (same checks as the admin form). */
+export async function setMyPhoto(db:Db,ctx:Ctx,photoUrl:unknown){const v=clean('photoUrl',photoUrl);await db.query('update users set photo_url=$3 where id=$1 and hospital_id=$2',[ctx.userId,ctx.hospitalId,v]);await audit(db,ctx,'update','user',ctx.userId,{fields:['photoUrl'],self:true});return {photoUrl:v}}

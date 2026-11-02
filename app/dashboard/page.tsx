@@ -1,4 +1,5 @@
 'use client'
+import Avatar from '@/components/Avatar'
 import {useCallback,useEffect,useMemo,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,inr,me as whoAmI} from '@/lib/client';import {toast} from '@/lib/toast';import Icon3D,{IconName} from '@/components/Icon3D';import LivePill from '@/components/LivePill';import {withBase} from '@/lib/basePath'
 import {NAV} from '@/lib/nav';import {showTrialCountdown} from '@/lib/plans';import AiUpsellLine from '@/components/AiUpsellLine'
 import {DndContext,closestCenter,PointerSensor,TouchSensor,KeyboardSensor,useSensor,useSensors,DragEndEvent} from '@dnd-kit/core'
@@ -17,7 +18,7 @@ function Body({id,d,role}:{id:string;d:any;role:string}){if(d==null)return <div 
   case 'pending_labs':return <div className="wBig"><b>{d.ordered+d.collected}</b><small>{d.ordered} ordered · {d.collected} collected</small><a href={withBase('/laboratory')}>Worklist →</a></div>
   case 'opd_queue':return d.length?<ul className="wList">{d.map((q:any)=><li key={q.id}><b>#{q.token_no}</b><span>{q.full_name}<small>{q.doctor}</small></span><i className={'st '+q.status}>{q.status.replace('_',' ')}</i></li>)}</ul>:<p className="wEmpty">Queue is clear</p>
   case 'appointments':return d.length?<ul className="wList">{d.map((a:any)=><li key={a.id}><b>{fmtT(a.scheduled_at)}</b><span>{a.full_name}<small>{a.doctor}{a.mode==='video'?' · video':''}</small></span>{a.meet_url&&<a href={a.meet_url} target="_blank" rel="noreferrer">Join</a>}</li>)}</ul>:<p className="wEmpty">No more appointments today</p>
-  case 'doctor_availability':return d.length?<ul className="wList">{d.map((x:any)=><li key={x.name}><span className={'dot '+(x.status==='available'&&x.online?'ok':x.status==='on_leave'?'err':'off')}/><span>{x.name}<small>{x.status==='on_leave'?'on leave':!x.online?'offline':x.status.replace('_',' ')}</small></span></li>)}</ul>:<p className="wEmpty">No doctors yet</p>
+  case 'doctor_availability':return d.length?<ul className="wList">{d.map((x:any)=><li key={x.name} className="docAvail"><Avatar name={x.name} photo={x.photo} size={40} status={x.status==='available'&&x.online?'ok':x.status==='on_leave'?'err':'off'}/><span>{x.name}<small>{x.department?x.department+' · ':''}{x.status==='on_leave'?'on leave':!x.online?'offline':x.status.replace('_',' ')}</small></span></li>)}</ul>:<p className="wEmpty">No doctors yet</p>
   case 'low_stock':return d.length?<ul className="wList">{d.map((m:any)=><li key={m.name}><b>{m.qty}</b><span>{m.name}<small>reorder at {m.reorder_level}</small></span></li>)}</ul>:<p className="wEmpty">Stock is healthy</p>
   case 'reminders':return d.length?<ul className="wList">{d.map((f:any)=><li key={f.id}><b>{f.follow_up_date.slice(5,10)}</b><span>{f.full_name}<small>awaiting confirmation</small></span></li>)}</ul>:<p className="wEmpty">Nothing pending</p>}
  return null}
