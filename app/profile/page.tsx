@@ -3,7 +3,9 @@ import {useEffect,useState} from 'react'
 import Link from 'next/link'
 import ModuleShell from '@/components/ModuleShell'
 import AppearancePanel from '@/components/Appearance'
-import {call,me} from '@/lib/client'
+import {call,me,clearMe} from '@/lib/client'
+import {PhotoPicker} from '@/components/Avatar'
+import {toast} from '@/lib/toast'
 
 /** Profile holds account actions that used to live in the avatar menu: appearance, motion, hospital branding, password. */
 export default function ProfilePage(){
@@ -15,7 +17,7 @@ export default function ProfilePage(){
  const[busy,setBusy]=useState(false)
  useEffect(()=>{me().then(setU).catch(()=>{});setLite(localStorage.getItem('hms.lite')==='1')},[])
  return <ModuleShell title="Profile" eyebrow="ACCOUNT" description="Your sign-in, password and display preferences.">
-  {u&&<section className="card"><h2>{u.name}</h2><p>{u.email}</p><p className="muted">{String(u.role||'').toUpperCase()} · {u.hospital?.name} · code {u.hospital?.code}</p>
+  {u&&<section className="card"><PhotoPicker name={u.name} value={u.photoUrl} onChange={async v=>{try{await call('/api/me/photo','PUT',{photoUrl:v});clearMe();setU({...u,photoUrl:v});toast(v?'Photo updated':'Photo removed')}catch(e:any){toast(e.message,'err')}}}/><h2>{u.name}</h2><p>{u.email}</p><p className="muted">{String(u.role||'').toUpperCase()} · {u.hospital?.name} · code {u.hospital?.code}</p>
    <div className="chips">
     <button type="button" className="chip" onClick={()=>setAppear(true)}>Appearance</button>
     <button type="button" className="chip" onClick={()=>{const n=!lite;setLite(n);localStorage.setItem('hms.lite',n?'1':'0');document.documentElement.classList.toggle('lite',n)}}>{lite?'Motion: reduced':'Motion: on'}</button>
