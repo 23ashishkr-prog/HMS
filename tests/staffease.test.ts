@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
-import {LANGS, PHRASES, TOUR, translate} from '../lib/i18n'
+import {LANGS, PHRASES, TOUR, tourShouldOpen, translate} from '../lib/i18n'
 import {NAV} from '../lib/nav'
 import {cue, phoneHint, statusWord} from '../lib/phoneHint'
 
@@ -45,6 +45,12 @@ describe('phone and colour cues', () => {
 })
 
 describe('first-login tour', () => {
+  it('opens once, stays closed after skip, and opens again when asked', () => {
+    assert.equal(tourShouldOpen(false, false, false), true)
+    assert.equal(tourShouldOpen(true, false, false), false)
+    assert.equal(tourShouldOpen(false, false, true), false)
+    assert.equal(tourShouldOpen(false, true, true), true)
+  })
   it('has 3 or 4 tips for every role, and every line is translated', () => {
     for (const role of ['admin', 'reception', 'doctor', 'nurse', 'lab', 'pharmacy', 'billing']) {
       const tips = TOUR[role]

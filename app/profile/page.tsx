@@ -32,7 +32,7 @@ export default function ProfilePage(){const {t}=useI18n();const router=useRouter
    </div>
   </section>}
   <section className="card"><h2>{t('Your language')}</h2><LangSwitch save/>
-   <p><button type="button" className="ghost" onClick={async()=>{try{await call('/api/me/prefs','PATCH',{tourSeen:false});sessionStorage.setItem('hms.tour','1')}catch{}router.push(HOME[(u?.role as keyof typeof HOME)||'admin']||'/dashboard')}}>{t('Show tips again')}</button></p>
+   <p><button type="button" className="ghost" onClick={async()=>{try{sessionStorage.removeItem('hms.tourDone');sessionStorage.setItem('hms.tour','1')}catch{}try{await call('/api/me/prefs','PATCH',{tourSeen:false});clearMe()}catch{}router.push(HOME[(u?.role as keyof typeof HOME)||'admin']||'/dashboard')}}>{t('Show tips again')}</button></p>
   </section>
   <section className="card"><h2>{t('Change password')}</h2>
    <form className="formGrid" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(f.get('newPassword')!==f.get('confirm')){setErr('New passwords do not match.');return}setBusy(true);setErr('');setMsg('');try{await call('/api/auth/password','POST',{currentPassword:f.get('currentPassword'),newPassword:f.get('newPassword')});setMsg('Password updated.');(e.target as HTMLFormElement).reset()}catch(ex:any){setErr(ex.message)}finally{setBusy(false)}}}>

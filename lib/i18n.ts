@@ -185,6 +185,13 @@ for (const [en, six] of Object.entries(ROW)) {
   six.forEach((phrase, i) => { PACKS[ORDER[i]][en] = phrase })
 }
 
+/** Show the first-login tips once. A skip in this browser wins over a slow save. Asking for the tips again always shows them. */
+export function tourShouldOpen(tourSeen: boolean, force: boolean, dismissed: boolean) {
+  if (force) return true
+  if (dismissed || tourSeen) return false
+  return true
+}
+
 export function translate(lang: string, phrase: string, vars?: Record<string, string | number>) {
   let s = (lang !== 'en' && PACKS[lang]?.[phrase]) || phrase
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.split('{' + k + '}').join(String(v))

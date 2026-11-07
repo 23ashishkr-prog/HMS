@@ -1270,3 +1270,4 @@ html body .sheetGrid a.navGo.act{border-color:#104176!important;background:#E6EC
 html body .tabs a.tabLink{display:inline-flex;align-items:center;justify-content:center;background:#F4F6F9;border:1px solid var(--p-line);color:var(--p-mut,#5b677a);border-radius:999px;padding:6px 16px;min-height:34px;text-decoration:none}
 html body .side nav a.navGo{font-size:16px;min-height:44px}
 html body .tabs button{min-height:44px;font-size:15px}
+html body a.jobBtn,html body button.jobBtn{background:var(--p-navy,#0d9488)!important;color:#fff!important;border:0!important;border-radius:18px!important;box-shadow:0 8px 20px rgba(13,148,136,.28)!important;min-height:64px!important;font-size:1.25rem!important;font-weight:650!important}
