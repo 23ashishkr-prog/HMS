@@ -7,7 +7,7 @@
 import crypto from 'node:crypto'
 import {Db, HttpError} from './core'
 import {Provider} from './notify'
-import {resendEmail, smtpEmail, appUrl} from './notify'
+import {resendEmail, smtpEmail, appUrl, mailboxFrom} from './notify'
 import {providersFor} from './integrations'
 import {getTaildeskEmail} from './platformEmail'
 
@@ -40,7 +40,7 @@ export async function mailSender(db: Db, hospitalId?: string | null, f: typeof f
   else if (process.env.SMTP_URL && process.env.EMAIL_FROM) return smtpEmail({smtpUrl: process.env.SMTP_URL, from: process.env.EMAIL_FROM})
   try {
     const c = await getTaildeskEmail(db)
-    if (c.configured && c.fromEmail && c.host) return smtpEmail({smtpHost: c.host, smtpPort: String(c.port || 587), smtpUser: c.username, smtpPass: c.password, from: `HMS <${c.fromEmail}>`})
+    if (c.configured && c.fromEmail && c.host) return smtpEmail({smtpHost: c.host, smtpPort: String(c.port || 587), smtpUser: c.username, smtpPass: c.password, from: mailboxFrom('HMS', c.fromEmail)})
   } catch { /* mailbox not saved */ }
   return null
 }
@@ -101,8 +101,9 @@ export async function issueEmailCode(db: Db, user: VerifyUser, opts: {ip?: strin
   const code = digits()
   await db.query('update email_otps set used_at=now() where user_id=$1 and used_at is null', [user.id])
   await db.query("insert into email_otps(hospital_id,user_id,email,code_hash,purpose,expires_at,ip) values($1,$2,$3,$4,'verify',now()+interval '10 minutes',$5)", [hospitalId, user.id, user.email, hash(user.id, code), ip || null])
-  const body = `Hi ${label(user)},\n\nYour HMS verification code is ${code}.\n\nIt expires in ${CODE_MINUTES} minutes. Enter it on the same screen to continue.\n\nIf you did not ask for this, you can ignore this email.`
-  await sender.send({channel: 'email', to: user.email, subject: 'Your HMS verification code', body})
+  const link = appUrl() + '/auth/login'
+  const body = `HMS\n\nHi ${label(user)},\n\nYour HMS verification code is ${code}.\n\nIt expires in ${CODE_MINUTES} minutes. Enter it on the HMS screen to continue.\n\n${link}\n\nIf you did not ask for this, you can ignore this email.`
+  await sender.send({channel: 'email', to: user.email, subject: 'Your HMS verification code', body, links: [{label: 'Open HMS', url: link}]})
   return {resendIn: RESEND_SECONDS}
 }
 
@@ -148,6 +149,8 @@ export async function applyNewUserVerification(db: Db, user: VerifyUser, f?: typ
     return 'sent'
   } catch (e) {
     if (e instanceof HttpError && e.status === 429) throw e
+    const message = e instanceof Error ? e.message : 'send failed'
+    console.error('[smtp] verification skipped ' + JSON.stringify({name: e instanceof Error ? e.name : 'Error', status: e instanceof HttpError ? e.status : null, message: message.replace(/(pass(?:word)?\s*[=:]\s*)\S+/gi, '$1[redacted]').slice(0, 300)}))
     return 'skipped'
   }
 }
@@ -155,5 +158,6 @@ export async function applyNewUserVerification(db: Db, user: VerifyUser, f?: typ
 export async function sendWorkspaceReady(db: Db, hospitalId: string, to: string, code: string, f?: typeof fetch) {
   const sender = await mailSender(db, hospitalId, f)
   if (!sender) return
-  await sender.send({channel: 'email', to, subject: 'Your hospital workspace is ready · code ' + code, body: `Welcome to HMS.\n\nHospital code: ${code}\nSign in: ${appUrl()}/auth/login\n\nYour staff use the same hospital code to sign in.`})
+  const link = appUrl() + '/auth/login'
+  await sender.send({channel: 'email', to, subject: 'Your HMS workspace is ready', body: `HMS\n\nYour hospital workspace is ready.\n\nHospital code: ${code}\n\nStaff sign in with this hospital code.`, links: [{label: 'Open HMS', url: link}]})
 }
