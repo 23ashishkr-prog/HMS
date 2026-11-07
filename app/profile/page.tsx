@@ -6,9 +6,13 @@ import AppearancePanel from '@/components/Appearance'
 import {call,me,clearMe} from '@/lib/client'
 import {PhotoPicker} from '@/components/Avatar'
 import {toast} from '@/lib/toast'
+import {useI18n} from '@/components/I18n'
+import {LangSwitch} from '@/components/StaffEase'
+import {HOME} from '@/lib/nav'
+import {useRouter} from 'next/navigation'
 
 /** Profile holds account actions that used to live in the avatar menu: appearance, motion, hospital branding, password. */
-export default function ProfilePage(){
+export default function ProfilePage(){const {t}=useI18n();const router=useRouter()
  const[u,setU]=useState<any>(null)
  const[appear,setAppear]=useState(false)
  const[lite,setLite]=useState(false)
@@ -16,7 +20,7 @@ export default function ProfilePage(){
  const[err,setErr]=useState('')
  const[busy,setBusy]=useState(false)
  useEffect(()=>{me().then(setU).catch(()=>{});setLite(localStorage.getItem('hms.lite')==='1')},[])
- return <ModuleShell title="Profile" eyebrow="ACCOUNT" description="Your sign-in, password and display preferences.">
+ return <ModuleShell title="Profile" eyebrow="Account" description="Your sign-in, language and tips.">
   {u&&<section className="card"><PhotoPicker name={u.name} value={u.photoUrl} onChange={async v=>{try{await call('/api/me/photo','PUT',{photoUrl:v});clearMe();setU({...u,photoUrl:v});toast(v?'Photo updated':'Photo removed')}catch(e:any){toast(e.message,'err')}}}/><h2>{u.name}</h2><p>{u.email}</p><p className="muted">{String(u.role||'').toUpperCase()} · {u.hospital?.name} · code {u.hospital?.code}</p>
    <div className="chips">
     <button type="button" className="chip" onClick={()=>setAppear(true)}>Appearance</button>
@@ -27,13 +31,16 @@ export default function ProfilePage(){
     {u.role==='admin'&&<Link className="chip" href="/admin/settings?tab=users">Users & access</Link>}
    </div>
   </section>}
-  <section className="card"><h2>Change password</h2>
+  <section className="card"><h2>{t('Your language')}</h2><LangSwitch save/>
+   <p><button type="button" className="ghost" onClick={async()=>{try{await call('/api/me/prefs','PATCH',{tourSeen:false});sessionStorage.setItem('hms.tour','1')}catch{}router.push(HOME[(u?.role as keyof typeof HOME)||'admin']||'/dashboard')}}>{t('Show tips again')}</button></p>
+  </section>
+  <section className="card"><h2>{t('Change password')}</h2>
    <form className="formGrid" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(f.get('newPassword')!==f.get('confirm')){setErr('New passwords do not match.');return}setBusy(true);setErr('');setMsg('');try{await call('/api/auth/password','POST',{currentPassword:f.get('currentPassword'),newPassword:f.get('newPassword')});setMsg('Password updated.');(e.target as HTMLFormElement).reset()}catch(ex:any){setErr(ex.message)}finally{setBusy(false)}}}>
-    <label>Current password<input name="currentPassword" type="password" autoComplete="current-password" required/></label>
-    <label>New password<input name="newPassword" type="password" minLength={10} autoComplete="new-password" required/></label>
-    <label>Confirm<input name="confirm" type="password" minLength={10} autoComplete="new-password" required/></label>
-    {err&&<p className="err">{err}</p>}{msg&&<p className="ok">{msg}</p>}
-    <button className="primary" disabled={busy}>{busy?'Saving…':'Save password'}</button>
+    <label>{t('Current password')}<input name="currentPassword" type="password" autoComplete="current-password" required/></label>
+    <label>{t('New password')}<input name="newPassword" type="password" minLength={10} autoComplete="new-password" required/></label>
+    <label>{t('Confirm')}<input name="confirm" type="password" minLength={10} autoComplete="new-password" required/></label>
+    {err&&<p className="err">{t(err)}</p>}{msg&&<p className="ok">{t(msg)}</p>}
+    <button className="primary" disabled={busy}>{busy?t('Saving…'):t('Save password')}</button>
    </form>
   </section>
   {appear&&<AppearancePanel isAdmin={u?.role==='admin'} onClose={()=>setAppear(false)}/>}

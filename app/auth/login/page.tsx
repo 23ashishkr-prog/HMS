@@ -5,8 +5,10 @@ import Logo from '@/components/Logo'
 import EmailCode from '@/components/EmailCode'
 import {safeAppPath} from '@/lib/safeRedirect'
 import {withBase} from '@/lib/basePath'
+import {useI18n} from '@/components/I18n'
+import {LangSwitch} from '@/components/StaffEase'
 
-export default function LoginPage(){
+export default function LoginPage(){const {t}=useI18n()
  const[email,setEmail]=useState('')
  const[password,setPassword]=useState('')
  const[hosp,setHosp]=useState('')
@@ -30,16 +32,17 @@ export default function LoginPage(){
   <aside className="authSide" aria-hidden><div className="authSideIn"><Link className="mkLogo" href="/welcome"><Logo size={36}/> HMS</Link><h2>Every patient, every bed, every rupee — in one place.</h2><ul><li>Voice notes & e-prescriptions</li><li>WhatsApp reminders & reports</li><li>GST billing, lab & pharmacy</li></ul></div></aside>
   <section className="authCard">
    <div className="authBrand"><Logo size={36}/><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
+   <LangSwitch/>
    {otp?<EmailCode email={email} busy={busy} error={message} onSubmit={confirm} onResend={resend} onChangeEmail={changeEmail}/>:<>
     <span className="overline">SECURE STAFF ACCESS</span>
-    <h1>Welcome back</h1>
-    <p>Sign in with your hospital profile. Your role controls the information and actions available to you.</p>
+    <h1>{t('Welcome back')}</h1>
+    <p>{t('Sign in with your hospital email and password.')}</p>
     <form onSubmit={submit} className="authForm">
-     <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@hospital.com" autoComplete="username"/></label>
-     <label>Password<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" autoComplete="current-password"/></label>
-     <Link className="forgotLink" href="/auth/forgot">Forgot password?</Link>
+     <label>{t('Email')}<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@hospital.com" autoComplete="username"/></label>
+     <label>{t('Password')}<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder={t('Password')} autoComplete="current-password"/></label>
+     <Link className="forgotLink" href="/auth/forgot">{t('Forgot password?')}</Link>
      {needCode&&<label>Hospital code<input required value={hosp} onChange={e=>setHosp(e.target.value)} placeholder="e.g. SUNRISE"/></label>}
-     <button className="primary full" disabled={busy} aria-busy={busy}>{busy?<><span className="spin" aria-hidden="true"/> Signing in…</>:'Sign in'}</button>
+     <button className="primary full" disabled={busy} aria-busy={busy}>{busy?<><span className="spin" aria-hidden="true"/> {t('Signing in…')}</>:t('Sign in')}</button>
      {message&&<div className="authMessage" role="alert">{message}</div>}
     </form>
     <div className="authNote">New hospital? <Link href="/welcome">See plans</Link> or <Link href="/onboarding?plan=basic">start a 30-day trial</Link> · Patient? <Link href="/status">Check my visit status</Link></div>

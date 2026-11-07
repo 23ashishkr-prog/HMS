@@ -7,10 +7,10 @@ function Card({t,children}:{t:string;children:any}){return <section className="c
 export default function Page(){const[d,setD]=useState(ist()),[x,setX]=useState<any>(null),[m,setM]=useState(''),[busy,setBusy]=useState(false)
  const load=()=>call('/api/settings/closeout?date='+d).then(v=>{setX(v);setM('')}).catch(e=>setM(e.message));useEffect(()=>{load()},[d])
  const head=<div className="coBar noprint"><div className="coDate"><button type="button" className="ghost" aria-label="Previous day" onClick={()=>setD(shift(d,-1))}>‹</button><input type="date" value={d} max={ist()} onChange={e=>e.target.value&&setD(e.target.value)}/><button type="button" className="ghost" aria-label="Next day" disabled={d>=ist()} onClick={()=>setD(shift(d,1))}>›</button>{d!==ist()&&<button type="button" className="ghost" onClick={()=>setD(ist())}>Today</button>}</div><div className="coActs"><button type="button" className="ghost" onClick={()=>print()}>Print</button></div></div>
- if(!x)return <ModuleShell title="Daily close-out" eyebrow="END OF DAY">{head}<p className="muted">{m||'Loading…'}</p></ModuleShell>
+ if(!x)return <ModuleShell title="End of day" eyebrow="END OF DAY">{head}<p className="muted">{m||'Loading…'}</p></ModuleShell>
  const r=x.report,s=x.settings,mo=r.money
  const G=({t,items}:{t:string;items:[string,any,string?][]})=><div className="coGroup"><small>{t}</small><div className="coKpis">{items.map(([l,v,tone])=><div key={l} className={'coKpi'+(tone?' '+tone:'')}><span>{l}</span><b>{v}</b></div>)}</div></div>
- return <ModuleShell title="Daily close-out" eyebrow="END OF DAY" description="The day's numbers in one place. It can be sent to you automatically every evening.">
+ return <ModuleShell title="End of day" eyebrow="END OF DAY" description="The day's numbers in one place. It can be sent to you automatically every evening.">
   {head}
   <div className="coGroups">
    <G t="Money" items={[['Collected',inr(mo.collected),'good'],['Billed',inr(mo.billed)],['Outstanding',inr(mo.outstanding),mo.outstanding>0?'warn':'']]}/>
