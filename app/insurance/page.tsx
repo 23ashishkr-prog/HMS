@@ -10,7 +10,7 @@ export default function Page(){const[rows,setRows]=useState<any[]>([]),[pq,setPq
  const loadCk=(id:string)=>call('/api/claims/'+id+'/documents').then(x=>setCk(c=>({...c,[id]:x}))).catch(e=>setMsg(e.message))
  const setDoc=(id:string,key:string,status:string)=>call('/api/claims/'+id+'/documents','PUT',{key,status}).then(x=>setCk(c=>({...c,[id]:x}))).catch(e=>setMsg(e.message))
  const inp=(k:string,label:string,o:any={})=><label>{label}<input value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} {...o}/></label>
- return <ModuleShell title="Insurance / TPA" eyebrow="CASHLESS & REIMBURSEMENT" description="Pick a patient — insurer, policy, admission, bill total and diagnoses are filled in from records. Track the document checklist and download a one-file PDF claim packet.">
+ return <ModuleShell title="Insurance" eyebrow="Today" description="Insurance and claim papers for a patient.">
  <div className="panel modulePanel"><h3>New pre-auth / claim</h3><div className="actionRow"><input value={pq} onChange={e=>setPq(e.target.value)} placeholder="Find patient"/><button onClick={()=>call('/api/patients?q='+encodeURIComponent(pq)).then(x=>setPts(x.patients))}>Find</button></div>
   <form className="formGrid" onSubmit={async e=>{e.preventDefault();try{const b:any={...f};for(const k of ['admissionId','invoiceId'])if(!b[k])delete b[k];await call('/api/claims','POST',b);setF(blank);setPre(null);load();setMsg('Claim created')}catch(er:any){setMsg(er.message)}}}>
    <label>Patient *<select required value={f.patientId} onChange={e=>pick(e.target.value)}><option value="">Choose…</option>{pts.map(p=><option key={p.id} value={p.id}>{p.full_name} · {p.uhid}</option>)}</select></label>

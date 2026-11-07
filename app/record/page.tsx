@@ -1,17 +1,18 @@
 'use client'
 import {Suspense,useEffect,useState} from 'react';import {useSearchParams} from 'next/navigation';import ModuleShell from '@/components/ModuleShell';import {PageSkeleton, Tabs, ViewSwap} from '@/components/Tabs';import {tabValue} from '@/lib/tabs';import {call,dt} from '@/lib/client';import {Viewer,RF} from '@/components/ReportFiles'
-const TABS=[['overview','Overview'],['timeline','Timeline'],['visits','Visits'],['vitals','Vitals'],['rx','Prescriptions'],['labs','Labs & reports'],['ipd','IPD stays'],['bills','Bills']] as const
+import {useI18n} from '@/components/I18n'
+const TABS=[['overview','Overview'],['timeline','Timeline'],['visits','Visits'],['vitals','Vitals'],['rx','Prescriptions'],['labs','Lab reports'],['ipd','Ward stays'],['bills','Bills']] as const
 const d=(s:any)=>s?new Date(s).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'numeric'}):'—'
 const inr=(n:number)=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})
 const ICON:Record<string,string>={visit:'🩺',lab:'🧪',report:'📄',rx:'💊',ipd:'🛏',bill:'🧾'}
-function Rec(){const sp=useSearchParams(),id=sp.get('patient')||'';const tab=tabValue(sp.toString(),'tab',TABS.map(t=>t[0]),'overview');const[r,setR]=useState<any>(null),[err,setErr]=useState(''),[ai,setAi]=useState<any>(null),[aiBusy,setAiBusy]=useState(false),[view,setView]=useState<RF|null>(null),[kind,setKind]=useState('all')
+function Rec(){const {t}=useI18n();const sp=useSearchParams(),id=sp.get('patient')||'';const tab=tabValue(sp.toString(),'tab',TABS.map(t=>t[0]),'overview');const[r,setR]=useState<any>(null),[err,setErr]=useState(''),[ai,setAi]=useState<any>(null),[aiBusy,setAiBusy]=useState(false),[view,setView]=useState<RF|null>(null),[kind,setKind]=useState('all')
  useEffect(()=>{if(!id){setErr('No patient selected. Open a patient from the Doctor desk or search.');return}call('/api/patients/'+id+'/record').then(setR).catch(e=>setErr(e.message))},[id])
  if(err)return <p className="err">{err}</p>;if(!r)return <PageSkeleton/>
  const p=r.patient,lv=r.vitals[0],activeRx=r.prescriptions[0]
  return <>
  <div className="patientBanner"><div className="pbAva">{p.full_name.split(' ').map((x:string)=>x[0]).join('').slice(0,2)}</div><div className="pbMain"><h2>{p.full_name}</h2><div className="pbMeta"><span>{p.uhid}</span>{p.age!=null&&<span>{p.age} y</span>}{p.gender&&<span>{p.gender}</span>}{p.blood_group&&<span>Blood {p.blood_group}</span>}{p.mobile&&<span>{p.mobile}</span>}{p.abha&&<span>ABHA {p.abha}</span>}</div></div>
   <div className={'pbAllergy'+(p.allergies?' has':'')}><small>Allergies</small><b>{p.allergies||'None recorded'}</b></div></div>
- <Tabs className="tabs recTabs" items={TABS.map(([id,label])=>({id,label}))} value={tab}/><ViewSwap id={tab}>
+ <Tabs className="tabs recTabs" items={TABS.map(([id,label])=>({id,label:t(label)}))} value={tab}/><ViewSwap id={tab}>
  {tab==='overview'&&<div className="recGrid">
   <div className="panel modulePanel"><h3>Latest vitals</h3>{lv?<div className="vitalTiles">{[['BP',lv.bp_systolic&&lv.bp_systolic+'/'+lv.bp_diastolic,'mmHg'],['Pulse',lv.pulse,'bpm'],['SpO₂',lv.spo2,'%'],['Temp',lv.temperature_c,'°C'],['Resp',lv.resp_rate,'/min'],['Weight',lv.weight_kg,'kg']].map(([k,v,u])=><div key={k as string}><small>{k}</small><b>{v??'—'}</b><i>{v!=null?u:''}</i></div>)}</div>:<p className="emptyState">No vitals recorded.</p>}{lv&&<small className="muted">Recorded {dt(lv.recorded_at)}</small>}</div>
   <div className="panel modulePanel aiCard"><div className="sheetHead"><h3>AI history summary</h3><button className="ghost" disabled={aiBusy} onClick={async()=>{setAiBusy(true);try{setAi(await call('/api/ai/history','POST',{patientId:p.id}))}catch(e:any){setAi({error:e.message})}finally{setAiBusy(false)}}}>{aiBusy?'Summarising…':ai?'Refresh':'Generate'}</button></div>
