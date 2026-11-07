@@ -1,19 +1,24 @@
 'use client'
-import {useEffect,useState} from 'react'
+import {Suspense,useEffect,useState} from 'react'
+import {useSearchParams} from 'next/navigation'
 import {call,dt} from '@/lib/client'
+import {Tabs, ViewSwap, PageSkeleton} from '@/components/Tabs'
+import {tabValue} from '@/lib/tabs'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
 import {HmsOnlyNote} from '@/components/PlatformProduct'
 
-export default function IncidentsPage(){
+const KINDS=[{id:'all',label:'All'},{id:'errors',label:'Auto errors'},{id:'tickets',label:'Admin tickets'}]
+function Incidents(){
+ const sp=useSearchParams()
+ const kind=tabValue(sp.toString(),'kind',KINDS.map(k=>k.id),'all') as 'all'|'errors'|'tickets'
  const[d,setD]=useState<any>(null)
  const[err,setErr]=useState('')
  const[msg,setMsg]=useState('')
- const[kind,setKind]=useState<'all'|'errors'|'tickets'>('all')
  const load=(k=kind)=>call('/api/platform/incidents?kind='+k).then(setD).catch((e:any)=>setErr(e.message))
  useEffect(()=>{load(kind)},[kind])
 
  if(err&&!d)return <PlatformSignIn title="Incidents"/>
- if(!d)return <main className="plat"><p>Loading…</p></main>
+ if(!d)return <main className="plat"><PageSkeleton/></main>
 
  const setStatus=async(id:string,status:string)=>{
   setMsg('')
@@ -38,11 +43,8 @@ export default function IncidentsPage(){
     {' '}<span><b>Tickets</b> — {src.tickets||'Hospital admins raise these from Settings → Support.'}</span>
    </div>
    {msg&&<p className="err">{msg}</p>}
-   <div className="platTabsInline" role="tablist">
-    {([['all','All'],['errors','Auto errors'],['tickets','Admin tickets']] as const).map(([k,label])=>(
-     <button key={k} type="button" role="tab" aria-selected={kind===k} className={kind===k?'on':''} onClick={()=>setKind(k)}>{label}</button>
-    ))}
-   </div>
+   <Tabs className="platTabsInline" items={KINDS} value={kind} param="kind"/>
+   <ViewSwap id={kind}>
    <div className="platTableWrap platDesktopOnly">
     <table className="dataTable">
      <thead><tr><th>Status</th><th>Source</th><th>Title / message</th><th>Hospital</th><th>Count</th><th>Last seen</th><th></th></tr></thead>
@@ -86,6 +88,8 @@ export default function IncidentsPage(){
      </article>
     ))}
    </div>
+   </ViewSwap>
   </PlatformShell>
  )
 }
+export default function IncidentsPage(){return <Suspense fallback={null}><Incidents/></Suspense>}

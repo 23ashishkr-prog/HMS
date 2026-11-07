@@ -3,6 +3,7 @@ import Link from 'next/link'
 import {usePathname,useRouter} from 'next/navigation'
 import {ReactNode,useState} from 'react'
 import {call} from '@/lib/client'
+import {ViewSwap} from '@/components/Tabs'
 import {ProductSwitch,usePlatformProduct} from '@/components/PlatformProduct'
 
 const TABS:[string,string,((p:string)=>boolean)?][]=[
@@ -81,7 +82,7 @@ export default function PlatformShell({title,eyebrow,description,children,action
      </div>
      {actions&&<div className="platHeadActions">{actions}</div>}
     </div>
-    {children}
+    <ViewSwap id={path}>{children}</ViewSwap>
    </div>
   </div>
  )

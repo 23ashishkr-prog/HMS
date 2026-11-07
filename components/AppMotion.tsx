@@ -10,12 +10,11 @@ export default function AppMotion(){const path=usePathname(),router=useRouter();
  useEffect(()=>{function onClick(e:MouseEvent){const a=(e.target as HTMLElement)?.closest?.('a[data-app]') as HTMLAnchorElement|null;if(!a||e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||a.target==='_blank')return
    const href=a.getAttribute('href')||'';if(!href.startsWith('/'))return;e.preventDefault();const ic=(a.querySelector('.ic3d,img,svg,[data-app-icon]') as HTMLElement)||a;const r=ic.getBoundingClientRect()
    sessionStorage.setItem('appOrigin',JSON.stringify({x:r.left,y:r.top,w:r.width,h:r.height,from:location.pathname}))
-   const route=toRouterPath(href);if(reduced()){router.push(route);return}
+   const route=toRouterPath(href);router.push(route);if(reduced())return
    ic.animate([{transform:'scale(1)'},{transform:'scale(.9)'},{transform:'scale(1.06)'}],{duration:180,easing:OUT})
    document.documentElement.classList.add('appLaunching')
    const w=document.createElement('div');w.className='appWin';document.body.appendChild(w);win.current=w
-   const W=innerWidth,H=innerHeight;w.animate([{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',borderRadius:'16px',opacity:.85},{left:'0px',top:'0px',width:W+'px',height:H+'px',borderRadius:'0px',opacity:1}],{duration:OPEN,easing:SPRING,fill:'forwards'})
-   setTimeout(()=>router.push(route),OPEN*.7)}
+   const W=innerWidth,H=innerHeight;w.animate([{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',borderRadius:'16px',opacity:.85},{left:'0px',top:'0px',width:W+'px',height:H+'px',borderRadius:'0px',opacity:1}],{duration:OPEN,easing:SPRING,fill:'forwards'})}
   document.addEventListener('click',onClick,true);return()=>document.removeEventListener('click',onClick,true)},[router])
  useEffect(()=>{const w=win.current;document.documentElement.classList.remove('appLaunching');if(w){win.current=null;const m=document.querySelector('.mainCol, main') as HTMLElement|null;m?.animate([{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'none'}],{duration:300,easing:OUT})
    const a=w.animate([{opacity:1},{opacity:0}],{duration:240,delay:60,easing:OUT,fill:'forwards'});a.onfinish=()=>w.remove()}
