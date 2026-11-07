@@ -1219,3 +1219,21 @@ html[data-theme=dark] body table.dataTable.stackable:not(.keepTable):not(#_) td[
 .otpRow input{width:46px!important;height:54px;text-align:center;font-size:24px;font-weight:650;padding:0!important;border-radius:12px}
 .otpResend{justify-self:center;background:transparent!important;border:0!important;box-shadow:none!important;color:var(--sd-navy);font-weight:600;padding:6px 8px}
 .otpResend:disabled{opacity:.55;cursor:default}
+/* Shared page and tab transition: 160ms, same curve as the rest of the shell. */
+.viewSwap{animation:viewIn var(--c-short,160ms) var(--c-ease,ease)}
+@keyframes viewIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.viewSwap{animation:none}}
+.tabRow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+html body .side nav a.navGo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:500;font-size:.92rem;min-height:42px;padding:0 10px;width:100%;text-align:left;border-radius:12px}
+html body .side nav a.navGo span{flex:1}
+html body .side nav a.navGo.act{background:rgba(255,255,255,.16)!important;box-shadow:inset 3px 0 0 #E33737!important;font-weight:600}
+@media (min-width:768px) and (max-width:1199px){
+ html body .app:not(.railOpen)>.side nav a.navGo{justify-content:center;padding:0!important;width:56px!important;height:52px;min-height:52px;margin:2px auto}
+ html body .app.railOpen>.side nav a.navGo{min-height:46px}
+}
+html body .btabs a.navGo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;padding:4px 2px;text-decoration:none;color:#595959;font-size:.7rem;font-weight:600;position:relative;border-radius:12px}
+html body .btabs a.navGo.act{color:#104176!important;background:#E6ECF5!important}
+html body .btabs a.navGo.act::after{content:"";position:absolute;bottom:4px;left:50%;width:20px;height:3px;margin-left:-10px;border-radius:3px;background:currentColor}
+html body .sheetGrid a.navGo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:92px;padding:10px 6px;background:#FBFCFD;border:1px solid var(--p-line);border-radius:16px;color:#0B2E55;font-size:.8rem;font-weight:600;text-align:center;text-decoration:none}
+html body .sheetGrid a.navGo.act{border-color:#104176!important;background:#E6ECF5!important}
+html body .tabs a.tabLink{display:inline-flex;align-items:center;justify-content:center;background:#F4F6F9;border:1px solid var(--p-line);color:var(--p-mut,#5b677a);border-radius:999px;padding:6px 16px;min-height:34px;text-decoration:none}
