@@ -148,7 +148,7 @@ h1,h2,h3,h4,.pageHead h1,.sideBrand b,.stat3d b,.stats b{font-family:var(--fontH
 .primary,button.primary,a.primary{background:var(--sd-navy)!important;color:#fff!important;border:0!important;border-radius:10px!important;box-shadow:0 2px 6px rgba(16,65,118,.25)!important;font-weight:600}
 .primary:hover{background:var(--sd-navy3)!important}
 .primary:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sd-coral);outline-offset:2px}
-button:not(.primary):not(.chip):not(.qitem):not(.ghost):not(.avatarBtn){background:var(--sd-surface)!important;color:var(--sd-ink)!important;border:1px solid var(--sd-line)!important;border-radius:10px}
+button:not(.primary):not(.chip):not(.qitem):not(.ghost):not(.avatarBtn):not(.jobBtn){background:var(--sd-surface)!important;color:var(--sd-ink)!important;border:1px solid var(--sd-line)!important;border-radius:10px}
 .tabs button.on,.tabs .on,.chip.on,.seg .on{background:var(--sd-coral)!important;color:#fff!important;border-color:var(--sd-coral)!important;font-weight:700}
 .chip{background:var(--sd-tint)!important;color:var(--sd-navy)!important;border:1px solid transparent!important}
 input,select,textarea{background:var(--sd-surface)!important;color:var(--sd-ink)!important;border:1px solid var(--sd-line)!important;border-radius:10px}
@@ -1270,4 +1270,4 @@ html body .sheetGrid a.navGo.act{border-color:#104176!important;background:#E6EC
 html body .tabs a.tabLink{display:inline-flex;align-items:center;justify-content:center;background:#F4F6F9;border:1px solid var(--p-line);color:var(--p-mut,#5b677a);border-radius:999px;padding:6px 16px;min-height:34px;text-decoration:none}
 html body .side nav a.navGo{font-size:16px;min-height:44px}
 html body .tabs button{min-height:44px;font-size:15px}
-html body a.jobBtn,html body button.jobBtn{background:var(--p-navy,#0d9488)!important;color:#fff!important;border:0!important;border-radius:18px!important;box-shadow:0 8px 20px rgba(13,148,136,.28)!important;min-height:64px!important;font-size:1.25rem!important;font-weight:650!important}
+html body a.jobBtn:not(#_),html body button.jobBtn:not(#_){background:var(--p-navy,#0d9488)!important;color:#fff!important;border:0!important;border-radius:18px!important;box-shadow:0 8px 20px rgba(13,148,136,.28)!important;min-height:64px!important;font-size:1.25rem!important;font-weight:650!important}
