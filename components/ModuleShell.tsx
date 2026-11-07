@@ -3,6 +3,7 @@ import Logo from '@/components/Logo'
 import {useEffect,useRef,useState} from 'react';import dynamic from 'next/dynamic';import Link from 'next/link';import {usePathname,useRouter} from 'next/navigation';import Icon3D from './Icon3D';import {applyAppearance} from './Appearance';import {NAV,HOME,Role,navFor} from '@/lib/nav';import {me as whoAmI,clearMe,call,subscriptionStatus} from '@/lib/client';import {withBase} from '@/lib/basePath'
 import {PageSkeleton, ViewSwap} from './Tabs'
 import {useI18n} from './I18n'
+import {tourShouldOpen} from '@/lib/i18n'
 import {TourCard, applySavedLanguage} from './StaffEase'
 const Assistant=dynamic(()=>import('./Assistant'),{ssr:false})
 import {showTrialCountdown} from '@/lib/plans'
@@ -21,7 +22,7 @@ export default function ModuleShell({title,eyebrow,description,children,actions}
  const signOut=async()=>{shellViewer=null;shellSub=null;shellFavs=null;await (clearMe(),fetch)(withBase('/api/auth/logout'),{method:'POST',credentials:'include'});router.replace('/auth/login')}
  const onPath=(p:string)=>path===p||(p.length>1&&path.startsWith(p+'/'))
  useEffect(()=>{whoAmI().then((x:Viewer)=>{shellViewer=x;setV(x);if(x.appearance)applyAppearance(x.appearance)}).catch(()=>router.replace('/auth/login'))},[router])
- useEffect(()=>{if(!v||v.mustChangePassword)return;applySavedLanguage(v.locale,setLang);if(tourOnce.current)return;let force=false;try{force=sessionStorage.getItem('hms.tour')==='1'}catch{}if(force||!v.tourSeen){tourOnce.current=true;setTourOpen(true)}},[v,setLang])
+ useEffect(()=>{if(!v||v.mustChangePassword)return;applySavedLanguage(v.locale,setLang);if(tourOnce.current)return;let force=false,dismissed=false;try{force=sessionStorage.getItem('hms.tour')==='1';dismissed=sessionStorage.getItem('hms.tourDone')==='1'}catch{}if(tourShouldOpen(!v.tourSeen,force,dismissed)){tourOnce.current=true;setTourOpen(true)}},[v,setLang])
  useEffect(()=>{if(!v)return;const item=NAV.find(n=>n.path===path||(n.path.length>1&&path.startsWith(n.path+'/')));if(item&&!item.roles.includes(v.role))router.replace(HOME[v.role])},[path,v,router])
  useEffect(()=>{subscriptionStatus().then(s=>{shellSub=s;setSub(s)}).catch(()=>{});const l=localStorage.getItem('hms.lite')==='1'||(navigator as any).hardwareConcurrency<=2;setLite(l)},[]);useEffect(()=>{document.documentElement.classList.toggle('lite',lite)},[lite])
  useEffect(()=>{if(v&&!shellFavs)loadFavs()},[v])

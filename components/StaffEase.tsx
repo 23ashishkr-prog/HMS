@@ -39,9 +39,9 @@ export function TourCard({role, onClose}: {role: string, onClose: () => void}) {
   const [i, setI] = useState(0)
   const tip = tips[Math.min(i, tips.length - 1)]
   async function finish() {
-    try { sessionStorage.removeItem('hms.tour') } catch {}
-    try { await call('/api/me/prefs', 'PATCH', {tourSeen: true}); clearMe() } catch {}
+    try { sessionStorage.setItem('hms.tourDone', '1'); sessionStorage.removeItem('hms.tour') } catch {}
     onClose()
+    try { await call('/api/me/prefs', 'PATCH', {tourSeen: true}); clearMe() } catch {}
   }
   return <div className="tourBackdrop" role="dialog" aria-label={t(tip.title)}>
     <div className="tourCard">
