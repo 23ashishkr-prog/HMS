@@ -1,17 +1,19 @@
 import {Db,HttpError} from './core'
+import {emailVerificationActive,markEmailVerified} from './emailverify'
 /** bcrypt cost 10 (~100ms). Cost 12 was fine for one row and far too slow when the planner hashed every user. */
 const BCRYPT_COST=10
 /** Credential check shared by the login route and tests. Email is trimmed + case-insensitive; hospital code optional unless the email exists in several tenants.
  *  Look up by lower(email) first so idx_users_email is used, then crypt only those rows. */
-export async function authenticate(db:Db,email:unknown,password:unknown,hospitalCode?:unknown){const e=String(email||'').trim().toLowerCase(),pw=String(password||''),code=String(hospitalCode||'').trim().toUpperCase()||null;if(!e||!pw)throw new HttpError(400,'Email and password are required.')
+export async function authenticate(db:Db,email:unknown,password:unknown,hospitalCode?:unknown,opts?:{allowUnverified?:boolean}){const e=String(email||'').trim().toLowerCase(),pw=String(password||''),code=String(hospitalCode||'').trim().toUpperCase()||null;if(!e||!pw)throw new HttpError(400,'Email and password are required.')
  const active=`u.active=true and coalesce(h.status,'active')='active' and ($2::text is null or h.code=$2)`
  let ids=(await db.query(`select u.id from users u join hospitals h on h.id=u.hospital_id where lower(u.email)=$1 and ${active}`,[e,code])).rows
  if(!ids.length)ids=(await db.query(`select u.id from users u join hospitals h on h.id=u.hospital_id where lower(trim(u.email))=$1 and lower(u.email)<>$1 and ${active}`,[e,code])).rows
  if(!ids.length)throw new HttpError(401,'Invalid email or password.')
- const q=await db.query(`select u.id,u.hospital_id,u.email,u.full_name,u.role,u.password_hash from users u where u.id=any($1::uuid[]) and u.password_hash=crypt($2,u.password_hash)`,[ids.map((r:any)=>r.id),pw])
+ const q=await db.query(`select u.id,u.hospital_id,u.email,u.full_name,u.role,u.password_hash,u.email_verified_at from users u where u.id=any($1::uuid[]) and u.password_hash=crypt($2,u.password_hash)`,[ids.map((r:any)=>r.id),pw])
  if(!q.rows.length)throw new HttpError(401,'Invalid email or password.');if(q.rows.length>1)throw Object.assign(new HttpError(409,'This email is registered with more than one hospital. Enter your hospital code.'),{needHospitalCode:true})
  const row=q.rows[0];const cost=Number(String(row.password_hash||'').split('$')[2]||0)
  if(cost>BCRYPT_COST)await db.query(`update users set password_hash=crypt($2,gen_salt('bf',${BCRYPT_COST})) where id=$1`,[row.id,pw]).catch(()=>{})
+ if(!row.email_verified_at){const gate=await emailVerificationActive(db,row.hospital_id);if(!gate){await markEmailVerified(db,row.id);row.email_verified_at=new Date().toISOString()}else if(!opts?.allowUnverified)throw new HttpError(403,'Enter the 6-digit code we sent to your email.',{needsEmailVerification:true})}
  const {password_hash:_hash,...user}=row;return user}
 /** Run fn inside one transaction on a dedicated connection (pg Pool) or the same handle (PGlite). */
 export async function tx<T>(pool:any,fn:(db:Db)=>Promise<T>):Promise<T>{const c=pool.connect?await pool.connect():pool;try{await c.query('begin');const r=await fn(c);await c.query('commit');return r}catch(e){await c.query('rollback').catch(()=>{});throw e}finally{c.release?.()}}
