@@ -16,7 +16,7 @@ export default function TaildeskEmail(){
  const save=async(e:React.FormEvent<HTMLFormElement>)=>{
   e.preventDefault();setBusy(true);setMsg('');setErr('')
   const f=formObj(e)
-  try{setD(await call('/api/platform/email','PUT',f));setMsg('Saved. TailDesk will send sign-up codes and reminders from '+(f.fromEmail||'this address')+'. Send a test to be sure.')}
+  try{setD(await call('/api/platform/email','PUT',f));setMsg('Saved. HMS and TailDesk will send from '+(f.fromEmail||'this address')+'. Send a test to be sure.')}
   catch(ex:any){setErr(ex.message)}finally{setBusy(false)}
  }
  const test=async(e:React.FormEvent<HTMLFormElement>)=>{
@@ -26,13 +26,13 @@ export default function TaildeskEmail(){
  }
  return (
   <>
-   <h2>TailDesk e-mail</h2>
-   <p className="muted">TailDesk sends pet-owner sign-up codes and reminders from this mailbox. Use the outgoing (SMTP) details from your e-mail provider. The password is stored encrypted and shown masked.</p>
+   <h2>Shared e-mail</h2>
+   <p className="muted">HMS and TailDesk send from this same mailbox and the same address. TailDesk keeps the sender name below. HMS always uses the sender name HMS, an HMS subject, and links to greynova.in/hms. The password is stored encrypted and shown masked. For Gmail, use an App Password.</p>
    {msg&&<p className="ok">{msg}</p>}
    {err&&<p className="err">{err}</p>}
    <form className="platForm panel modulePanel" onSubmit={save} autoComplete="off">
     <label>Sender e-mail<input name="fromEmail" type="email" required defaultValue={d.fromEmail} placeholder="info@greynova.in"/></label>
-    <label>Sender name<input name="fromName" defaultValue={d.fromName||'TailDesk'}/></label>
+    <label>TailDesk sender name<input name="fromName" defaultValue={d.fromName||'TailDesk'}/><small className="muted">Used on TailDesk emails only. HMS emails use the name HMS.</small></label>
     <label>SMTP host<input name="host" required defaultValue={d.host} placeholder="smtp.yourprovider.com"/></label>
     <label>Port<input name="port" type="number" defaultValue={d.port||587}/><small className="muted">587 (STARTTLS) or 465 (SSL).</small></label>
     <label>Login<input name="username" defaultValue={d.username} placeholder="info@greynova.in"/><small className="muted">Usually the full e-mail address.</small></label>

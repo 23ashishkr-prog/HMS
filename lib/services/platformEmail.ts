@@ -2,7 +2,7 @@
  *  Stored in platform_settings under key 'email_taildesk'; the SMTP password is encrypted like the Razorpay secrets. */
 import {Db,HttpError} from './core'
 import {encrypt,decrypt} from './integrations'
-import {smtpEmail} from './notify'
+import {mailboxFrom,smtpEmail} from './notify'
 
 const KEY='email_taildesk'
 const s=(v:unknown,max=300)=>String(v??'').trim().slice(0,max)
@@ -16,6 +16,7 @@ export async function getTaildeskEmail(db:Db){
  if(!r)return {configured:false,fromEmail:'',fromName:'',host:'',port:587,username:'',password:''}
  let sec:Record<string,string>={}
  try{sec=decrypt(r.secrets)}catch{sec={}}
+ if(r.secrets&&!sec.password)console.error('[smtp] mailbox secret unreadable')
  const c=r.config||{}
  const fromEmail=s(c.fromEmail),host=s(c.host)
  return {configured:!!(fromEmail&&host),fromEmail,fromName:s(c.fromName)||'TailDesk',host,port:Number(c.port||587),username:s(c.username),password:s(sec.password,1000)}
@@ -46,7 +47,7 @@ export async function testTaildeskEmail(db:Db,to:string){
  const c=await getTaildeskEmail(db)
  if(!c.configured)throw new HttpError(400,'Save the e-mail settings first.')
  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to))throw new HttpError(400,'Enter the e-mail address to send the test to.')
- const p=smtpEmail({smtpHost:c.host,smtpPort:String(c.port),smtpUser:c.username,smtpPass:c.password,from:`"${c.fromName.replace(/"/g,'')}" <${c.fromEmail}>`})
+ const p=smtpEmail({smtpHost:c.host,smtpPort:String(c.port),smtpUser:c.username,smtpPass:c.password,from:mailboxFrom(c.fromName||'TailDesk',c.fromEmail)})
  try{await p.send({channel:'email',to,subject:'TailDesk test e-mail',body:'This is a test from the platform settings. TailDesk e-mail is connected.'})}
  catch(e:any){throw new HttpError(502,'The mail server refused it: '+String(e?.message||'unknown error'))}
  return {sent:true}

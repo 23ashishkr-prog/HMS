@@ -21,8 +21,25 @@ const htmlOf=(m:OutMsg)=>`<div style="font-family:Arial,sans-serif;font-size:15p
 const textOf=(m:OutMsg)=>m.body+(m.links||[]).map(l=>`\n${l.label}: ${l.url}`).join('')
 export const resendEmail=(f:typeof fetch=fetch,cfg?:{resendKey?:string;from?:string;replyTo?:string}):Provider=>{const key=cfg?cfg.resendKey:process.env.RESEND_API_KEY,from=cfg?cfg.from:process.env.EMAIL_FROM;return {channel:'email',name:'resend',configured:()=>!!(key&&from),async send(m){const esc0=(s:string)=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]!));const html=`<div style="font-family:Arial,sans-serif;font-size:15px;color:#262626">${esc(m.body).replace(/\n/g,'<br>')}${(m.links||[]).map(l=>`<p><a href="${esc(l.url)}" style="background:#104176;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${esc(l.label)}</a></p>`).join('')}</div>`
  const r=await f('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+key,'content-type':'application/json'},body:JSON.stringify({from,...(cfg?.replyTo?{reply_to:cfg.replyTo}:{}),to:[m.to],subject:m.subject||'Update from your hospital',text:m.body+(m.links||[]).map(l=>`\n${l.label}: ${l.url}`).join(''),html})});const j:any=await r.json().catch(()=>({}));if(!r.ok)throw new ProviderError('email '+r.status+' '+String(j?.message||'').slice(0,120),r.status>=400&&r.status<500&&r.status!==429);return {id:j?.id||'email'}}}}
-/** SMTP sender (nodemailer), per hospital or SMTP_URL. */
-export const smtpEmail=(cfg:{smtpUrl?:string;smtpHost?:string;smtpPort?:string;smtpUser?:string;smtpPass?:string;smtpSecure?:string;from?:string;replyTo?:string}):Provider=>({channel:'email',name:'smtp',configured:()=>!!(cfg.from&&(cfg.smtpUrl||cfg.smtpHost)),async send(m){const nm:any=await import('nodemailer');const port=Number(cfg.smtpPort||587);const t=nm.createTransport(cfg.smtpUrl||{host:cfg.smtpHost,port,secure:cfg.smtpSecure==='true'||port===465,auth:cfg.smtpUser?{user:cfg.smtpUser,pass:cfg.smtpPass}:undefined});try{const r=await t.sendMail({from:cfg.from,replyTo:cfg.replyTo||undefined,to:m.to,subject:m.subject||'Update from your hospital',text:textOf(m),html:htmlOf(m)});return {id:String(r.messageId||'smtp')}}catch(e:any){const code=Number(e?.responseCode||0);throw new ProviderError('smtp '+(code||'')+' '+String(e?.message||'').slice(0,120),code>=500&&code<600&&code!==421)}}})
+/** Display name plus address. HMS and TailDesk share one address and each set their own name. */
+export const mailboxFrom=(name:string,email:string)=>{const n=String(name||'').replace(/[<>"]/g,'').trim()||'Mail';return n+' <'+String(email||'').trim()+'>'}
+export type SmtpCfg={smtpUrl?:string;smtpHost?:string;smtpPort?:string;smtpUser?:string;smtpPass?:string;smtpSecure?:string;from?:string;replyTo?:string}
+/** Connection options only. Never includes the password in the summary. Port 25 is rewritten to 587 because hosts such as Vercel block outbound 25. */
+export function smtpTransportConfig(cfg:SmtpCfg){
+ let port=Number(cfg.smtpPort||587);if(!Number.isFinite(port)||port<1||port>65535)port=587
+ const remappedPort25=port===25;if(remappedPort25)port=587
+ const secure=String(cfg.smtpSecure)==='true'||port===465
+ const host=String(cfg.smtpHost||'')
+ const gmail=/gmail|googlemail/i.test(host)
+ const raw=cfg.smtpPass?String(cfg.smtpPass):''
+ const pass=gmail?raw.replace(/\s+/g,''):raw
+ const summary={host:host||null,port,secure,requireTLS:!secure,userSet:!!cfg.smtpUser,passSet:!!pass,passLen:pass.length,passHadSpace:gmail&&raw!==pass,remappedPort25}
+ if(cfg.smtpUrl&&!remappedPort25)return {summary:{...summary,host:null,url:true},transport:cfg.smtpUrl}
+ return {summary,transport:{host,port,secure,requireTLS:!secure,auth:cfg.smtpUser?{user:cfg.smtpUser,pass}:undefined,connectionTimeout:10000,greetingTimeout:10000,socketTimeout:20000,tls:{minVersion:'TLSv1.2' as const}}}
+}
+const smtpSafe=(e:any)=>{const message=String(e?.message||'send failed').replace(/\b(?:auth|password|pass)\b\s*[=:]\s*\S+/gi,'[redacted]').replace(/Bearer\s+\S+/gi,'Bearer [redacted]').slice(0,300);return {name:e?.name||'Error',code:e?.code||null,responseCode:Number(e?.responseCode||0)||null,command:e?.command||null,message}}
+/** SMTP sender (nodemailer), per hospital or the shared platform mailbox. Failures are logged without secrets. */
+export const smtpEmail=(cfg:SmtpCfg):Provider=>({channel:'email',name:'smtp',configured:()=>!!(cfg.from&&(cfg.smtpUrl||cfg.smtpHost)),async send(m){const nm:any=await import('nodemailer');const built=smtpTransportConfig(cfg);const t=nm.createTransport(built.transport);try{const r=await t.sendMail({from:cfg.from,replyTo:cfg.replyTo||undefined,to:m.to,subject:m.subject||'Update from your hospital',text:textOf(m),html:htmlOf(m)});return {id:String(r.messageId||'smtp')}}catch(e:any){console.error('[smtp] '+JSON.stringify({...smtpSafe(e),...built.summary}));const code=Number(e?.responseCode||0);throw new ProviderError('smtp '+(code||'')+' '+smtpSafe(e).message.slice(0,120),code>=500&&code<600&&code!==421)}}})
 /** No SMS gateway wired yet (DLT registration needed in India) — always "not configured". Swap in Gupshup/Twilio by implementing Provider. */
 export const smsStub:Provider={channel:'sms',name:'none',configured:()=>false,async send(){throw new ProviderError('sms provider not configured',true)}}
 export const defaultProviders=():Record<Channel,Provider>=>({whatsapp:whatsappCloud(),email:resendEmail(),sms:smsStub})
