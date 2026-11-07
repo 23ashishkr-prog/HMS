@@ -1,6 +1,7 @@
 'use client'
 import {useEffect,useState} from 'react';import Link from 'next/link';import {call,formObj} from '@/lib/client';import Logo from '@/components/Logo';import {withBase} from '@/lib/basePath'
 import {trialPlanFromParam} from '@/lib/plans'
+import EmailCode from '@/components/EmailCode'
 const inr=(n:any)=>'₹'+Number(n||0).toLocaleString('en-IN')
 const BLURB:Record<string,string>={
  clinic:'Online + token booking · 30-day free trial',
@@ -13,7 +14,7 @@ const FALLBACK=[
  {code:'ai_engage',name:'AI + Engagement',monthly_price_inr:49999},
 ]
 export default function Page(){
- const[plans,setPlans]=useState<any[]>([]),[days,setDays]=useState(30),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false),[plan,setPlan]=useState('basic'),[done,setDone]=useState<any>(null),[leadOk,setLeadOk]=useState(false)
+ const[plans,setPlans]=useState<any[]>([]),[days,setDays]=useState(30),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false),[plan,setPlan]=useState('basic'),[done,setDone]=useState<any>(null),[leadOk,setLeadOk]=useState(false),[pending,setPending]=useState<{email:string;password:string;code:string}|null>(null)
  useEffect(()=>{
   const q=new URLSearchParams(window.location.search).get('plan')
   if(q==='ai_engage')setPlan('ai_engage')
@@ -45,6 +46,8 @@ export default function Page(){
       <p className="muted">We&apos;ve also e-mailed it to you when e-mail is configured. It is also your UHID prefix.</p>
       <a className="primary full btnLink" href={withBase(done.redirect||'/admin/settings?tab=setup')}>Continue to setup</a>
      </div>
+    ):pending?(
+     <EmailCode email={pending.email} busy={busy} error={msg} onSubmit={async digits=>{setBusy(true);setMsg('');try{const x=await call('/api/auth/login','POST',{email:pending.email,password:pending.password,code:digits});setDone({code:pending.code,redirect:x.redirect||'/admin/setup',plan})}catch(er:any){setMsg(er.message)}finally{setBusy(false)}}} onResend={async()=>{try{const x=await call('/api/auth/email-code','POST',{email:pending.email,password:pending.password});if(x.skipped){const y=await call('/api/auth/login','POST',{email:pending.email,password:pending.password});setDone({code:pending.code,redirect:y.redirect||'/admin/setup',plan})}return Number(x.resendIn||30)}catch(er:any){setMsg(er.message);throw er}}} onChangeEmail={async next=>{setBusy(true);setMsg('');try{const x=await call('/api/auth/email-code','POST',{email:pending.email,password:pending.password,nextEmail:next});setPending({...pending,email:x.email||next});if(x.skipped){const y=await call('/api/auth/login','POST',{email:x.email||next,password:pending.password});setDone({code:pending.code,redirect:y.redirect||'/admin/setup',plan})}}catch(er:any){setMsg(er.message)}finally{setBusy(false)}}}/>
     ):sales?(
      <>
       <div className="authBrand"><Logo size={36}/><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
@@ -68,7 +71,7 @@ export default function Page(){
      <span className="overline">{days}-DAY FREE TRIAL</span>
      <h1>Register your hospital</h1>
      <p className="onbLead">Creates your workspace and admin login. Hospital code is generated automatically. Clinic and Basic each include a {days}-day trial on the plan you choose. AI + Customer Engagement is Contact Sales.</p>
-     <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);setMsg('');try{const x=await call('/api/onboarding','POST',{...formObj(e),planCode:plan});setDone(x)}catch(er:any){setMsg(er.message+(er.data?.pricingPath?' You can compare plans and buy from the pricing page.':''))}finally{setBusy(false)}}}>
+     <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);setMsg('');const body={...formObj(e),planCode:plan};try{const x=await call('/api/onboarding','POST',body);if(x.needsEmailVerification)setPending({email:String(body.adminEmail||'').trim().toLowerCase(),password:String(body.password||''),code:x.code});else setDone(x)}catch(er:any){setMsg(er.message+(er.data?.pricingPath?' You can compare plans and buy from the pricing page.':''))}finally{setBusy(false)}}}>
       <label>Hospital name *<input name="hospitalName" required autoComplete="organization" placeholder="e.g. Sunrise Multispeciality Hospital"/></label>
       <div className="onb2"><label>Phone<input name="phone" inputMode="tel" autoComplete="tel"/></label><label>GSTIN<input name="gstin" autoCapitalize="characters"/></label></div>
       <label>Address<input name="address" autoComplete="street-address"/></label>

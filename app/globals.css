@@ -1212,3 +1212,10 @@ html[data-theme=dark] body table.dataTable.stackable:not(.keepTable):not(#_) td{
 html[data-theme=dark] body table.dataTable.stackable:not(.keepTable):not(#_) td:first-child{color:#f8fafc;border-bottom-color:#243049!important}
 html[data-theme=dark] body table.dataTable.stackable:not(.keepTable):not(#_) td[data-label]::before{color:#94a3b8}
 @media print{html body table.dataTable.stackable:not(#_){display:table}html body table.dataTable.stackable:not(#_) thead{display:table-header-group!important}html body table.dataTable.stackable:not(#_) tbody{display:table-row-group!important}html body table.dataTable.stackable:not(#_) tr{display:table-row!important;box-shadow:none!important}html body table.dataTable.stackable:not(#_) td{display:table-cell!important}html body table.dataTable.stackable:not(#_) td::before{display:none!important}}
+/* Email verification — six digits, same screen */
+.otpBox{display:grid;gap:14px}
+.otpBox h1{margin:0}
+.otpRow{display:flex;gap:8px;justify-content:center}
+.otpRow input{width:46px!important;height:54px;text-align:center;font-size:24px;font-weight:650;padding:0!important;border-radius:12px}
+.otpResend{justify-self:center;background:transparent!important;border:0!important;box-shadow:none!important;color:var(--sd-navy);font-weight:600;padding:6px 8px}
+.otpResend:disabled{opacity:.55;cursor:default}
