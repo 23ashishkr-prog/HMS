@@ -1339,3 +1339,15 @@ td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad
 /* Radiology */
 .radModFilter{margin:4px 0 12px}.radActs{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:6px}td.radActs{margin:0}.radPanel .sheetHead>span{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.radPanel form,.radPanel>div{margin-top:12px}
 .radField{display:flex;flex-direction:column;gap:4px;margin:8px 0}.radField textarea{width:100%;font:inherit;line-height:1.45}.radReport h4{margin:10px 0 2px}.radReport .pre,.dsSheet .pre{white-space:pre-wrap}tr.rowOn td{background:rgba(47,125,225,.08)}
+
+/* PM-JAY / NHCX (insurance tabs) */
+.insTabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.nhcxBanner{padding:10px 12px;border-radius:10px;border:1px solid #f0c36d;background:#fff8e6;color:#5c4400;font-size:.9rem;margin:0 0 12px}
+.nhcxBanner.live{border-color:#8fd19e;background:#eefaf1;color:#1d5b2c}
+.pkgPicker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:relative}
+.pkgPicker input[type=number]{padding:2px 4px}
+.pkgHits{list-style:none;margin:4px 0 0;padding:4px;position:absolute;top:100%;left:0;z-index:20;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:8px;max-width:100%;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.pkgHits button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 8px;cursor:pointer}
+.pkgHits button:hover{background:var(--hover,#f2f5f9)}
+html[data-theme=dark] .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html[data-theme=dark] .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}
+@media (prefers-color-scheme:dark){html:not([data-theme]) .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html:not([data-theme]) .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}}
