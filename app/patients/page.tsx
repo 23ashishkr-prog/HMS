@@ -1,5 +1,5 @@
 'use client'
-import AutoMsg from '@/components/AutoMsg'
+import AutoMsg from '@/components/AutoMsg';import AbhaPanel,{AbhaBadge} from '@/components/AbhaPanel'
 import {useEffect,useState} from 'react';import ModuleShell from '@/components/ModuleShell';import {call,formObj,dt} from '@/lib/client'
 const F=[['fullName','Full name *','text'],['mobile','Mobile (10-digit)','tel'],['gender','Gender','sel:Male,Female,Other'],['dateOfBirth','Date of birth','date'],['bloodGroup','Blood group','sel:A+,A-,B+,B-,AB+,AB-,O+,O-'],['abhaNumber','ABHA number (14 digits)','text'],['abhaAddress','ABHA address (name@abdm)','text'],['email','Email','email'],['address','Address','text'],['city','City','text'],['state','State','text'],['pincode','PIN code','text'],['idProofType','ID proof','sel:Aadhaar,PAN,Voter ID,Passport,Driving licence'],['idProofNumber','ID number','text'],['emergencyContactName','Emergency contact','text'],['emergencyContactPhone','Emergency phone','tel'],['allergies','Known allergies','text']] as const
 const key=(k:string)=>k.replace(/[A-Z]/g,m=>'_'+m.toLowerCase())
@@ -13,13 +13,15 @@ export default function Page(){const[q,setQ]=useState(''),[rows,setRows]=useStat
  async function checkIn(e:React.FormEvent<HTMLFormElement>){e.preventDefault();try{const x=await call('/api/queue','POST',{patientId:d.patient.id,doctorId:formObj(e).doctorId});setMsg(`Checked in · token #${x.token.token_no} with ${x.token.doctor}`);open(d.patient.id)}catch(er:any){setMsg(er.message)}}
  return <ModuleShell title="Patients" eyebrow="Today" description="Find a patient, or add a new one.">
  <div className="panel modulePanel"><div className="actionRow"><input className="moduleInput" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&load()} placeholder="Search name, UHID, mobile or ABHA"/><button className="primary" onClick={load}>Search</button><button onClick={()=>setReg(x=>!x)}>{reg?'Close':'+ Register patient'}</button></div>
+ <AbhaPanel compact onLinked={p=>{setQ(p.uhid);setRows([p]);open(p.id)}}/>
  {reg&&<form onSubmit={register}><Fields/><button className="primary">Register & generate UHID</button></form>}
  {rows.length===0&&<p className="emptyState">No patients found. Register the first patient above.</p>}
- {rows.map(p=><div className="moduleRow" key={p.id}><div><b>{p.full_name}</b><small>{p.uhid} · {p.gender||'—'} {p.abha_number?'· ABHA '+p.abha_number:''}</small></div><span>{p.mobile||'No mobile'}</span><button onClick={()=>open(p.id)}>Open 360</button></div>)}</div>
+ {rows.map(p=><div className="moduleRow" key={p.id}><div><b>{p.full_name}</b><small>{p.uhid} · {p.gender||'—'}</small> <AbhaBadge p={p}/></div><span>{p.mobile||'No mobile'}</span><button onClick={()=>open(p.id)}>Open 360</button></div>)}</div>
  <AutoMsg msg={msg} clear={()=>setMsg('')}/>
  {d&&<div className="drawer doctorDrawer"><button className="close" onClick={()=>setD(null)}>×</button><span className="overline">PATIENT 360</span><h2>{d.patient.full_name}</h2><p>{d.patient.uhid} · {d.patient.mobile||'No mobile'} {d.patient.abha_address&&'· '+d.patient.abha_address}</p>
  <div className="patientQuick"><span>Status <b>{d.queue?.status||'Not checked in'}</b></span><span>Doctor <b>{d.assignment?.full_name||'—'}</b></span><span>Blood <b>{d.patient.blood_group||'—'}</b></span><span>Allergies <b>{d.patient.allergies||'None recorded'}</b></span></div>
  {docs.length>0&&<form className="actionRow" onSubmit={checkIn}><select name="doctorId" required className="moduleInput"><option value="">Select doctor…</option>{docs.map(x=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select><button className="primary">Check in (OPD token)</button></form>}
+ {d.canEdit&&<AbhaPanel patient={d.patient} onLinked={()=>open(d.patient.id)}/>}
  {d.canEdit&&<button onClick={()=>setEdit(x=>!x)}>{edit?'Cancel edit':'Edit demographics'}</button>}{edit&&<form onSubmit={save}><Fields v={d.patient}/><button className="primary">Save</button></form>}
  <section className="patientSection"><h3>Consultation history</h3>{d.notes.length?d.notes.map((n:any)=><article className="recordCard" key={n.id}><div><b>{n.doctor}</b><small>{dt(n.created_at)}</small><p style={{whiteSpace:'pre-wrap'}}>{n.summary}</p></div></article>):<p>No consultations yet.</p>}</section>
  <section className="patientSection"><h3>Prescriptions</h3>{d.prescriptions.length?d.prescriptions.map((r:any)=><article className="recordCard" key={r.id}><div><b>{r.doctor} · {r.status}</b><small>{dt(r.created_at)}</small>{r.items.map((i:any,k:number)=><p key={k}>{i.medicine} {[i.dose,i.frequency,i.duration].filter(Boolean).join(' · ')}</p>)}</div></article>):<p>None.</p>}</section>
