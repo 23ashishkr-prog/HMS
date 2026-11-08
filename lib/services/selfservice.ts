@@ -1,4 +1,4 @@
-import {doctorStatuses} from './doctorsched'
+import {doctorStatuses,assertDoctorIn} from './doctorsched'
 /** Patient self-service: QR self check-in at the hospital and WhatsApp booking. Both are off until an admin enables them. */
 import {Ctx,Db,HttpError,audit,today} from './core'
 import {checkIn} from './opd'
@@ -20,7 +20,7 @@ export async function selfCheckIn(db:Db,code:string,key:string,b:any){const h=aw
  const q=(await db.query("select q.token_no,u.full_name doctor from doctor_queue q join users u on u.id=q.doctor_user_id where q.hospital_id=$1 and q.patient_id=$2 and q.visit_date=$3 and q.status<>'checked' order by q.checked_in_at desc limit 1",[h.id,p.id,day])).rows[0];if(q)return {already:true,token:q.token_no,doctor:q.doctor,firstName:p.full_name.split(' ')[0]}
  const ap=(await db.query("select id,doctor_user_id from appointments where hospital_id=$1 and patient_id=$2 and status in ('scheduled','confirmed') and scheduled_at>=$3 and scheduled_at<$4 order by scheduled_at limit 1",[h.id,p.id,istToUtc(day,0),istToUtc(day,1440)])).rows[0]
  const doctorId=ap?.doctor_user_id||b.doctorId;if(!doctorId)return {needDoctor:true,firstName:p.full_name.split(' ')[0]}
- if(!ap){const st=(await doctorStatuses(db,h.id)).find(x=>x.id===doctorId);if(!st)throw new HttpError(404,'Doctor not found.');if(st.status==='on_leave'||!st.online)throw new HttpError(409,'This doctor is not available today. Please choose another doctor or ask at reception.')}
+ if(!ap)await assertDoctorIn(db,h.id,doctorId,'Please choose another doctor or ask reception to book that time.')
  const r=await checkIn(db,ctx,{patientId:p.id,doctorId,appointmentId:ap?.id||null});await audit(db,ctx,'self_check_in','queue',r.id,{via:'qr',token:r.token_no,appointment:!!ap})
  const ahead=(await db.query("select count(*)::int n from doctor_queue where hospital_id=$1 and doctor_user_id=$2 and visit_date=$3 and status in ('waiting','called') and token_no<$4",[h.id,doctorId,day,r.token_no])).rows[0].n
  return {token:r.token_no,doctor:r.doctor,ahead,firstName:p.full_name.split(' ')[0],appointment:!!ap}}
