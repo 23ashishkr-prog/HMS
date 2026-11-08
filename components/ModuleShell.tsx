@@ -20,7 +20,7 @@ export default function ModuleShell({title,eyebrow,description,children,actions}
  const toggleStar=async(p:string)=>{const x=await call('/api/me/favourites','PUT',{path:p,starred:!starred.has(p)}).catch(()=>null);if(x?.items)rememberFavs(x.items)}
  const dismissFav=async(p:string)=>{const x=await call('/api/me/favourites','PUT',{path:p,dismissed:true}).catch(()=>null);if(x?.items)rememberFavs(x.items)}
  const signOut=async()=>{shellViewer=null;shellSub=null;shellFavs=null;await (clearMe(),fetch)(withBase('/api/auth/logout'),{method:'POST',credentials:'include'});router.replace('/auth/login')}
- const onPath=(p:string)=>path===p||(p.length>1&&path.startsWith(p+'/'))
+ const onPath=(p:string)=>path===p||(p.length>1&&path.startsWith(p+'/'))||(p==='/admin/settings'&&v?.role==='admin'&&NAV.some(n=>n.inSettings&&(path===n.path||path.startsWith(n.path+'/'))))
  useEffect(()=>{whoAmI().then((x:Viewer)=>{shellViewer=x;setV(x);if(x.appearance)applyAppearance(x.appearance)}).catch(()=>router.replace('/auth/login'))},[router])
  useEffect(()=>{if(!v||v.mustChangePassword)return;applySavedLanguage(v.locale,setLang);if(tourOnce.current)return;let force=false,dismissed=false;try{force=sessionStorage.getItem('hms.tour')==='1';dismissed=sessionStorage.getItem('hms.tourDone')==='1'}catch{}if(tourShouldOpen(!v.tourSeen,force,dismissed)){tourOnce.current=true;setTourOpen(true)}},[v,setLang])
  useEffect(()=>{if(!v)return;const item=NAV.find(n=>n.path===path||(n.path.length>1&&path.startsWith(n.path+'/')));if(item&&!item.roles.includes(v.role))router.replace(HOME[v.role])},[path,v,router])

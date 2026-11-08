@@ -1,8 +1,9 @@
 import type {IconName} from '@/components/Icon3D'
 export type Role='admin'|'reception'|'doctor'|'nurse'|'lab'|'pharmacy'|'billing'|'patient'
-export type NavItem={name:string;icon:IconName;path:string;roles:Role[];more?:boolean;module?:string}
+export type NavItem={name:string;icon:IconName;path:string;roles:Role[];more?:boolean;module?:string;inSettings?:boolean}
 /** Primary = the handful of daily-use desks; "more" = secondary menu.
- *  module = plan entitlement required (omit = always shown when role matches). */
+ *  module = plan entitlement required (omit = always shown when role matches).
+ *  inSettings = opened from Settings for admins, so it is not repeated in the admin's side menu. */
 export const NAV:NavItem[]=[
  {name:'Home',icon:'dashboard',path:'/dashboard',roles:['admin','reception','doctor','nurse','lab','pharmacy','billing']},
  {name:'Reception',icon:'frontdesk',path:'/frontdesk',roles:['admin','reception'],module:'queue'},
@@ -17,13 +18,13 @@ export const NAV:NavItem[]=[
  {name:'Doctor hours',icon:'calendar',path:'/schedules',roles:['admin','doctor','reception'],more:true,module:'appointments'},
  {name:'Follow-ups',icon:'calendar',path:'/followups',roles:['admin','reception','doctor'],more:true,module:'appointments'},
  {name:'Insurance',icon:'insurance',path:'/insurance',roles:['admin','billing'],more:true,module:'insurance'},
- {name:'Check-in code',icon:'queue',path:'/checkin-qr',roles:['admin','reception'],more:true,module:'queue'},
- {name:'End of day',icon:'money',path:'/admin/closeout',roles:['admin'],more:true,module:'billing'},
+ {name:'Check-in code',icon:'queue',path:'/checkin-qr',roles:['admin','reception'],more:true,module:'queue',inSettings:true},
+ {name:'End of day',icon:'money',path:'/admin/closeout',roles:['admin'],more:true,module:'billing',inSettings:true},
  {name:'Settings',icon:'settings',path:'/admin/settings',roles:['admin','billing'],more:true},
- {name:'Import records',icon:'audit',path:'/admin/import',roles:['admin'],more:true,module:'bulk'},
- {name:'Activity',icon:'audit',path:'/admin/audit',roles:['admin'],more:true,module:'audit'}]
+ {name:'Import records',icon:'audit',path:'/admin/import',roles:['admin'],more:true,module:'bulk',inSettings:true},
+ {name:'Activity',icon:'audit',path:'/admin/audit',roles:['admin'],more:true,module:'audit',inSettings:true}]
 export const HOME:Record<Role,string>={admin:'/dashboard',reception:'/frontdesk',doctor:'/opd',nurse:'/opd',lab:'/laboratory',pharmacy:'/pharmacy',billing:'/billing',patient:'/auth/login'}
 /** Filter by role + plan modules. Locked items returned separately for upgrade CTA. */
 export function navFor(role:Role,modules?:string[]|null){const mods=modules||null;const open:NavItem[]=[],locked:NavItem[]=[]
- for(const n of NAV){if(!n.roles.includes(role))continue;if(n.module&&mods&&!mods.includes(n.module))locked.push(n);else open.push(n)}
+ for(const n of NAV){if(!n.roles.includes(role))continue;if(n.inSettings&&role==='admin')continue;if(n.module&&mods&&!mods.includes(n.module))locked.push(n);else open.push(n)}
  return {open,locked}}

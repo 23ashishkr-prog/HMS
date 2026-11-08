@@ -5,7 +5,8 @@ import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 import ModuleShell from '@/components/ModuleShell'
 import {PageSkeleton, Tabs, ViewSwap} from '@/components/Tabs'
-import {call,formObj,inr,dt,me} from '@/lib/client'
+import {call,formObj,inr,dt,me,subscriptionStatus} from '@/lib/client'
+import {NAV} from '@/lib/nav'
 import PayPlan from '@/components/PayPlan'
 import HospitalPayments from '@/components/HospitalPayments'
 import UsersAccess from '@/components/UsersAccess'
@@ -14,9 +15,9 @@ import SetupPanel from '@/components/SetupPanel'
 import {useI18n} from '@/components/I18n'
 const ADMIN_TABS=['hospital','users','services','notifications','ai','subscription','support','payments','integrations','setup'] as const
 const LABEL:Record<string,string>={hospital:'Hospital',users:'Users & access',services:'Services',notifications:'Notifications',ai:'AI',subscription:'Subscription',support:'Support',payments:'Payments',integrations:'Integrations',setup:'Setup wizard'}
-function Settings(){const {t}=useI18n();const sp=useSearchParams();const[role,setRole]=useState(''),[s,setS]=useState<any>(null),[svc,setSvc]=useState<any[]>([]),[msg,setMsg]=useState('')
+function Settings(){const {t}=useI18n();const sp=useSearchParams();const[role,setRole]=useState(''),[s,setS]=useState<any>(null),[svc,setSvc]=useState<any[]>([]),[msg,setMsg]=useState(''),[mods,setMods]=useState<string[]|null>(null)
  const load=()=>{call('/api/settings').then(setS).catch(e=>setMsg(e.message));if(role==='admin')call('/api/catalog').then(x=>setSvc(x.services)).catch(()=>{})}
- useEffect(()=>{me().then(m=>{setRole(m.role);call('/api/settings').then(setS).catch(e=>setMsg(e.message));if(m.role==='admin')call('/api/catalog').then(x=>setSvc(x.services)).catch(()=>{})}).catch(()=>{})},[])
+ useEffect(()=>{me().then(m=>{setRole(m.role);call('/api/settings').then(setS).catch(e=>setMsg(e.message));if(m.role==='admin'){call('/api/catalog').then(x=>setSvc(x.services)).catch(()=>{});subscriptionStatus().then((x:any)=>setMods(x?.modules||x?.entitlements?.modules||null)).catch(()=>{})}}).catch(()=>{})},[])
  const sub=(url:string,method:string,ok:string)=>async(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();const f=e.currentTarget;try{await call(url,method,formObj(e));if(method==='POST')f.reset();setMsg(ok);load()}catch(er:any){setMsg(er.message)}}
  if(!s||!role)return <ModuleShell title="Settings" eyebrow="TENANT" description="">{msg?<p className="err">{msg}</p>:<PageSkeleton/>}</ModuleShell>
  const h=s.hospital,sb=s.subscription,tabs=role==='billing'?['payments']:[...ADMIN_TABS]
@@ -26,8 +27,7 @@ function Settings(){const {t}=useI18n();const sp=useSearchParams();const[role,se
  const section=sp.get('section')||''
  return <ModuleShell title="Settings" eyebrow={'TENANT · '+h.code} description={role==='billing'?'Payment gateway and the list of payments on bills.':'Hospital profile, people, prices and subscription.'}>
  <Tabs items={tabs.map(id=>({id,label:t(LABEL[id]||id)}))} value={tab} extra={role==='admin'?<>
-  <Link href="/checkin-qr" className="tabLink">{t('Check-in code')}</Link>
-  <Link href="/admin/closeout" className="tabLink">{t('End of day')}</Link>
+  {NAV.filter(n=>n.inSettings&&n.roles.includes('admin')&&(!n.module||!mods||mods.includes(n.module))).map(n=><Link key={n.path} href={n.path} className="tabLink">{t(n.name)}</Link>)}
  </>:null}/>
  <ViewSwap id={tab}>
  {tab==='hospital'&&role==='admin'&&<form className="panel modulePanel" onSubmit={sub('/api/settings','PATCH','Settings saved')}><div className="formGrid"><label>Hospital name<input name="name" defaultValue={h.name}/></label><label>Address<input name="address" defaultValue={h.address||''}/></label><label>GSTIN<input name="gstin" defaultValue={h.gstin||''}/></label><label>UHID prefix<input name="uhidPrefix" defaultValue={h.uhid_prefix||''}/></label><label>Contact email<input name="contactEmail" defaultValue={h.contact_email||''}/></label><label>Contact phone<input name="contactPhone" defaultValue={h.contact_phone||''}/></label><label>Pharmacy charges<select name="pharmacyBilling" defaultValue={h.pharmacy_billing||'patient_bill'}><option value="patient_bill">Add dispensed medicines to the patient's bill</option><option value="cash_sale">Separate pharmacy cash sale (receipt at pharmacy counter)</option></select></label><label>Free follow-up window (days)<input name="followupFreeDays" type="number" min="0" max="60" defaultValue={h.followup_free_days??7}/><small>Same patient + same doctor within this many days of a billed consultation: no new consultation fee (0 = always bill).</small></label></div><p><small>Hospital code (used at login): <b>{h.code}</b></small></p><button className="primary">Save</button></form>}
