@@ -1368,3 +1368,13 @@ html body .app:not(.railOpen)>.side nav .navGroupBtn:not(#_){font-size:0;height:
 html body .app:not(.railOpen)>.side nav .navGroupBtn::before{content:none}
 html body .app:not(.railOpen)>.side nav .navGroup>.navGo{display:flex}
 }
+/* Patient flow: change arrows, load bars, suggested actions, hour/day bars */
+.chg{font-weight:600;font-size:12px}.chg.up{color:#127a44}.chg.down{color:#b3202e}.statTile .chg{margin-top:-2px}
+.loadCell{display:inline-flex;flex-direction:column;min-width:90px;gap:2px}
+.actList{display:flex;flex-direction:column;gap:8px}.actItem{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line,#e3e6eb);border-left:4px solid #9aa3b2;border-radius:10px;padding:10px 12px}.actItem p{margin:2px 0 0;color:var(--muted,#667);font-size:13px}
+.actItem.add{border-left-color:#d0424f}.actItem.improve{border-left-color:#d79a12}.actItem.watch{border-left-color:#2f7de1}.actItem.info{border-left-color:#1f9d5b}
+.actTag{flex:none;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:rgba(148,163,184,.18)}.actItem.add .actTag{background:#fde8ea;color:#a3202d}.actItem.improve .actTag{background:#fff3dc;color:#8a5a00}.actItem.watch .actTag{background:#e6f0fd;color:#1d5fb8}.actItem.info .actTag{background:#e3f6ec;color:#0f6b3d}
+.flowTwo{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.hourBars{display:flex;align-items:flex-end;gap:4px;height:140px;padding-top:6px}.hb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}.hb span{width:100%;min-height:2px;border-radius:4px 4px 0 0;background:#9cc0ee}.hb span.peak{background:#2f7de1}.hb small{font-size:10px;color:var(--muted,#667)}
+td b.bad{color:#b3202e}td b.ok{color:#127a44}td.small{font-size:12px;white-space:normal;min-width:160px}
+@media (prefers-color-scheme:dark){.chg.up{color:#7fdcaa}.chg.down{color:#f39aa3}.actItem.add .actTag{background:#3a1d24;color:#f0a8b5}.actItem.improve .actTag{background:#3d2e10;color:#f3cf86}.actItem.watch .actTag{background:#1c2c45;color:#b9d2f5}.actItem.info .actTag{background:#12372a;color:#8fe0b5}.hb span{background:#2b4a75}.hb span.peak{background:#5b9bf0}}

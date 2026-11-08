@@ -54,8 +54,16 @@ test('staff board: rostered vs logged in; patient flow: waits per department and
   const q=(await db.query("insert into doctor_queue(hospital_id,patient_id,doctor_user_id,status,checked_in_at,called_at,completed_at,visit_date) values($1,$2,$3,'checked',$4,$5,$6,'2026-11-11') returning id",[t.admin.hospitalId,p.id,doc.userId,m(-60),m(-60+w),m(-50+w)])).rows[0]
   if(i===1){const e=(await db.query("insert into encounters(hospital_id,patient_id,doctor_user_id,queue_id) values($1,$2,$3,$4) returning id",[t.admin.hospitalId,p.id,doc.userId,q.id])).rows[0];await db.query("insert into prescriptions(hospital_id,patient_id,doctor_user_id,encounter_id,status,created_at,dispensed_at) values($1,$2,$3,$4,'dispensed',$5,$6)",[t.admin.hospitalId,p.id,doc.userId,e.id,m(-30),m(-15)])}}
  const f:any=await patientFlow(db,t.admin,{from:'2026-11-11',to:'2026-11-11',now})
- const c=f.departments.find((d:any)=>d.dept==='Cardiology');assert.equal(c.visits,2);assert.equal(c.wait.avg,30);assert.equal(c.wait.max,40);assert.equal(c.consult.avg,10)
- assert.equal(f.services.pharmacy.prescriptions,1);assert.equal(f.services.pharmacy.toDispense.avg,15)
- assert.equal(f.journey[0].avg,5,'registration to check-in');assert.equal(f.journey[3].avg,15,'consult done to medicines')
+ const c=f.departments.find((d:any)=>d.dept==='Cardiology');assert.equal(c.visits,2);assert.equal(c.doctors,1);assert.equal(c.perDoctorDay,2);assert.equal(c.share,100);assert.equal(c.newPatients,2);assert.equal(c.prev,0)
+ assert.equal(f.totals.opd.value,2);assert.equal(f.totals.newPatients.value,2);assert.equal(f.totals.prescriptions.value,1)
+ const ph=f.services.find((s:any)=>s.key==='pharmacy');assert.equal(ph.volume,1);assert.equal(ph.fillRate,100)
+ const desk=f.services.find((s:any)=>s.key==='desk');assert.equal(desk.staff,1);assert.equal(desk.volume,4)
+ assert.equal(f.hourly.reduce((a:number,b:number)=>a+b,0),2);assert.equal(f.previous.from,'2026-11-10')
+ // a busy department over a week: 300 visits for one doctor -> "add a doctor"
+ const p0=await registerPatient(db,rec,{fullName:'Busy One',mobile:'9876500099',gender:'Female'})
+ await db.query("insert into doctor_queue(hospital_id,patient_id,doctor_user_id,status,checked_in_at,visit_date) select $1,$2,$3,'checked',$4::timestamptz+(g||' minutes')::interval,'2026-11-05' from generate_series(1,300) g",[t.admin.hospitalId,p0.id,doc.userId,istToUtc('2026-11-05',9*60)])
+ const w:any=await patientFlow(db,t.admin,{from:'2026-11-05',to:'2026-11-11',now})
+ assert.ok(w.actions.some((a:any)=>a.level==='add'&&/Add a doctor in Cardiology/.test(a.text)),JSON.stringify(w.actions))
+ assert.ok(w.actions.some((a:any)=>a.level==='info'&&/Busiest hour/.test(a.text)))
  await assert.rejects(patientFlow(db,t.admin,{from:'2026-11-12',to:'2026-11-11'}),(e:any)=>e.status===400)
 })
