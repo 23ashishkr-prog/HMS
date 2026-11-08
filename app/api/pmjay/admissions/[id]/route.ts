@@ -1,0 +1,4 @@
+import {api,body,qs} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {packageBill,setAdmissionScheme,applyPackage,removePackage,verifyBeneficiary} from '@/lib/services/pmjay';import {checkEligibility} from '@/lib/services/nhcx';import {HttpError} from '@/lib/services/core'
+export const GET=api(async(c,db,r,p)=>packageBill(db,c,p.id),{module:'insurance'})
+export const PATCH=api(async(c,db,r,p)=>({admission:await setAdmissionScheme(db,c,p.id,await body(r))}),{module:'ipd'})
+export const POST=api(async(c,db,r,p)=>{const b=await body(r);switch(b.action){case 'apply':return applyPackage(db,c,p.id,b);case 'remove':return removePackage(db,c,p.id);case 'verify':return verifyBeneficiary(db,c,p.id,b);case 'eligibility':return checkEligibility(db,c,p.id);default:throw new HttpError(400,'Unknown action.')}},{module:'insurance'})

@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {api} from '@/lib/api';import {schemeClaimPacket} from '@/lib/services/pmjay';export const runtime='nodejs';export const dynamic='force-dynamic'
+export const GET=api(async(c,db,r,p)=>{const {bytes,name}=await schemeClaimPacket(db,c,p.id);return new NextResponse(Buffer.from(bytes),{headers:{'content-type':'application/pdf','content-disposition':`inline; filename="${name}"`,'cache-control':'no-store'}})},{module:'insurance'})
