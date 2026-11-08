@@ -1297,3 +1297,5 @@ html body .chips .chip.on.offDoc:not(#_){opacity:1;background:#b45309!important;
 html[data-theme=dark] body .marRow,html[data-theme=dark] body .noteCard{background:#111a2e;border-color:#1e293b}html[data-theme=dark] body .marMed small,html[data-theme=dark] body .noteCard small{color:#94a3b8}
 html[data-theme=dark] body .doseChip{background:#0f172a;border-color:#334155;color:#e2e8f0}html[data-theme=dark] body .doseChip.cue-done{background:#052e24;border-color:#065f46}html[data-theme=dark] body .doseChip.cue-wait{background:#2a1a0e;border-color:#78350f}html[data-theme=dark] body .doseChip.cue-attn{background:#2a0f12;border-color:#7f1d1d}
 html[data-theme=dark] body .dsSheet{background:#fff}
+.gstBox{margin:10px 0}.gstBox>summary{cursor:pointer;font-weight:600;padding:6px 0}.gstBox .actionRow label{display:flex;gap:6px;align-items:center}
+.irn{word-break:break-all;font-size:12px}
