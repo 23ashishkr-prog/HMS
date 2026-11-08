@@ -1351,3 +1351,11 @@ td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad
 .pkgHits button:hover{background:var(--hover,#f2f5f9)}
 html[data-theme=dark] .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html[data-theme=dark] .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}
 @media (prefers-color-scheme:dark){html:not([data-theme]) .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html:not([data-theme]) .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}}
+
+/* ABDM: ABHA badge, OTP steps, Scan & Share, admin page */
+.abhaBadge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;white-space:nowrap}.abhaBadge.kyc{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+.abhaPanel .abhaSteps{display:flex;flex-direction:column;gap:10px;margin-top:8px}.abhaPanel.compact{margin:8px 0 0}.abhaConsent{display:flex;gap:8px;align-items:flex-start;max-width:640px}.warnText{color:#b45309}
+.abdmShare h2{flex-wrap:wrap}.abdmShare .qrPrint svg{width:220px;height:220px}
+.abdmTabs{margin-bottom:14px;flex-wrap:wrap}.abdmStatus.ok{border-left:4px solid #10b981!important}.abdmStatus.warn{border-left:4px solid #f59e0b!important}.abdmStatus ul{margin:6px 0 10px 18px}
+.abdmJson{max-height:360px;overflow:auto;font-size:11px;background:rgba(15,23,42,.04);padding:8px;border-radius:8px;white-space:pre-wrap;word-break:break-all}.abdmSec ul{margin:2px 0 6px 18px}.abdmForm{margin:10px 0 16px}.abdmForm .ghits{display:flex;flex-direction:column}
+html[data-theme=dark] .abhaBadge{background:#1e1b4b;color:#c7d2fe;border-color:#3730a3}html[data-theme=dark] .abhaBadge.kyc{background:#022c22;color:#a7f3d0;border-color:#065f46}html[data-theme=dark] .abdmJson{background:rgba(255,255,255,.06)}

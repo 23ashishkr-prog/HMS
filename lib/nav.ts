@@ -19,6 +19,7 @@ export const NAV:NavItem[]=[
  {name:'Patients',icon:'patients',path:'/patients',roles:['admin','reception','doctor','nurse','billing'],more:true,module:'patients'},
  {name:'Appointments',icon:'calendar',path:'/appointments',roles:['admin','reception','doctor'],more:true,module:'appointments'},
  {name:'Patient flow',icon:'dashboard',path:'/admin/flow',roles:['admin'],more:true},
+ {name:'ABDM',icon:'patients',path:'/abdm',roles:['admin'],more:true,module:'patients'},
  {name:'Staff roster',icon:'calendar',path:'/schedules',roles:['admin','doctor','nurse','reception','lab','pharmacy','billing'],more:true},
  {name:'Follow-ups',icon:'calendar',path:'/followups',roles:['admin','reception','doctor'],more:true,module:'appointments'},
  {name:'Insurance',icon:'insurance',path:'/insurance',roles:['admin','billing'],more:true,module:'insurance'},
