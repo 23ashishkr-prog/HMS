@@ -1276,3 +1276,86 @@ html body a.jobBtn:not(#_),html body button.jobBtn:not(#_){background:var(--p-na
 html[data-theme=dark] body .awayNote{background:#2a1a0e;border-color:#7c2d12;color:#fed7aa}html[data-theme=dark] body .awayNote b{color:#ffedd5}
 /* Selected off-duty doctor: full strength, amber like the "book next time" note */
 html body .chips .chip.on.offDoc:not(#_){opacity:1;background:#b45309!important;border-color:#b45309!important;color:#fff!important}html body .chips .chip.on.offDoc:not(#_) small{color:#ffedd5!important;opacity:1}
+/* Discharge summary (screen + print) */
+.dsPage{max-width:860px;margin:0 auto;padding:20px 16px 60px;background:var(--sd-bg,#f5f5f7)}.dsBar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.dsSheet{background:#fff;color:#0f172a;border:1px solid #e2e8f0;border-radius:16px;padding:28px 32px}.dsHead{display:flex;gap:14px;align-items:center;border-bottom:2px solid #0d9488;padding-bottom:12px}.dsHead img{height:52px;width:auto}.dsHead h1{margin:0;font-size:1.35rem;color:#0f172a!important;-webkit-text-fill-color:#0f172a}.dsHead small{color:#475569}
+.dsTitle{font-size:1.1rem;margin:16px 0 10px;color:#0f766e!important;-webkit-text-fill-color:#0f766e;text-transform:uppercase;letter-spacing:.06em}
+.dsGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 16px;padding:12px 0;border-bottom:1px solid #e2e8f0}.dsGrid span,.dsFoot span{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#64748b}.dsGrid b{font-size:.92rem;color:#0f172a}
+.dsSheet section{margin-top:14px}.dsSheet h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:#0f766e!important;-webkit-text-fill-color:#0f766e;margin:0 0 4px}.dsSheet p{margin:0;color:#0f172a}.dsSheet .pre{white-space:pre-wrap}
+.dsTable{width:100%;border-collapse:collapse;font-size:.9rem}.dsTable th,.dsTable td{border-bottom:1px solid #e2e8f0;padding:6px 8px;text-align:left;color:#0f172a;background:#fff!important}.dsTable th{font-size:.72rem;text-transform:uppercase;color:#64748b}
+.dsFoot{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}.dsFoot div{border-top:1px solid #94a3b8;padding-top:6px;min-width:220px}.dsFoot small{color:#64748b}
+@media (max-width:640px){.dsSheet{padding:18px}.dsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.noPrint{display:none!important}.dsPage{padding:0;max-width:none;background:#fff}.dsSheet{border:0;border-radius:0;padding:0}}
+/* Ward chart: eMAR, notes */
+.marList{display:flex;flex-direction:column;gap:10px}.marRow{display:grid;grid-template-columns:minmax(180px,1.1fr) 3fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#fff}.marRow.stopped{opacity:.6}
+.marMed b{display:block}.marMed small{color:#64748b}.marDoses{display:flex;flex-wrap:wrap;gap:6px}
+.doseChip{display:inline-flex;flex-direction:column;align-items:center;min-width:72px;padding:6px 10px;border-radius:12px;border:1px solid #e2e8f0;background:#f8fafc;color:#0f172a;line-height:1.2;cursor:pointer}.doseChip b{font-size:.92rem}.doseChip span{font-size:.7rem;color:#64748b}
+.doseChip.cue-done{background:#ecfdf5;border-color:#a7f3d0}.doseChip.cue-done span{color:#047857}.doseChip.cue-wait{background:#fffbeb;border-color:#fde68a}.doseChip.cue-wait span{color:#b45309}.doseChip.cue-attn{background:#fef2f2;border-color:#fecaca}.doseChip.cue-attn span{color:#b91c1c}.doseChip:disabled{cursor:default}
+.noteList{display:flex;flex-direction:column;gap:10px;margin-top:12px}.noteCard{border:1px solid #e2e8f0;border-left:4px solid #94a3b8;border-radius:12px;padding:10px 14px;background:#fff}.noteCard.round{border-left-color:#0d9488}.noteCard small{color:#64748b}.noteCard p{margin:4px 0 0;white-space:pre-wrap}
+.dueBadge{margin-left:6px;padding:1px 7px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:.72rem;font-weight:600}.dueBadge.late{background:#fee2e2;color:#991b1b}
+@media (max-width:760px){.marRow{grid-template-columns:1fr}}
+html[data-theme=dark] body .marRow,html[data-theme=dark] body .noteCard{background:#111a2e;border-color:#1e293b}html[data-theme=dark] body .marMed small,html[data-theme=dark] body .noteCard small{color:#94a3b8}
+html[data-theme=dark] body .doseChip{background:#0f172a;border-color:#334155;color:#e2e8f0}html[data-theme=dark] body .doseChip.cue-done{background:#052e24;border-color:#065f46}html[data-theme=dark] body .doseChip.cue-wait{background:#2a1a0e;border-color:#78350f}html[data-theme=dark] body .doseChip.cue-attn{background:#2a0f12;border-color:#7f1d1d}
+html[data-theme=dark] body .dsSheet{background:#fff}
+.gstBox{margin:10px 0}.gstBox>summary{cursor:pointer;font-weight:600;padding:6px 0}.gstBox .actionRow label{display:flex;gap:6px;align-items:center}
+.irn{word-break:break-all;font-size:12px}
+.rosterSum{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.rs_on_duty{background:#e3f6ec;color:#0f6b3d}.rs_on_leave{background:#fff3dc;color:#8a5a00}.rs_off_duty{background:#eef0f4;color:#4b5363}.rs_no_roster{background:#f6eef0;color:#8a2a3a}
+.rosterCard .roleTag,.roleTag{font-size:11px;color:var(--muted,#667);font-weight:500}.rosterTable td,.rosterTable th{white-space:nowrap;vertical-align:top}.rosterTable tr{cursor:pointer}.rosterTable tr.on td{background:rgba(16,65,118,.06)}.rosterTable .today{background:rgba(16,65,118,.05)}
+.shiftTag{display:block;font-size:12px;padding:2px 6px;margin:2px 0;border-radius:6px;background:#e8f0fb;color:#104176}.shiftTag.night{background:#2b2f4a;color:#e6e8ff}.tableScroll{overflow-x:auto}
+@media (prefers-color-scheme:dark){.rs_on_duty{background:#12372a;color:#8fe0b5}.rs_on_leave{background:#3d2e10;color:#f3cf86}.rs_off_duty{background:#262a33;color:#b5bccb}.rs_no_roster{background:#3a1d24;color:#f0a8b5}.shiftTag{background:#1c2c45;color:#b9d2f5}}
+.statGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:0 0 12px}.statTile{background:var(--card,#fff);border:1px solid var(--line,#e3e6eb);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}.statTile b{font-size:24px}.statTile small{color:var(--muted,#667)}
+.barTrack{display:block;height:6px;border-radius:3px;background:rgba(120,130,150,.18);margin-top:4px;min-width:60px;overflow:hidden}.barFill{display:block;height:100%;background:#2f7de1;border-radius:3px}.barFill.ok{background:#1f9d5b}.barFill.warn{background:#d79a12}.barFill.bad{background:#d0424f}
+td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad{color:#b3202e;font-weight:600}
+.flowJourney{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.jStep{border:1px solid var(--line,#e3e6eb);border-left:4px solid #9aa3b2;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:3px}.jStep b{font-size:20px}.jStep.ok{border-left-color:#1f9d5b}.jStep.warn{border-left-color:#d79a12}.jStep.bad{border-left-color:#d0424f}.jStep .muted{font-size:11px}
+@media (prefers-color-scheme:dark){td.ok{color:#7fdcaa}td.warn{color:#f0c96e}td.bad{color:#f39aa3}}
+/* Settings → Roles & access matrix */
+.raScroll{overflow-x:auto;margin:10px 0}.raTable th,.raTable td{text-align:center;white-space:nowrap}.raTable tbody th[scope=row]{text-align:left;font-weight:500}.raTable tr.raGroup th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted,#667085);background:rgba(120,130,150,.08)}
+.raCell.ovr{background:rgba(245,166,35,.14)}.raToggle{display:inline-flex;align-items:center;gap:4px;cursor:pointer}.raToggle input{width:18px;height:18px;cursor:pointer}.raToggle input:disabled{cursor:not-allowed}.raMark{color:#d48806;font-size:11px}.raReset{display:block;margin:2px auto 0;font-size:11px;padding:1px 6px}
+.noAccess{text-align:center;padding:32px 16px}.noAccess .primary{display:inline-block;margin-top:8px;text-decoration:none}
+@media (prefers-color-scheme:dark){.raCell.ovr{background:rgba(245,166,35,.18)}.raMark{color:#f0c96e}}
+/* Operation theatre board and case drawer */
+.otBoard{display:flex;flex-direction:column;gap:6px;overflow-x:auto;padding-bottom:6px}.otRow{display:grid;grid-template-columns:110px minmax(640px,1fr);gap:8px;align-items:stretch}.otRoom{display:flex;flex-direction:column;justify-content:center;font-size:13px}
+.otTrack{position:relative;min-height:74px;border:1px solid var(--line,#e3e6eb);border-radius:10px;background:rgba(127,127,127,.04)}.otHead .otTrack{min-height:20px;border:0;background:none}.otTick{position:absolute;top:2px;transform:translateX(-50%);font-size:11px;color:var(--muted,#747479)}
+.otLine{position:absolute;top:0;bottom:0;border-left:1px dashed rgba(127,127,127,.18)}.otNow{position:absolute;top:-2px;bottom:-2px;border-left:2px solid #d0424f;z-index:2}
+.otCase{position:absolute;top:4px;bottom:4px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:4px 7px;border-radius:8px;border:1px solid #5A80B8;border-left:4px solid #104176;background:#e8f0fb;color:#0b2e55;text-align:left;overflow:hidden;cursor:pointer;font-size:12px;min-width:0;z-index:1}
+.otCase b,.otCase small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.otCase small{font-size:11px;opacity:.85}
+.otCase.in_progress{background:#fff4dc;border-color:#d79a12;border-left-color:#9a6a00;color:#4d3500}.otCase.completed{background:#e4f6ec;border-color:#1f9d5b;border-left-color:#13683b;color:#0d4527}.otCase.cancelled{background:#f1f1f1;border-color:#bbb;border-left-color:#999;color:#666;text-decoration:line-through;opacity:.7}
+.otCase.emergency{box-shadow:inset 0 0 0 2px #d0424f}
+.otPill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;background:#e8f0fb;color:#0b2e55}.otPill.in_progress{background:#fff4dc;color:#7a5200}.otPill.completed{background:#e4f6ec;color:#13683b}.otPill.cancelled{background:#eee;color:#666}
+.otList{margin-top:14px}.otRooms{margin-top:10px}.otPick{display:flex;flex-wrap:wrap;gap:6px 14px;border:1px solid var(--line,#e3e6eb);border-radius:10px;padding:8px 12px;margin:8px 0}.otCheck{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;font-weight:400}
+.otDl{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;margin:12px 0}.otDl dt{color:var(--muted,#747479);font-size:13px}.otDl dd{margin:0}
+.otSteps{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px}.otSteps li{border:1px solid var(--line,#e3e6eb);border-left:4px solid #d79a12;border-radius:8px;padding:7px 10px;font-size:14px}.otSteps li.done{border-left-color:#1f9d5b}
+.otChecklist,.otNote{display:flex;flex-direction:column;gap:8px;margin-top:10px}.otItem{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 14px;padding:8px 10px;border:1px solid var(--line,#e3e6eb);border-left:4px solid #d79a12;border-radius:8px}.otItem.ok{border-left-color:#1f9d5b}.otOpts{display:flex;flex-wrap:wrap;gap:12px}
+@media (prefers-color-scheme:dark){.otCase{background:#1b2a40;color:#dbe7fb}.otCase.in_progress{background:#3a2e12;color:#f6dfa8}.otCase.completed{background:#143323;color:#bfeed3}.otCase.cancelled{background:#2a2a2a;color:#aaa}}
+@media print{.otBoard .otNow{display:none}}
+/* Emergency board: colour triage cards */
+.erBoard{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px}.erCard{background:var(--card,#fff);border:1px solid var(--line,#e3e6eb);border-left:8px solid #9aa3b2;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}.erCard header{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.erCard p{margin:0}.erCard .actionRow{flex-wrap:wrap;gap:6px}
+.erCard.er_red{border-left-color:#d0242f;background:#fff1f1}.erCard.er_orange{border-left-color:#ea7a11;background:#fff6ec}.erCard.er_yellow{border-left-color:#e2b500;background:#fffbe6}.erCard.er_green{border-left-color:#1f9d5b;background:#f0faf4}.erCard.er_black{border-left-color:#111;background:#f1f1f2}.erCard.er_untriaged{border-left-style:dashed}
+.erCard.late{box-shadow:0 0 0 2px #d0242f inset}.erTimes{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}.erTimes .bad{color:#b3202e;font-weight:700}.erMlc{background:#3b0d0d!important;color:#fff!important}
+.erStat{border-left:6px solid #9aa3b2}.erStat.er_red{border-left-color:#d0242f}.erStat.er_orange{border-left-color:#ea7a11}.erStat.er_yellow{border-left-color:#e2b500}.erStat.er_green{border-left-color:#1f9d5b}.erStat.er_black{border-left-color:#111}.erStat small{text-transform:capitalize}
+.erLevels{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}.erLevel{display:flex;gap:8px;align-items:center;border-radius:10px;padding:10px;border:2px solid transparent;cursor:pointer;font-weight:600}.erLevel:has(input:checked){border-color:#111}.erLevel.er_red{background:#fde2e2}.erLevel.er_orange{background:#ffe8d1}.erLevel.er_yellow{background:#fff4bf}.erLevel.er_green{background:#d9f3e4}.erLevel.er_black{background:#2a2a2d;color:#fff}
+.erCheck{justify-content:flex-end}.mlcRef{display:flex;justify-content:space-between;margin:14px 0!important}
+@media (prefers-color-scheme:dark){.erCard.er_red{background:#3a1416}.erCard.er_orange{background:#3a2412}.erCard.er_yellow{background:#36300e}.erCard.er_green{background:#12302a}.erCard.er_black{background:#1b1b1d}}
+/* Radiology */
+.radModFilter{margin:4px 0 12px}.radActs{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:6px}td.radActs{margin:0}.radPanel .sheetHead>span{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.radPanel form,.radPanel>div{margin-top:12px}
+.radField{display:flex;flex-direction:column;gap:4px;margin:8px 0}.radField textarea{width:100%;font:inherit;line-height:1.45}.radReport h4{margin:10px 0 2px}.radReport .pre,.dsSheet .pre{white-space:pre-wrap}tr.rowOn td{background:rgba(47,125,225,.08)}
+
+/* PM-JAY / NHCX (insurance tabs) */
+.insTabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.nhcxBanner{padding:10px 12px;border-radius:10px;border:1px solid #f0c36d;background:#fff8e6;color:#5c4400;font-size:.9rem;margin:0 0 12px}
+.nhcxBanner.live{border-color:#8fd19e;background:#eefaf1;color:#1d5b2c}
+.pkgPicker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:relative}
+.pkgPicker input[type=number]{padding:2px 4px}
+.pkgHits{list-style:none;margin:4px 0 0;padding:4px;position:absolute;top:100%;left:0;z-index:20;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:8px;max-width:100%;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.pkgHits button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 8px;cursor:pointer}
+.pkgHits button:hover{background:var(--hover,#f2f5f9)}
+html[data-theme=dark] .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html[data-theme=dark] .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}
+@media (prefers-color-scheme:dark){html:not([data-theme]) .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html:not([data-theme]) .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}}
+
+/* ABDM: ABHA badge, OTP steps, Scan & Share, admin page */
+.abhaBadge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;white-space:nowrap}.abhaBadge.kyc{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+.abhaPanel .abhaSteps{display:flex;flex-direction:column;gap:10px;margin-top:8px}.abhaPanel.compact{margin:8px 0 0}.abhaConsent{display:flex;gap:8px;align-items:flex-start;max-width:640px}.warnText{color:#b45309}
+.abdmShare h2{flex-wrap:wrap}.abdmShare .qrPrint svg{width:220px;height:220px}
+.abdmTabs{margin-bottom:14px;flex-wrap:wrap}.abdmStatus.ok{border-left:4px solid #10b981!important}.abdmStatus.warn{border-left:4px solid #f59e0b!important}.abdmStatus ul{margin:6px 0 10px 18px}
+.abdmJson{max-height:360px;overflow:auto;font-size:11px;background:rgba(15,23,42,.04);padding:8px;border-radius:8px;white-space:pre-wrap;word-break:break-all}.abdmSec ul{margin:2px 0 6px 18px}.abdmForm{margin:10px 0 16px}.abdmForm .ghits{display:flex;flex-direction:column}
+html[data-theme=dark] .abhaBadge{background:#1e1b4b;color:#c7d2fe;border-color:#3730a3}html[data-theme=dark] .abhaBadge.kyc{background:#022c22;color:#a7f3d0;border-color:#065f46}html[data-theme=dark] .abdmJson{background:rgba(255,255,255,.06)}

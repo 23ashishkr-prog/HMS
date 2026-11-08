@@ -11,11 +11,16 @@ export const NAV:NavItem[]=[
  {name:'Bills',icon:'billing',path:'/billing',roles:['admin','billing','reception'],module:'billing'},
  {name:'Pharmacy',icon:'pharmacy',path:'/pharmacy',roles:['admin','pharmacy'],module:'pharmacy'},
  {name:'Lab',icon:'lab',path:'/laboratory',roles:['admin','lab'],module:'lab'},
+ {name:'Radiology',icon:'lab',path:'/radiology',roles:['admin','lab','doctor'],module:'lab'},
  {name:'Beds',icon:'ipd',path:'/ipd',roles:['admin','reception','doctor','nurse','billing'],module:'ipd'},
+ {name:'Operation theatre',icon:'beds',path:'/ot',roles:['admin','doctor','nurse'],module:'ipd'},
+ {name:'Emergency',icon:'queue',path:'/emergency',roles:['admin','doctor','nurse','reception'],module:'opd'},
  {name:'Ready to leave',icon:'audit',path:'/clearance',roles:['admin','billing','reception','doctor','nurse','lab','pharmacy'],module:'billing'},
  {name:'Patients',icon:'patients',path:'/patients',roles:['admin','reception','doctor','nurse','billing'],more:true,module:'patients'},
  {name:'Appointments',icon:'calendar',path:'/appointments',roles:['admin','reception','doctor'],more:true,module:'appointments'},
- {name:'Doctor hours',icon:'calendar',path:'/schedules',roles:['admin','doctor','reception'],more:true,module:'appointments'},
+ {name:'Patient flow',icon:'dashboard',path:'/admin/flow',roles:['admin'],more:true},
+ {name:'ABDM',icon:'patients',path:'/abdm',roles:['admin'],more:true,module:'patients'},
+ {name:'Staff roster',icon:'calendar',path:'/schedules',roles:['admin','doctor','nurse','reception','lab','pharmacy','billing'],more:true},
  {name:'Follow-ups',icon:'calendar',path:'/followups',roles:['admin','reception','doctor'],more:true,module:'appointments'},
  {name:'Insurance',icon:'insurance',path:'/insurance',roles:['admin','billing'],more:true,module:'insurance'},
  {name:'Check-in code',icon:'queue',path:'/checkin-qr',roles:['admin','reception'],more:true,module:'queue',inSettings:true},
@@ -25,6 +30,10 @@ export const NAV:NavItem[]=[
  {name:'Activity',icon:'audit',path:'/admin/audit',roles:['admin'],more:true,module:'audit',inSettings:true}]
 export const HOME:Record<Role,string>={admin:'/dashboard',reception:'/frontdesk',doctor:'/opd',nurse:'/opd',lab:'/laboratory',pharmacy:'/pharmacy',billing:'/billing',patient:'/auth/login'}
 /** Filter by role + plan modules. Locked items returned separately for upgrade CTA. */
-export function navFor(role:Role,modules?:string[]|null){const mods=modules||null;const open:NavItem[]=[],locked:NavItem[]=[]
- for(const n of NAV){if(!n.roles.includes(role))continue;if(n.inSettings&&role==='admin')continue;if(n.module&&mods&&!mods.includes(n.module))locked.push(n);else open.push(n)}
+/** Role access with the hospital's overrides (Settings → Roles & access): path → allowed. Admin and Home are fixed. */
+export type Access=Record<string,boolean>|null|undefined
+export const ALWAYS_ON='/dashboard'
+export function canSee(role:Role,path:string,access?:Access){const n=NAV.find(x=>x.path===path);if(!n)return true;if(role==='admin'||path===ALWAYS_ON||!access||access[path]==null)return n.roles.includes(role);return !!access[path]}
+export function navFor(role:Role,modules?:string[]|null,access?:Access){const mods=modules||null;const open:NavItem[]=[],locked:NavItem[]=[]
+ for(const n of NAV){if(!canSee(role,n.path,access))continue;if(n.inSettings&&role==='admin')continue;if(n.module&&mods&&!mods.includes(n.module))locked.push(n);else open.push(n)}
  return {open,locked}}

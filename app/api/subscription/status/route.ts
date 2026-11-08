@@ -3,6 +3,7 @@ import {getSubscription,entitlements} from '@/lib/services/tenancy'
 import {activeNotices} from '@/lib/services/lifecycle'
 import {TRIAL_DAYS,PLAN_CATALOGUE,aiFeaturesFor,canonicalPlan} from '@/lib/plans'
 import {paymentsConfiguredAsync} from '@/lib/services/platformGateway'
+import {accessFor} from '@/lib/services/roleaccess'
 export const runtime='nodejs';export const dynamic='force-dynamic'
 export const GET=api(async(c,db)=>{
  const s=await getSubscription(db,c.hospitalId)
@@ -12,7 +13,7 @@ export const GET=api(async(c,db)=>{
  const cap=(await db.query('select ai_monthly_token_cap from hospitals where id=$1',[c.hospitalId])).rows[0]
  return {
   plan:s?.plan_name,planCode:s?.plan_code,status:s?.lifecycle?.status||s?.status,lifecycle:s?.lifecycle,
-  usable:!!s?.usable,role:c.role,notices:await activeNotices(db,c.hospitalId),modules:e.modules,entitlements:e,
+  usable:!!s?.usable,role:c.role,access:await accessFor(db,c),notices:await activeNotices(db,c.hospitalId),modules:e.modules,entitlements:e,
   trialDays:TRIAL_DAYS(),
   plans:(await db.query('select code,name,monthly_price_inr,modules from plans where active order by sort')).rows,
   catalogue:PLAN_CATALOGUE,

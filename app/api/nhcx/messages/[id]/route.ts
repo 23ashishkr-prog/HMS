@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server';import {api,qs} from '@/lib/api';import {getMessage} from '@/lib/services/nhcx';export const runtime='nodejs';export const dynamic='force-dynamic'
+/** Download the stored FHIR bundle (?part=response for the gateway's reply). */
+export const GET=api(async(c,db,r,p)=>{const m=await getMessage(db,c,p.id);const part=qs(r,'part')==='response'?'response':'request';return new NextResponse(JSON.stringify(m[part]??{},null,2),{headers:{'content-type':'application/fhir+json','content-disposition':`attachment; filename="nhcx-${m.entity}-${part}-${String(m.correlation_id).slice(0,8)}.json"`,'cache-control':'no-store'}})},{module:'insurance'})

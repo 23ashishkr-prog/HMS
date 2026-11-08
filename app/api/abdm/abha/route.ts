@@ -1,0 +1,4 @@
+import {api,body,qs} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {abhaCard,abhaChoose,abhaLink,abhaStart,abhaVerify,patientAbha} from '@/lib/services/abdm';import {HttpError} from '@/lib/services/core'
+/** ABHA OTP steps: start (send OTP) → verify → [choose] → link. Card while the patient's login is fresh. */
+export const GET=api(async(c,db,r)=>patientAbha(db,c,qs(r,'patientId')),{module:'patients'})
+export const POST=api(async(c,db,r)=>{const b=await body(r);switch(b.step){case 'start':return abhaStart(db,c,b);case 'verify':return abhaVerify(db,c,b);case 'choose':return abhaChoose(db,c,b);case 'link':return abhaLink(db,c,b);case 'card':return abhaCard(db,c,String(b.sessionId||''));default:throw new HttpError(400,'Unknown ABHA step.')}},{module:'patients'})

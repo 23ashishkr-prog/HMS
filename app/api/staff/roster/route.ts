@@ -1,0 +1,3 @@
+import {api,body,qs} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {roster,staffBoard,saveShifts,addStaffLeave,deleteStaffLeave} from '@/lib/services/roster';import {HttpError} from '@/lib/services/core'
+export const GET=api(async(c,db,r)=>qs(r,'board')?staffBoard(db,c):roster(db,c,{role:qs(r,'role')||undefined}))
+export const POST=api(async(c,db,r)=>{const b:any=await body(r);if(b.action==='shifts')return saveShifts(db,c,b.userId,b.shifts);if(b.action==='leave')return addStaffLeave(db,c,b.userId,b);if(b.action==='deleteLeave')return deleteStaffLeave(db,c,b.leaveId);throw new HttpError(400,'Unknown action')})

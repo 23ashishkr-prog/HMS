@@ -1,0 +1,4 @@
+import {api,body} from '@/lib/api';export const runtime='nodejs';export const dynamic='force-dynamic';import {HttpError} from '@/lib/services/core';import {getVisit,triage,assignDoctor,markSeen,identify,dispose,markMlc} from '@/lib/services/emergency'
+export const GET=api(async(c,db,_r,p)=>getVisit(db,c,p.id),{module:'opd'})
+/** One endpoint per ER visit; body.action picks the step. */
+export const POST=api(async(c,db,r,p)=>{const b=await body(r);switch(b.action){case 'triage':return {visit:await triage(db,c,p.id,b)};case 'assign':return {visit:await assignDoctor(db,c,p.id,b)};case 'seen':return {visit:await markSeen(db,c,p.id)};case 'identify':return {patient:await identify(db,c,p.id,b)};case 'dispose':return {visit:await dispose(db,c,p.id,b)};case 'mlc':return {mlc:await markMlc(db,c,p.id,b)};default:throw new HttpError(400,'Unknown action.')}},{module:'opd',idempotent:true})
