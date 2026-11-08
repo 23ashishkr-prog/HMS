@@ -1274,3 +1274,5 @@ html body a.jobBtn:not(#_),html body button.jobBtn:not(#_){background:var(--p-na
 /* Front desk: doctor not in OPD -> book next open time */
 .awayNote{margin:10px 0 4px;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;font-size:.92rem;line-height:1.45}.awayNote b{color:#7c2d12}
 html[data-theme=dark] body .awayNote{background:#2a1a0e;border-color:#7c2d12;color:#fed7aa}html[data-theme=dark] body .awayNote b{color:#ffedd5}
+/* Selected off-duty doctor: full strength, amber like the "book next time" note */
+html body .chips .chip.on.offDoc:not(#_){opacity:1;background:#b45309!important;border-color:#b45309!important;color:#fff!important}html body .chips .chip.on.offDoc:not(#_) small{color:#ffedd5!important;opacity:1}
