@@ -26,6 +26,10 @@ export const NAV:NavItem[]=[
  {name:'Activity',icon:'audit',path:'/admin/audit',roles:['admin'],more:true,module:'audit',inSettings:true}]
 export const HOME:Record<Role,string>={admin:'/dashboard',reception:'/frontdesk',doctor:'/opd',nurse:'/opd',lab:'/laboratory',pharmacy:'/pharmacy',billing:'/billing',patient:'/auth/login'}
 /** Filter by role + plan modules. Locked items returned separately for upgrade CTA. */
-export function navFor(role:Role,modules?:string[]|null){const mods=modules||null;const open:NavItem[]=[],locked:NavItem[]=[]
- for(const n of NAV){if(!n.roles.includes(role))continue;if(n.inSettings&&role==='admin')continue;if(n.module&&mods&&!mods.includes(n.module))locked.push(n);else open.push(n)}
+/** Role access with the hospital's overrides (Settings → Roles & access): path → allowed. Admin and Home are fixed. */
+export type Access=Record<string,boolean>|null|undefined
+export const ALWAYS_ON='/dashboard'
+export function canSee(role:Role,path:string,access?:Access){const n=NAV.find(x=>x.path===path);if(!n)return true;if(role==='admin'||path===ALWAYS_ON||!access||access[path]==null)return n.roles.includes(role);return !!access[path]}
+export function navFor(role:Role,modules?:string[]|null,access?:Access){const mods=modules||null;const open:NavItem[]=[],locked:NavItem[]=[]
+ for(const n of NAV){if(!canSee(role,n.path,access))continue;if(n.inSettings&&role==='admin')continue;if(n.module&&mods&&!mods.includes(n.module))locked.push(n);else open.push(n)}
  return {open,locked}}
