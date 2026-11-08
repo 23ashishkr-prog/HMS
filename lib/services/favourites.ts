@@ -2,6 +2,7 @@
 import {Ctx,Db,HttpError} from './core'
 import {Role,navFor} from '../nav'
 import {getSubscription} from './tenancy'
+import {accessFor} from './roleaccess'
 
 export const AUTO_MIN_HITS=5
 export const AUTO_MIN_DAYS=2
@@ -19,7 +20,7 @@ export function cleanNavPath(raw:unknown){
 
 async function allowed(db:Db,ctx:Ctx){
  const sub=await getSubscription(db,ctx.hospitalId)
- const {open}=navFor(ctx.role as Role,sub?.modules||null)
+ const {open}=navFor(ctx.role as Role,sub?.modules||null,await accessFor(db,ctx))
  return new Map(open.map(n=>[n.path,n]))
 }
 
