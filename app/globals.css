@@ -1308,3 +1308,6 @@ html[data-theme=dark] body .dsSheet{background:#fff}
 td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad{color:#b3202e;font-weight:600}
 .flowJourney{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.jStep{border:1px solid var(--line,#e3e6eb);border-left:4px solid #9aa3b2;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:3px}.jStep b{font-size:20px}.jStep.ok{border-left-color:#1f9d5b}.jStep.warn{border-left-color:#d79a12}.jStep.bad{border-left-color:#d0424f}.jStep .muted{font-size:11px}
 @media (prefers-color-scheme:dark){td.ok{color:#7fdcaa}td.warn{color:#f0c96e}td.bad{color:#f39aa3}}
+/* Radiology */
+.radModFilter{margin:4px 0 12px}.radActs{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:6px}td.radActs{margin:0}.radPanel .sheetHead>span{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.radPanel form,.radPanel>div{margin-top:12px}
+.radField{display:flex;flex-direction:column;gap:4px;margin:8px 0}.radField textarea{width:100%;font:inherit;line-height:1.45}.radReport h4{margin:10px 0 2px}.radReport .pre,.dsSheet .pre{white-space:pre-wrap}tr.rowOn td{background:rgba(47,125,225,.08)}

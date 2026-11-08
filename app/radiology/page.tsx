@@ -1,0 +1,56 @@
+'use client'
+import {Suspense,useEffect,useState} from 'react';import {useRouter,useSearchParams,usePathname} from 'next/navigation';import Link from 'next/link'
+import ModuleShell from '@/components/ModuleShell';import {Tabs,ViewSwap} from '@/components/Tabs';import {tabValue,withTab} from '@/lib/tabs';import {call,dt,me as whoAmI} from '@/lib/client';import {toast,toastErr} from '@/lib/toast';import {useI18n} from '@/components/I18n'
+import {MODALITIES,REPORT_TEMPLATES,modalityLabel} from '@/lib/radiology'
+const STATUSES=[{id:'new',label:'To schedule'},{id:'scheduled',label:'Scheduled'},{id:'acquired',label:'To report'},{id:'reported',label:'To verify'},{id:'verified',label:'Verified'},{id:'all',label:'All'}]
+const MODS=[{id:'all',label:'All'},...MODALITIES.map(m=>({id:m.id,label:m.label}))]
+const STATUS_LABEL:Record<string,string>={new:'To schedule',scheduled:'Scheduled',acquired:'Images taken',reported:'Reported',verified:'Verified'}
+const local=(s?:string|null)=>{if(!s)return '';const d=new Date(new Date(s).getTime()+330*60000);return d.toISOString().slice(0,16)}
+const openImages=(url:string)=>window.open(url,'_blank','noopener,noreferrer')
+function Radiology(){const {t}=useI18n();const sp=useSearchParams(),router=useRouter(),path=usePathname();const status=tabValue(sp.toString(),'status',STATUSES.map(s=>s.id),'new'),modality=tabValue(sp.toString(),'modality',MODS.map(m=>m.id),'all'),orderParam=sp.get('order')
+ const[rows,setRows]=useState<any[]|null>(null),[me,setMe]=useState<any>(null),[sel,setSel]=useState<any>(null)
+ const load=()=>call(`/api/radiology?status=${status}${modality!=='all'?'&modality='+modality:''}`).then(x=>setRows(x.studies)).catch(e=>{toastErr(e);setRows([])})
+ useEffect(()=>{setRows(null);load()},[status,modality]);useEffect(()=>{whoAmI().then(setMe).catch(()=>{})},[])
+ useEffect(()=>{if(orderParam)call('/api/radiology/'+orderParam).then(x=>setSel(x.study)).catch(toastErr);else setSel(null)},[orderParam])
+ const pick=(id:string|null)=>{const q=new URLSearchParams(sp.toString());if(id)q.set('order',id);else q.delete('order');const s=q.toString();router.replace(path+(s?'?'+s:''),{scroll:false})}
+ const done=(s:any)=>{setSel(s);load()}
+ return <ModuleShell title="Radiology" eyebrow="Imaging" description="Schedule the scan, take the images, report and verify. Open images in your PACS viewer.">
+  <div className="tabRow"><Tabs items={STATUSES.map(s=>({...s,label:t(s.label)}))} value={status} param="status"/></div>
+  <div className="chips radModFilter">{MODS.map(m=><button key={m.id} type="button" className={'chip'+(modality===m.id?' on':'')} onClick={()=>router.replace(path+withTab(sp.toString(),'modality',m.id,'all'),{scroll:false})}>{m.label}</button>)}</div>
+  {sel&&me&&<StudyPanel s={sel} role={me.role} onDone={done} onClose={()=>pick(null)}/>}
+  <ViewSwap id={status+'/'+modality} pending={rows===null}><div className="panel modulePanel"><table className="dataTable"><thead><tr><th>When</th><th>Patient</th><th>Study</th><th>Accession</th><th>Status</th><th>Doctor</th><th></th></tr></thead><tbody>
+   {(rows||[]).map(o=><tr key={o.order_id} className={sel?.order_id===o.order_id?'rowOn':''}><td>{o.scheduled_at?<>{dt(o.scheduled_at)}<br/><small>slot{o.room?' · '+o.room:''}</small></>:dt(o.ordered_at)}</td><td>{o.full_name}<br/><small>{o.uhid}{o.gender?' · '+o.gender:''}</small></td>
+    <td>{o.test_name}<br/><small>{modalityLabel(o.modality)}{o.body_part?' · '+o.body_part:''}{o.contrast?' · with contrast':''}</small>{o.priority!=='routine'&&<> <span className={'pill '+(o.priority==='stat'?'danger':'warnPill')}>{o.priority}</span></>}</td>
+    <td>{o.accession_no||'—'}</td><td><span className={'pill'+(o.study_status==='verified'?' okPill':'')}>{STATUS_LABEL[o.study_status]||o.study_status}</span>{o.critical&&<> <span className="pill danger">{o.critical_ack_at?'critical · seen':'CRITICAL'}</span></>}{o.issues?.length>0&&!o.safety_override&&['new','scheduled'].includes(o.study_status)&&o.contrast&&<><br/><small className="err">Safety check open</small></>}</td>
+    <td>{o.ordered_by_name}</td><td className="radActs"><button onClick={()=>pick(o.order_id)}>Open</button>{o.viewer_url&&<button onClick={()=>openImages(o.viewer_url)}>Open images</button>}{['reported','verified'].includes(o.study_status)&&<Link className="btnLink" href={'/radiology/report/'+o.order_id} target="_blank">Report</Link>}</td></tr>)}
+  </tbody></table>{rows&&rows.length===0&&<p className="emptyState">No {status==='all'?'':(STATUS_LABEL[status]||status).toLowerCase()+' '}studies{modality!=='all'?' for '+modalityLabel(modality):''}. Scans appear here when a doctor orders a radiology test.</p>}</div></ViewSwap>
+ </ModuleShell>}
+function StudyPanel({s,role,onDone,onClose}:{s:any;role:string;onDone:(s:any)=>void;onClose:()=>void}){const[busy,setBusy]=useState(false);const isDoc=role==='doctor'||role==='admin',isTech=role==='lab'||role==='admin'
+ const[rep,setRep]=useState({technique:s.technique||'',findings:s.findings||'',impression:s.impression||'',critical:!!s.critical});useEffect(()=>{setRep({technique:s.technique||'',findings:s.findings||'',impression:s.impression||'',critical:!!s.critical})},[s.order_id,s.reported_at])
+ async function act(b:any,ok:string){setBusy(true);try{const r=await call('/api/radiology/'+s.order_id,'PATCH',b);toast(ok+(r.study?.notified?.queued?` · ${r.study.notified.doctor||'ordering doctor'} alerted`:''));onDone(r.study)}catch(e:any){toastErr(e)}finally{setBusy(false)}}
+ const form=(e:React.FormEvent<HTMLFormElement>)=>{const f=new FormData(e.currentTarget);const o:any={};f.forEach((v,k)=>{o[k]=String(v)});return o}
+ const st=s.study_status,canSchedule=['new','scheduled'].includes(st)&&(isTech||isDoc)
+ return <div className="panel modulePanel radPanel"><div className="sheetHead"><b>{s.full_name} · {s.uhid} · {s.test_name}</b><span><span className={'pill'+(st==='verified'?' okPill':'')}>{STATUS_LABEL[st]||st}</span>{s.viewer_url&&<button onClick={()=>openImages(s.viewer_url)}>Open images</button>}<button onClick={onClose}>Close</button></span></div>
+  <p className="muted"><small>Ordered {dt(s.ordered_at)} by {s.ordered_by_name}{s.clinical_notes?' · '+s.clinical_notes:''}{s.accession_no?' · Accession '+s.accession_no:''}{s.study_instance_uid?' · Study UID '+s.study_instance_uid:''}</small></p>
+  {canSchedule&&<form onSubmit={e=>{e.preventDefault();const o=form(e);act({action:'schedule',...o,contrast:o.contrast==='on'},'Saved')}}><h3>Schedule and safety check</h3><div className="formGrid">
+   <label>Modality<select name="modality" defaultValue={s.modality}>{MODALITIES.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</select></label><label>Body part<input name="bodyPart" defaultValue={s.body_part||''} placeholder="e.g. Chest, Brain, Left knee"/></label>
+   <label>Slot<input type="datetime-local" name="scheduledAt" defaultValue={local(s.scheduled_at)}/></label><label>Room / machine<input name="room" defaultValue={s.room||''}/></label>
+   <label><input type="checkbox" name="contrast" defaultChecked={s.contrast}/> With contrast</label><label>Contrast agent<input name="contrastAgent" defaultValue={s.contrast_agent||''} placeholder="e.g. Iohexol, Gadobutrol"/></label>
+   <label>Contrast allergy<select name="allergyStatus" defaultValue={s.allergy_status||'unknown'}><option value="unknown">Not asked</option><option value="none">No known allergy</option><option value="known">Known allergy</option></select></label><label>Allergy note<input name="allergyNote" defaultValue={s.allergy_note||''}/></label>
+   <label>Serum creatinine (mg/dL)<input name="creatinine" inputMode="decimal" defaultValue={s.creatinine??''}/></label>
+   <label>Pregnancy<select name="pregnancyStatus" defaultValue={s.pregnancy_status||'unknown'}><option value="unknown">Not confirmed</option><option value="not_pregnant">Not pregnant</option><option value="pregnant">Pregnant</option><option value="na">Not applicable</option></select></label>
+   {isDoc&&s.issues?.length>0&&<label style={{gridColumn:'1/-1'}}>Doctor override (reason)<input name="overrideReason" placeholder="Why the scan should go ahead despite the safety issues"/></label>}
+  </div>{s.issues?.length>0&&<p className={s.safety_override?'muted':'err'}><small>{s.safety_override?'Overridden: '+s.safety_override+' · ':'Before acquiring: '}{s.issues.join(' · ')}</small></p>}<button className="primary" disabled={busy}>Save</button></form>}
+  {canSchedule&&isTech&&<form onSubmit={e=>{e.preventDefault();act({action:'acquire',...form(e)},'Images taken')}}><h3>Images taken</h3><div className="formGrid"><label>Accession number<input name="accession" defaultValue={s.accession_no||''} placeholder="Generated if left blank" maxLength={16}/></label><label>Study Instance UID<input name="studyInstanceUid" placeholder="From the modality, or leave blank to generate" maxLength={64}/></label></div><button className="primary" disabled={busy}>Mark images taken</button></form>}
+  {['acquired','reported'].includes(st)&&isDoc&&<div><h3>Report</h3><p><button type="button" onClick={()=>{const tp=(REPORT_TEMPLATES as any)[s.modality];if(tp)setRep(r=>({...r,...tp}))}}>Use {modalityLabel(s.modality)} template</button></p>
+   <label className="radField">Technique<textarea rows={2} value={rep.technique} onChange={e=>setRep(r=>({...r,technique:e.target.value}))}/></label>
+   <label className="radField">Findings *<textarea rows={8} value={rep.findings} onChange={e=>setRep(r=>({...r,findings:e.target.value}))}/></label>
+   <label className="radField">Impression *<textarea rows={3} value={rep.impression} onChange={e=>setRep(r=>({...r,impression:e.target.value}))}/></label>
+   <label><input type="checkbox" checked={rep.critical} onChange={e=>setRep(r=>({...r,critical:e.target.checked}))}/> Critical finding: alert the ordering doctor now</label>
+   <p className="radActs"><button disabled={busy} onClick={()=>act({action:'report',...rep},'Report saved')}>Save report</button><button className="primary" disabled={busy} onClick={()=>act({action:'report',...rep,verify:true},'Report verified')}>Save and verify</button>{st==='reported'&&<button disabled={busy} onClick={()=>act({action:'verify'},'Report verified')}>Verify as is</button>}</p></div>}
+  {['acquired','reported'].includes(st)&&!isDoc&&<p className="muted">Waiting for the radiologist's report.</p>}
+  {st==='verified'&&<div className="radReport">{s.technique&&<><h4>Technique</h4><p className="pre">{s.technique}</p></>}<h4>Findings</h4><p className="pre">{s.findings}</p><h4>Impression</h4><p className="pre"><b>{s.impression}</b></p><small className="muted">Reported by {s.radiologist_name} · verified by {s.verified_by_name} {dt(s.verified_at)}</small></div>}
+  {s.critical&&<p>{s.critical_ack_at?<small className="muted">Critical finding acknowledged by {s.critical_ack_name} {dt(s.critical_ack_at)}</small>:<><span className="pill danger">Critical finding not yet acknowledged</span>{isDoc&&<button disabled={busy} onClick={()=>act({action:'ack'},'Acknowledged')}>Acknowledge</button>}</>}</p>}
+  {['reported','verified'].includes(st)&&<p><Link className="btnLink" href={'/radiology/report/'+s.order_id} target="_blank">Print report</Link></p>}
+ </div>}
+export default function Page(){return <Suspense fallback={null}><Radiology/></Suspense>}
