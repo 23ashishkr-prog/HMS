@@ -46,7 +46,7 @@ test('end-to-end OPD → lab → pharmacy → billing → IPD → TPA', async()=
  assert.equal((await bedBoard(db,rec))[0].patient_id,p2.id)
  const c=await createClaim(db,bill,{patientId:p2.id,admissionId:a.id,payerName:'Star Health',tpaName:'MediAssist',policyNumber:'P-1',claimedAmount:20000})
  await rejects(updateClaim(db,bill,c.id,{status:'settled',approvedAmount:1}),409);await updateClaim(db,bill,c.id,{status:'preauth_approved',approvedAmount:15000})
- await rejects(discharge(db,doc,a.id,{summary:'ok'}),400);await discharge(db,doc,a.id,{summary:'Recovered',diagnosis:'Dengue fever'})
+ await rejects(discharge(db,doc,a.id,{summary:'ok'}),400);await db.query("insert into patient_clearances(hospital_id,patient_id,since,status,clearance_no,cleared_at) select hospital_id,patient_id,admitted_at,'cleared','CLR/T/1',now() from admissions where id=$1",[a.id]);await discharge(db,doc,a.id,{summary:'Recovered',diagnosis:'Dengue fever'})
  const d=await dashboard(db,admin);assert.equal(d.patients,2);assert.equal(d.opd_today,2);assert.equal(d.inpatients,0);assert.equal(d.collections_today,850)
  assert.ok((await auditLog(db,admin)).length>10)
  assert.deepEqual(await searchPatients(db,rec,'nobody-matches'),[])

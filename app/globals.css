@@ -1276,3 +1276,13 @@ html body a.jobBtn:not(#_),html body button.jobBtn:not(#_){background:var(--p-na
 html[data-theme=dark] body .awayNote{background:#2a1a0e;border-color:#7c2d12;color:#fed7aa}html[data-theme=dark] body .awayNote b{color:#ffedd5}
 /* Selected off-duty doctor: full strength, amber like the "book next time" note */
 html body .chips .chip.on.offDoc:not(#_){opacity:1;background:#b45309!important;border-color:#b45309!important;color:#fff!important}html body .chips .chip.on.offDoc:not(#_) small{color:#ffedd5!important;opacity:1}
+/* Discharge summary (screen + print) */
+.dsPage{max-width:860px;margin:0 auto;padding:20px 16px 60px;background:var(--sd-bg,#f5f5f7)}.dsBar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.dsSheet{background:#fff;color:#0f172a;border:1px solid #e2e8f0;border-radius:16px;padding:28px 32px}.dsHead{display:flex;gap:14px;align-items:center;border-bottom:2px solid #0d9488;padding-bottom:12px}.dsHead img{height:52px;width:auto}.dsHead h1{margin:0;font-size:1.35rem;color:#0f172a!important;-webkit-text-fill-color:#0f172a}.dsHead small{color:#475569}
+.dsTitle{font-size:1.1rem;margin:16px 0 10px;color:#0f766e!important;-webkit-text-fill-color:#0f766e;text-transform:uppercase;letter-spacing:.06em}
+.dsGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 16px;padding:12px 0;border-bottom:1px solid #e2e8f0}.dsGrid span,.dsFoot span{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#64748b}.dsGrid b{font-size:.92rem;color:#0f172a}
+.dsSheet section{margin-top:14px}.dsSheet h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:#0f766e!important;-webkit-text-fill-color:#0f766e;margin:0 0 4px}.dsSheet p{margin:0;color:#0f172a}.dsSheet .pre{white-space:pre-wrap}
+.dsTable{width:100%;border-collapse:collapse;font-size:.9rem}.dsTable th,.dsTable td{border-bottom:1px solid #e2e8f0;padding:6px 8px;text-align:left;color:#0f172a;background:#fff!important}.dsTable th{font-size:.72rem;text-transform:uppercase;color:#64748b}
+.dsFoot{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}.dsFoot div{border-top:1px solid #94a3b8;padding-top:6px;min-width:220px}.dsFoot small{color:#64748b}
+@media (max-width:640px){.dsSheet{padding:18px}.dsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.noPrint{display:none!important}.dsPage{padding:0;max-width:none;background:#fff}.dsSheet{border:0;border-radius:0;padding:0}}
