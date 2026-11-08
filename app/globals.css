@@ -1286,3 +1286,14 @@ html body .chips .chip.on.offDoc:not(#_){opacity:1;background:#b45309!important;
 .dsFoot{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}.dsFoot div{border-top:1px solid #94a3b8;padding-top:6px;min-width:220px}.dsFoot small{color:#64748b}
 @media (max-width:640px){.dsSheet{padding:18px}.dsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{.noPrint{display:none!important}.dsPage{padding:0;max-width:none;background:#fff}.dsSheet{border:0;border-radius:0;padding:0}}
+/* Ward chart: eMAR, notes */
+.marList{display:flex;flex-direction:column;gap:10px}.marRow{display:grid;grid-template-columns:minmax(180px,1.1fr) 3fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#fff}.marRow.stopped{opacity:.6}
+.marMed b{display:block}.marMed small{color:#64748b}.marDoses{display:flex;flex-wrap:wrap;gap:6px}
+.doseChip{display:inline-flex;flex-direction:column;align-items:center;min-width:72px;padding:6px 10px;border-radius:12px;border:1px solid #e2e8f0;background:#f8fafc;color:#0f172a;line-height:1.2;cursor:pointer}.doseChip b{font-size:.92rem}.doseChip span{font-size:.7rem;color:#64748b}
+.doseChip.cue-done{background:#ecfdf5;border-color:#a7f3d0}.doseChip.cue-done span{color:#047857}.doseChip.cue-wait{background:#fffbeb;border-color:#fde68a}.doseChip.cue-wait span{color:#b45309}.doseChip.cue-attn{background:#fef2f2;border-color:#fecaca}.doseChip.cue-attn span{color:#b91c1c}.doseChip:disabled{cursor:default}
+.noteList{display:flex;flex-direction:column;gap:10px;margin-top:12px}.noteCard{border:1px solid #e2e8f0;border-left:4px solid #94a3b8;border-radius:12px;padding:10px 14px;background:#fff}.noteCard.round{border-left-color:#0d9488}.noteCard small{color:#64748b}.noteCard p{margin:4px 0 0;white-space:pre-wrap}
+.dueBadge{margin-left:6px;padding:1px 7px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:.72rem;font-weight:600}.dueBadge.late{background:#fee2e2;color:#991b1b}
+@media (max-width:760px){.marRow{grid-template-columns:1fr}}
+html[data-theme=dark] body .marRow,html[data-theme=dark] body .noteCard{background:#111a2e;border-color:#1e293b}html[data-theme=dark] body .marMed small,html[data-theme=dark] body .noteCard small{color:#94a3b8}
+html[data-theme=dark] body .doseChip{background:#0f172a;border-color:#334155;color:#e2e8f0}html[data-theme=dark] body .doseChip.cue-done{background:#052e24;border-color:#065f46}html[data-theme=dark] body .doseChip.cue-wait{background:#2a1a0e;border-color:#78350f}html[data-theme=dark] body .doseChip.cue-attn{background:#2a0f12;border-color:#7f1d1d}
+html[data-theme=dark] body .dsSheet{background:#fff}
