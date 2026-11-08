@@ -1299,3 +1299,7 @@ html[data-theme=dark] body .doseChip{background:#0f172a;border-color:#334155;col
 html[data-theme=dark] body .dsSheet{background:#fff}
 .gstBox{margin:10px 0}.gstBox>summary{cursor:pointer;font-weight:600;padding:6px 0}.gstBox .actionRow label{display:flex;gap:6px;align-items:center}
 .irn{word-break:break-all;font-size:12px}
+.rosterSum{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.rs_on_duty{background:#e3f6ec;color:#0f6b3d}.rs_on_leave{background:#fff3dc;color:#8a5a00}.rs_off_duty{background:#eef0f4;color:#4b5363}.rs_no_roster{background:#f6eef0;color:#8a2a3a}
+.rosterCard .roleTag,.roleTag{font-size:11px;color:var(--muted,#667);font-weight:500}.rosterTable td,.rosterTable th{white-space:nowrap;vertical-align:top}.rosterTable tr{cursor:pointer}.rosterTable tr.on td{background:rgba(16,65,118,.06)}.rosterTable .today{background:rgba(16,65,118,.05)}
+.shiftTag{display:block;font-size:12px;padding:2px 6px;margin:2px 0;border-radius:6px;background:#e8f0fb;color:#104176}.shiftTag.night{background:#2b2f4a;color:#e6e8ff}.tableScroll{overflow-x:auto}
+@media (prefers-color-scheme:dark){.rs_on_duty{background:#12372a;color:#8fe0b5}.rs_on_leave{background:#3d2e10;color:#f3cf86}.rs_off_duty{background:#262a33;color:#b5bccb}.rs_no_roster{background:#3a1d24;color:#f0a8b5}.shiftTag{background:#1c2c45;color:#b9d2f5}}

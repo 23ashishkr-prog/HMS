@@ -15,7 +15,7 @@ export const NAV:NavItem[]=[
  {name:'Ready to leave',icon:'audit',path:'/clearance',roles:['admin','billing','reception','doctor','nurse','lab','pharmacy'],module:'billing'},
  {name:'Patients',icon:'patients',path:'/patients',roles:['admin','reception','doctor','nurse','billing'],more:true,module:'patients'},
  {name:'Appointments',icon:'calendar',path:'/appointments',roles:['admin','reception','doctor'],more:true,module:'appointments'},
- {name:'Doctor hours',icon:'calendar',path:'/schedules',roles:['admin','doctor','reception'],more:true,module:'appointments'},
+ {name:'Staff roster',icon:'calendar',path:'/schedules',roles:['admin','doctor','nurse','reception','lab','pharmacy','billing'],more:true},
  {name:'Follow-ups',icon:'calendar',path:'/followups',roles:['admin','reception','doctor'],more:true,module:'appointments'},
  {name:'Insurance',icon:'insurance',path:'/insurance',roles:['admin','billing'],more:true,module:'insurance'},
  {name:'Check-in code',icon:'queue',path:'/checkin-qr',roles:['admin','reception'],more:true,module:'queue',inSettings:true},
