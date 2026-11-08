@@ -1359,3 +1359,12 @@ html[data-theme=dark] .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:
 .abdmTabs{margin-bottom:14px;flex-wrap:wrap}.abdmStatus.ok{border-left:4px solid #10b981!important}.abdmStatus.warn{border-left:4px solid #f59e0b!important}.abdmStatus ul{margin:6px 0 10px 18px}
 .abdmJson{max-height:360px;overflow:auto;font-size:11px;background:rgba(15,23,42,.04);padding:8px;border-radius:8px;white-space:pre-wrap;word-break:break-all}.abdmSec ul{margin:2px 0 6px 18px}.abdmForm{margin:10px 0 16px}.abdmForm .ghits{display:flex;flex-direction:column}
 html[data-theme=dark] .abhaBadge{background:#1e1b4b;color:#c7d2fe;border-color:#3730a3}html[data-theme=dark] .abhaBadge.kyc{background:#022c22;color:#a7f3d0;border-color:#065f46}html[data-theme=dark] .abdmJson{background:rgba(255,255,255,.06)}
+/* Admin side menu in sections: closed sections hide their links; the icon-only rail shows every icon with a divider. */
+html body .side .navGroupBtn:not(#_){display:flex;width:100%;align-items:center;justify-content:space-between;margin-top:10px}
+.navGroupMeta{display:inline-flex;gap:6px;align-items:center}.navGroupMeta small{font-size:10px;letter-spacing:0;padding:0 6px;border-radius:8px;background:rgba(148,163,184,.2)}
+.navGroup:not(.open)>.navGo{display:none}
+@media (min-width:768px) and (max-width:1199px){
+html body .app:not(.railOpen)>.side nav .navGroupBtn:not(#_){font-size:0;height:1px;min-height:1px!important;width:40px!important;padding:0!important;margin:8px auto!important;background:rgba(148,163,184,.35)!important;pointer-events:none}
+html body .app:not(.railOpen)>.side nav .navGroupBtn::before{content:none}
+html body .app:not(.railOpen)>.side nav .navGroup>.navGo{display:flex}
+}
