@@ -32,3 +32,30 @@ test('staff roster: shifts for every role, overnight shifts, leave, and who is i
  await deleteStaffLeave(db,t.admin,lv.id)
  assert.equal(await checkBookable(db,t.admin.hospitalId,doc.userId,istToUtc('2026-11-18',10*60+30)),null)
 })
+
+import {staffBoard} from '../lib/services/roster'
+import {patientFlow} from '../lib/services/patientflow'
+import {registerPatient} from '../lib/services/patients'
+test('staff board: rostered vs logged in; patient flow: waits per department and the visit journey', async()=>{
+ const db=await freshDb();const t=await tenant(db,'Flow Care');const n1=await t.mk('nurse','Nurse One'),n2=await t.mk('nurse','Nurse Two'),doc=await t.mk('doctor','Dr Heart'),rec=await t.mk('reception','Desk')
+ await db.query("update users set department='Cardiology' where id=$1",[doc.userId])
+ const now=istToUtc('2026-11-11',11*60)
+ for(const u of [n1,n2])await saveShifts(db,t.admin,u.userId,[{day:3,shift:'Morning',start:'08:00',end:'14:00'}])
+ await db.query("update users set last_seen_at=$2 where id=$1",[n1.userId,new Date(now.getTime()-5*60000)])
+ await db.query("update users set last_seen_at=$2 where id=$1",[rec.userId,new Date(now.getTime()-60000)])
+ await assert.rejects(staffBoard(db,n1,now),(e:any)=>e.status===403)
+ const b:any=await staffBoard(db,t.admin,now);const nurse=b.roles.find((r:any)=>r.role==='nurse')
+ assert.deepEqual([nurse.staff,nurse.rosteredToday,nurse.onDuty,nurse.loggedInToday,nurse.activeNow],[2,2,2,1,1])
+ assert.deepEqual(b.onDutyNotLoggedIn.map((x:any)=>x.full_name),['Nurse Two'])
+ assert.deepEqual(b.workingOffRoster.map((x:any)=>x.full_name),['Desk'])
+ // two visits to Cardiology: 20 and 40 minutes wait, 10 minutes with the doctor; one prescription dispensed 15 min later
+ const m=(min:number)=>new Date(now.getTime()+min*60000)
+ for(const [i,w] of [[1,20],[2,40]]){const p=await registerPatient(db,rec,{fullName:'Flow '+i,mobile:'98765000'+(10+i),gender:'Male'});await db.query("update patients set created_at=$2 where id=$1",[p.id,m(-65)])
+  const q=(await db.query("insert into doctor_queue(hospital_id,patient_id,doctor_user_id,status,checked_in_at,called_at,completed_at,visit_date) values($1,$2,$3,'checked',$4,$5,$6,'2026-11-11') returning id",[t.admin.hospitalId,p.id,doc.userId,m(-60),m(-60+w),m(-50+w)])).rows[0]
+  if(i===1){const e=(await db.query("insert into encounters(hospital_id,patient_id,doctor_user_id,queue_id) values($1,$2,$3,$4) returning id",[t.admin.hospitalId,p.id,doc.userId,q.id])).rows[0];await db.query("insert into prescriptions(hospital_id,patient_id,doctor_user_id,encounter_id,status,created_at,dispensed_at) values($1,$2,$3,$4,'dispensed',$5,$6)",[t.admin.hospitalId,p.id,doc.userId,e.id,m(-30),m(-15)])}}
+ const f:any=await patientFlow(db,t.admin,{from:'2026-11-11',to:'2026-11-11',now})
+ const c=f.departments.find((d:any)=>d.dept==='Cardiology');assert.equal(c.visits,2);assert.equal(c.wait.avg,30);assert.equal(c.wait.max,40);assert.equal(c.consult.avg,10)
+ assert.equal(f.services.pharmacy.prescriptions,1);assert.equal(f.services.pharmacy.toDispense.avg,15)
+ assert.equal(f.journey[0].avg,5,'registration to check-in');assert.equal(f.journey[3].avg,15,'consult done to medicines')
+ await assert.rejects(patientFlow(db,t.admin,{from:'2026-11-12',to:'2026-11-11'}),(e:any)=>e.status===400)
+})

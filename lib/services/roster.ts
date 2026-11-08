@@ -57,3 +57,15 @@ export async function addStaffLeave(db:Db,ctx:Ctx,userId:string,b:any){const u=a
  await audit(db,ctx,'leave_add','user',u.id,{from:b.startDate,to:end,type});return {id:r.id,affectedAppointments:0}}
 export async function deleteStaffLeave(db:Db,ctx:Ctx,leaveId:string){const l=(await db.query('select doctor_user_id uid from doctor_time_off where id=$1 and hospital_id=$2',[leaveId,ctx.hospitalId])).rows[0];if(!l)throw new HttpError(404,'Leave not found.');const u=await staffMember(db,ctx,l.uid);canEdit(ctx,u)
  if(u.role==='doctor')return deleteLeave(db,ctx,leaveId);await db.query('delete from doctor_time_off where id=$1 and hospital_id=$2',[leaveId,ctx.hospitalId]);await audit(db,ctx,'leave_delete','user',u.id);return {ok:true}}
+
+/** Staff board (admin): per role, rostered today vs on duty vs logged in, and the gaps between roster and system use. */
+export async function staffBoard(db:Db,ctx:Ctx,now=new Date()){if(ctx.role!=='admin')throw new HttpError(403,'Only an admin can see the staff board.');const r=await roster(db,ctx,{now})
+ const dayStart=istToUtc(r.today,0),activeSince=new Date(now.getTime()-15*60000)
+ const seen=new Map((await db.query("select id,last_login_at,last_seen_at from users where hospital_id=$1 and active and role<>'patient'",[ctx.hospitalId])).rows.map((x:any)=>[x.id,x]))
+ const rows=r.staff.map((s:any)=>{const v:any=seen.get(s.id)||{};const last=[v.last_login_at,v.last_seen_at].filter(Boolean).map((d:any)=>new Date(d)).sort((a,b)=>+b-+a)[0]||null
+  return {id:s.id,full_name:s.full_name,role:s.role,department:s.department,status:s.status,shiftNow:s.shiftNow,rosteredToday:s.today.length>0&&s.status!=='on_leave',loggedInToday:!!last&&last>=dayStart,activeNow:!!v.last_seen_at&&new Date(v.last_seen_at)>=activeSince,lastSeen:last}})
+ const roles=[...new Set(rows.map((x:any)=>x.role))].map(role=>{const g=rows.filter((x:any)=>x.role===role);const n=(f:(x:any)=>boolean)=>g.filter(f).length
+  return {role,staff:g.length,rosteredToday:n(x=>x.rosteredToday),onDuty:n(x=>x.status==='on_duty'),onLeave:n(x=>x.status==='on_leave'),loggedInToday:n(x=>x.loggedInToday),activeNow:n(x=>x.activeNow)}})
+ const sum=(k:string)=>roles.reduce((a:number,x:any)=>a+x[k],0)
+ return {today:r.today,roles,total:{staff:rows.length,rosteredToday:sum('rosteredToday'),onDuty:sum('onDuty'),onLeave:sum('onLeave'),loggedInToday:sum('loggedInToday'),activeNow:sum('activeNow')},
+  onDutyNotLoggedIn:rows.filter((x:any)=>x.status==='on_duty'&&!x.loggedInToday),workingOffRoster:rows.filter((x:any)=>x.activeNow&&x.status!=='on_duty'),onLeaveButActive:rows.filter((x:any)=>x.status==='on_leave'&&x.loggedInToday)}}
