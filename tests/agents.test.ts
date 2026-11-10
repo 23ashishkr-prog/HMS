@@ -23,6 +23,8 @@ test('roster agent: proposals for gaps, approve adds the shift as the admin, ref
  await saveAgentSettings(db,T.admin,{cover:{nurse:{Morning:1,Evening:1}}})
  await saveShifts(db,T.admin,n1.userId,week([1,2,3,4,5,6],'08:00','14:00','Morning'))
  const r=await runAgent(db,T.admin,'roster');assert.ok(r);assert.ok(r!.proposals>=2,'evening gaps and Sunday morning')
+ assert.ok(r!.findings.some((f:any)=>/No weekly roster for Pharmacy/.test(f.text)),'one finding for a role with no roster');assert.ok(!r!.findings.some((f:any)=>/^Pharmacy (Morning|Evening)/.test(f.text)),'no per-shift gaps for it')
+ assert.ok(r!.findings.some((f:any)=>/^Nurse Evening: short on Sun, Mon, Tue, Wed, Thu, Fri, Sat/.test(f.text)),'gaps grouped by role and shift');assert.ok(r!.proposals<=8)
  let h=await agentHome(db,T.admin);const ps=h.proposals.filter((p:any)=>p.kind==='roster_shift');assert.ok(ps.length>=2);assert.ok(ps.filter((p:any)=>p.payload.userId===n2.userId).length===2,'nurse two is free; at most 2 suggestions per person per run');ps.sort((a:any,b:any)=>(b.payload.userId===n2.userId?1:0)-(a.payload.userId===n2.userId?1:0))
  await assert.rejects(decideProposal(db,ph,ps[0].id,{decision:'approve'}),/role/i)
  const ok=await decideProposal(db,T.admin,ps[0].id,{decision:'approve'});assert.equal(ok.status,'approved')

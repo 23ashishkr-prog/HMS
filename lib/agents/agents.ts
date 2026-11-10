@@ -42,13 +42,17 @@ async function brief(db:Db,ctx:Ctx,agent:string,o:Out):Promise<{narrative:string
   await db.query('insert into ai_usage(hospital_id,month,tokens,calls) values($1,$2,$3,1) on conflict(hospital_id,month) do update set tokens=ai_usage.tokens+excluded.tokens,calls=ai_usage.calls+1',[ctx.hospitalId,month(),r.tokens]);return {narrative:r.text.trim().slice(0,1200)||null,tokens:r.tokens,model:r.model}}catch{return {narrative:null,tokens:0,model:null}}}
 
 // ---------- the agents ----------
+const MAX_SHIFT_PROPOSALS=8
+/** Roles with people but no weekly shifts at all: one 'set up the roster' finding beats a gap for every shift. */
+const unrostered=(staff:any[])=>[...new Set(staff.filter((s:any)=>s.role!=='admin'&&s.role!=='doctor').map((s:any)=>s.role as string))].filter(role=>!staff.some((s:any)=>s.role===role&&(s.shifts||[]).length))
 async function staffBriefAgent(db:Db,ctx:Ctx,now:Date):Promise<Out>{const b=await staffBoard(db,{...ctx,role:'admin'},now);const f:Finding[]=[]
  const names=(xs:any[])=>xs.slice(0,6).map(x=>x.full_name).join(', ')+(xs.length>6?` and ${xs.length-6} more`:'')
  if(b.onDutyNotLoggedIn.length)f.push({level:'act',text:`${plural(b.onDutyNotLoggedIn.length,'person')} on duty now but not logged in today: ${names(b.onDutyNotLoggedIn)}.`})
  if(b.onLeaveButActive.length)f.push({level:'warn',text:`On leave but logged in today: ${names(b.onLeaveButActive)}. Check the leave entry.`})
- if(b.workingOffRoster.length)f.push({level:'info',text:`Working outside their roster: ${names(b.workingOffRoster)}.`})
- for(const r of b.roles)if(r.role!=='admin'&&r.staff>0&&r.rosteredToday===0)f.push({level:'warn',text:`No ${roleName(r.role).toLowerCase()} staff are rostered today (${plural(r.staff,'person')} on the team).`})
- const r=await roster(db,{...ctx,role:'admin'},{now});const {cover}=await agentSettings(db,ctx.hospitalId);const g=coverage(r.staff,cover,b.today,1)
+ const off=b.workingOffRoster.filter((x:any)=>x.role!=='admin');if(off.length)f.push({level:'info',text:`Working outside their roster: ${names(off)}.`})
+ const r=await roster(db,{...ctx,role:'admin'},{now});const unset=unrostered(r.staff);if(unset.length)f.push({level:'warn',text:`No weekly roster set yet for ${unset.map(roleName).join(', ')}. Set their shifts in Duty roster so the brief can check who should be in.`})
+ for(const x of b.roles)if(x.role!=='admin'&&x.role!=='doctor'&&!unset.includes(x.role)&&x.staff>0&&x.rosteredToday===0)f.push({level:'warn',text:`No ${roleName(x.role).toLowerCase()} staff are rostered today (${plural(x.staff,'person')} on the team).`})
+const {cover}=await agentSettings(db,ctx.hospitalId);const g=coverage(r.staff,cover,b.today,1)
  for(const x of g.dated)f.push({level:'act',text:`${x.slot} today: ${roleName(x.role)} cover ${x.have} of ${x.need}${x.away.length?` (${x.away.join(', ')} on leave)`:''}.${x.canCover.length?' Could cover: '+x.canCover.map(c=>c.name).join(', ')+'.':''}`})
  try{const fl=await patientFlow(db,{...ctx,role:'admin'},{from:addDays(b.today,-6),to:b.today,now});for(const a of (fl.actions||[]).filter((a:any)=>a.level==='add'||a.level==='improve').slice(0,3))f.push({level:a.level==='add'?'act':'warn',text:`${a.text} ${a.why||''}`.trim()})}catch{}
  const t=b.total;return {summary:`Today: ${t.rosteredToday} of ${t.staff} staff rostered, ${t.onDuty} on duty now, ${t.loggedInToday} logged in, ${t.onLeave} on leave.`,findings:f,data:{total:t,roles:b.roles}}}
@@ -66,16 +70,19 @@ async function pharmacyAgent(db:Db,ctx:Ctx):Promise<Out>{const alerts=await reor
  return {summary:alerts.length?`${plural(alerts.length,'medicine')} need attention: ${out.length} out of stock, ${short.length} under a week, ${exp.length} expiring. ${proposals.length?plural(proposals.length,'order')+' drafted for approval.':'Nothing to order.'}`:'Stock is fine: nothing low, running out or expiring.',findings:f,proposals}}
 
 async function rosterAgent(db:Db,ctx:Ctx,now:Date):Promise<Out>{const r=await roster(db,{...ctx,role:'admin'},{now});const {cover}=await agentSettings(db,ctx.hospitalId);const nextMon=addDays(r.weekStart,7);const g=coverage(r.staff,cover,nextMon,7);const f:Finding[]=[];const proposals:Proposal[]=[]
- const used=new Map<string,number>()
- for(const x of g.pattern){const who=x.canCover.find(c=>(used.get(c.id)||0)<2);const t=SLOT_TIMES[x.slot]
-  f.push({level:'act',text:`Every ${DAY[x.day]} ${x.slot}: ${roleName(x.role)} cover ${x.have} of ${x.need} in the weekly roster.${who?` Suggest ${who.name}.`:' No one free on that day; hire or move someone.'}`})
-  if(who){used.set(who.id,(used.get(who.id)||0)+1);proposals.push({kind:'roster_shift',key:`roster:${x.role}:${x.day}:${x.slot}`,title:`Add ${who.name} to ${DAY[x.day]} ${x.slot} (${t[0]}–${t[1]})`,detail:`${roleName(x.role)} cover is ${x.have} of ${x.need} every ${DAY[x.day]} ${x.slot}. ${who.name} has no shift that day.`,payload:{userId:who.id,name:who.name,role:x.role,add:{day:x.day,start:t[0],end:t[1],shift:x.slot}}})}}
+ const unset=unrostered(r.staff);for(const role of unset){const ppl=r.staff.filter((s:any)=>s.role===role).map((s:any)=>s.full_name);f.push({level:'act',text:`No weekly roster for ${roleName(role)} yet (${ppl.slice(0,4).join(', ')}${ppl.length>4?` and ${ppl.length-4} more`:''}). Set their shifts in Duty roster; the agent will then check cover shift by shift.`})}
+ const gaps=g.pattern.filter(x=>!unset.includes(x.role)),used=new Map<string,number>()
+ const grp=new Map<string,Gap[]>();for(const x of gaps){const k=x.role+'|'+x.slot;grp.set(k,[...(grp.get(k)||[]),x])}
+ for(const [,xs] of grp){const x0=xs[0];f.push({level:'act',text:`${roleName(x0.role)} ${x0.slot}: short on ${xs.map(x=>DAY[x.day]).join(', ')} (${xs.map(x=>x.have).join('/')} of ${x0.need} in the weekly roster).`})}
+ for(const x of gaps){if(proposals.length>=MAX_SHIFT_PROPOSALS)break;const who=x.canCover.find(c=>(used.get(c.id)||0)<2);if(!who)continue;const t=SLOT_TIMES[x.slot]
+  used.set(who.id,(used.get(who.id)||0)+1);proposals.push({kind:'roster_shift',key:`roster:${x.role}:${x.day}:${x.slot}`,title:`Add ${who.name} to ${DAY[x.day]} ${x.slot} (${t[0]}–${t[1]})`,detail:`${roleName(x.role)} cover is ${x.have} of ${x.need} every ${DAY[x.day]} ${x.slot}. ${who.name} has no shift that day.`,payload:{userId:who.id,name:who.name,role:x.role,add:{day:x.day,start:t[0],end:t[1],shift:x.slot}}})}
+ const noOne=gaps.filter(x=>!x.canCover.length);if(noOne.length)f.push({level:'warn',text:`${plural(noOne.length,'gap')} with no one free that day: hire or move staff (${[...new Set(noOne.map(x=>roleName(x.role)))].join(', ')}).`})
  for(const x of g.dated)f.push({level:'warn',text:`${dmy(x.date!)} ${x.slot}: ${roleName(x.role)} cover ${x.have} of ${x.need} (${x.away.join(', ')} on leave).${x.canCover.length?' Ask '+x.canCover.map(c=>c.name).join(' or ')+' to cover.':' No one free that day.'}`})
  const staff=r.staff.filter((s:any)=>s.role!=='admin')
  for(const s of staff){const h=weekMinutes(s.shifts||[])/60;if(h>48)f.push({level:'warn',text:`${s.full_name} is rostered ${Math.round(h)} hours a week (over 48).`})}
  const nurses=staff.filter((s:any)=>s.role==='nurse'&&(s.shifts||[]).length);if(nurses.length>=2){const n=nurses.map((s:any)=>({s,n:nights(s.shifts)}));const hi=n.reduce((a:any,b:any)=>b.n>a.n?b:a),lo=n.reduce((a:any,b:any)=>b.n<a.n?b:a);if(hi.n-lo.n>=3)f.push({level:'info',text:`Night shifts are uneven: ${hi.s.full_name} has ${hi.n} a week, ${lo.s.full_name} has ${lo.n}.`})}
- const none=staff.filter((s:any)=>s.role!=='doctor'&&!(s.shifts||[]).length);if(none.length)f.push({level:'info',text:`No roster yet for ${none.slice(0,6).map((s:any)=>s.full_name).join(', ')}${none.length>6?` and ${none.length-6} more`:''}.`})
- return {summary:`Week of ${dmy(nextMon)}: ${plural(g.pattern.length,'gap')} in the weekly roster, ${plural(g.dated.length,'gap')} from leave.${proposals.length?' '+plural(proposals.length,'change')+' suggested.':''}`,findings:f,proposals,data:{weekOf:nextMon}}}
+ const none=staff.filter((s:any)=>s.role!=='doctor'&&!unset.includes(s.role)&&!(s.shifts||[]).length);if(none.length)f.push({level:'info',text:`No roster yet for ${none.slice(0,6).map((s:any)=>s.full_name).join(', ')}${none.length>6?` and ${none.length-6} more`:''}.`})
+ return {summary:`Week of ${dmy(nextMon)}: ${unset.length?`no roster yet for ${unset.map(roleName).join(', ')}; `:''}${plural(gaps.length,'gap')} in the weekly roster, ${plural(g.dated.length,'gap')} from leave.${proposals.length?' '+plural(proposals.length,'change')+' suggested.':''}`,findings:f,proposals,data:{weekOf:nextMon}}}
 
 async function dischargeAgent(db:Db,ctx:Ctx,admissionId:string):Promise<Out>{requireRole(ctx,['doctor','admin']);const a=(await db.query("select a.id,a.patient_id,a.reason,a.admitted_at,a.status from admissions a where a.id=$1 and a.hospital_id=$2",[admissionId,ctx.hospitalId])).rows[0];if(!a)throw new HttpError(404,'Admission not found.');if(a.status!=='admitted')throw new HttpError(409,'This patient is already discharged.')
  const since=new Date(a.admitted_at);const f:Finding[]=[]
@@ -124,8 +131,8 @@ export async function agentHome(db:Db,ctx:Ctx){const mine=agentsFor(ctx);if(!min
  const proposals=(await db.query("select id,agent,kind,title,detail,payload,created_at from agent_proposals where hospital_id=$1 and status='pending' and kind=any($2::text[]) order by created_at desc limit 100",[ctx.hospitalId,kindsFor(ctx)])).rows
  const runs=(await db.query(`select r.id,r.agent,r.trigger,r.status,r.summary,r.findings,r.narrative,r.error,r.created_at,r.finished_at,u.full_name started_by from agent_runs r left join users u on u.id=r.started_by where r.hospital_id=$1 and r.agent=any($2::text[]) and (r.agent<>'discharge' or $3 or r.started_by=$4) order by r.created_at desc limit 40`,[ctx.hospitalId,mine,ctx.role==='admin',ctx.userId])).rows
  const decided=(await db.query("select id,agent,kind,title,status,decided_at,result,(select full_name from users where id=decided_by) decided_by from agent_proposals where hospital_id=$1 and status in ('approved','rejected') and kind=any($2::text[]) order by decided_at desc limit 20",[ctx.hospitalId,kindsFor(ctx)])).rows
- const s=await agentSettings(db,ctx.hospitalId);let ai:any=null;try{const x=await aiStatus(db,ctx);ai={ready:x.plan&&x.enabled&&x.llm,reason:x.reason,used:x.used,cap:x.cap}}catch{}
- return {agents:mine.map(k=>({key:k,...AGENTS[k],enabled:s.enabled[k],last:runs.find((r:any)=>r.agent===k)||null})),proposals,runs,decided,settings:ctx.role==='admin'?s:null,ai,canAsk:!!ai?.ready}}
+ const s=await agentSettings(db,ctx.hospitalId);let ai:any=null;try{const x=await aiStatus(db,ctx);ai={ready:x.plan&&x.enabled&&x.llm,reason:!x.plan?'Asking questions needs the AI + Customer Engagement plan.':!x.enabled?'AI is switched off for this hospital (Settings → AI).':!x.llm?'No AI provider is set up yet (LLM_API_URL, LLM_API_KEY, LLM_MODEL on the server).':x.used>=x.cap?`This month's AI limit (${x.cap} tokens) is used up.`:null,used:x.used,cap:x.cap}}catch{}
+ return {agents:mine.map(k=>({key:k,...AGENTS[k],enabled:s.enabled[k],last:runs.find((r:any)=>r.agent===k)||null})),proposals,runs,decided,settings:ctx.role==='admin'?s:null,ai,canAsk:!!ai?.ready&&!ai?.reason}}
 
 /** Approve or reject a proposal. Approving does the actual work through the normal services, as the person approving. */
 export async function decideProposal(db:Db,ctx:Ctx,id:string,b:any){const decision=b?.decision;if(!['approve','reject'].includes(decision))throw new HttpError(400,'Choose approve or reject.')
