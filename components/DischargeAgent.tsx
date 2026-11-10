@@ -1,0 +1,8 @@
+'use client'
+import {useState} from 'react';import {call} from '@/lib/client';import {toast} from '@/lib/toast'
+const set=(form:HTMLFormElement,name:string,v:string)=>{const el=form.elements.namedItem(name) as HTMLInputElement|HTMLTextAreaElement|null;if(el&&v&&!el.value.trim())el.value=v}
+/** Discharge form helper: the discharge agent checks what is still pending and fills empty fields with a draft. The doctor edits and signs. */
+export default function DischargeAgent({admissionId}:{admissionId:string}){const[r,setR]=useState<any>(null),[busy,setBusy]=useState(false)
+ const go=async(e:React.MouseEvent<HTMLButtonElement>)=>{const form=e.currentTarget.closest('form');setBusy(true);try{const x=(await call('/api/agents/run','POST',{agent:'discharge',admissionId})).run;setR(x);const d=x.data?.draft||{};if(form){set(form,'diagnosis',d.diagnosis);set(form,'summary',d.summary);set(form,'advice',d.advice);set(form,'medications',d.medications);set(form,'followUpDate',d.followUpDate)}toast('Draft filled in empty fields. Review before discharging.')}catch(er:any){toast(er.message,'err')}finally{setBusy(false)}}
+ return <div className="agentDis"><button type="button" className="ghost" disabled={busy} onClick={go}>{busy?'Checking…':'✨ Check and draft with agent'}</button>
+  {r&&<div className="agentDisOut"><b>{r.summary}</b>{r.findings?.length>0&&<ul>{r.findings.map((f:any,i:number)=><li key={i} className={f.level==='act'?'bad':''}>{f.text}</li>)}</ul>}<small className="muted">{r.data?.draft?.aiUsed?'AI suggestion – verify':'Built from the record'}. Only empty fields were filled.</small></div>}</div>}
