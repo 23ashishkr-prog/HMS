@@ -3,6 +3,8 @@ import {useEffect,useState} from 'react';import Link from 'next/link';import {ca
 import {isContactSalesPlan,trialPlanFromParam} from '@/lib/plans'
 import {FxLink,PlanPrice} from '@/components/FxPrice'
 import {MoneyBack} from '@/components/TermsDocument'
+import {BackToGreyNova,PublicLegal} from '@/components/PublicChrome'
+import {REFUND_POLICY_URL} from '@/lib/terms'
 import EmailCode from '@/components/EmailCode'
 const BLURB:Record<string,string>={
  clinic:'Online + token booking · 30-day free trial',
@@ -25,7 +27,7 @@ export default function Page(){
  const list=plans.length?plans:FALLBACK
  const sales=plan==='engage'||plan==='engage_support'
  return (
-  <main className="authPage authPremium onbPage">
+  <div className="publicShell"><BackToGreyNova float/><main className="authPage authPremium onbPage">
    <aside className="authSide" aria-hidden>
     <div className="authSideIn">
      <Link className="mkLogo" href="/welcome"><Logo size={36}/> HMS</Link>
@@ -65,7 +67,7 @@ export default function Page(){
        <button className="primary full" disabled={busy}>{busy?'Sending…':'Contact sales'}</button>
        {msg&&<div className="authMessage" role="alert">{msg}</div>}
       </form>}
-      <div className="authNote"><button type="button" className="ghost" onClick={()=>setPlan('clinic')}>Start a Clinic trial instead</button> · <a href={withBase('/welcome#pricing')}>Pricing</a></div>
+      <div className="authNote"><button type="button" className="ghost" onClick={()=>setPlan('clinic')}>Start a Clinic trial instead</button> · <a href={withBase('/welcome#pricing')}>Pricing</a> · <a href={REFUND_POLICY_URL}>Refund policy</a></div>
      </>
     ):(<>
      <div className="authBrand"><Link href="/welcome"><Logo size={36}/></Link><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
@@ -88,8 +90,9 @@ export default function Page(){
       <button className="primary full" disabled={busy}>{busy?'Creating…':`Start ${days}-day Clinic trial`}</button>
       {msg&&<div className="authMessage" role="alert">{msg} {/already used|paid plan|pricing/i.test(msg)&&<a href={withBase('/welcome#pricing')}>See pricing</a>}</div>}
      </form>
-     <div className="authNote">Already registered? <Link href="/auth/login">Sign in</Link> · <a href={withBase('/welcome#pricing')}>Compare plans</a></div>
+     <div className="authNote">Already registered? <Link href="/auth/login">Sign in</Link> · <a href={withBase('/welcome#pricing')}>Compare plans</a> · <a href={REFUND_POLICY_URL}>Refund policy</a></div>
     </>)}
    </section>
   </main>
+  <PublicLegal compact/></div>
  )}

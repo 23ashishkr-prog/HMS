@@ -4,6 +4,7 @@ import {call} from '@/lib/client'
 import {PLAN_ANNUAL_INR,PLAN_CATALOGUE,PLAN_NAME,PLAN_PRICE_INR,PlanCode} from '@/lib/plans'
 import {InrChargeNote,PlanPrice} from '@/components/FxPrice'
 import {MoneyBack,TermsAgree} from '@/components/TermsDocument'
+import {COMPANY_LEGAL_NAME} from '@/lib/terms'
 
 declare global{interface Window{Razorpay?:any}}
 
@@ -37,7 +38,7 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
    await loadRzp()
    await new Promise<void>((resolve,reject)=>{
     const rzp=new window.Razorpay!({
-     key:order.keyId,amount:order.amountPaise,currency:order.currency,name:'HMS Hospital Cloud',
+     key:order.keyId,amount:order.amountPaise,currency:order.currency,name:COMPANY_LEGAL_NAME,
      description:order.description,order_id:order.orderId,
      notes:{hospital_id:undefined,plan_code:planCode,billing_period:period},
      prefill:{email:order.prefillEmail},
