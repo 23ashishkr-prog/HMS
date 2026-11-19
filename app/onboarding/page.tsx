@@ -1,9 +1,9 @@
 'use client'
 import {useEffect,useState} from 'react';import Link from 'next/link';import {call,formObj} from '@/lib/client';import Logo from '@/components/Logo';import {withBase} from '@/lib/basePath'
 import {isContactSalesPlan,trialPlanFromParam} from '@/lib/plans'
-import {Approx,FxLink} from '@/components/FxPrice'
+import {FxLink,PlanPrice} from '@/components/FxPrice'
+import {MoneyBack} from '@/components/TermsDocument'
 import EmailCode from '@/components/EmailCode'
-const inr=(n:any)=>'₹'+Number(n||0).toLocaleString('en-IN')
 const BLURB:Record<string,string>={
  clinic:'Online + token booking · 30-day free trial',
  engage:'Full hospital, AI assistant and WhatsApp · Contact Sales',
@@ -76,11 +76,11 @@ export default function Page(){
       <label>Hospital name *<input name="hospitalName" required autoComplete="organization" placeholder="e.g. Sunrise Multispeciality Hospital"/></label>
       <div className="onb2"><label>Phone<input name="phone" inputMode="tel" autoComplete="tel"/></label><label>GSTIN<input name="gstin" autoCapitalize="characters"/></label></div>
       <label>Address<input name="address" autoComplete="street-address"/></label>
-      <fieldset className="planPick"><legend>Choose a plan</legend>
+      <fieldset className="planPick"><legend>Choose a plan</legend><MoneyBack/>
        {list.map(p=><label key={p.code} className={'planOpt'+(plan===p.code?' on':'')}>
         <input type="radio" name="plan" value={p.code} checked={plan===p.code} onChange={()=>setPlan(p.code)}/>
-        <span><b>{p.name}</b><small>{BLURB[p.code]||''}</small>{Number(p.included_support_admins)>0&&<small>Dedicated support admin included</small>}<Approx inr={Number(p.monthly_price_inr)} per="month"/></span>
-        <em>{inr(p.monthly_price_inr)}<small>/mo</small></em>
+        <span><b>{p.name}</b><small>{BLURB[p.code]||''}</small>{Number(p.included_support_admins)>0&&<small>Dedicated support admin included</small>}</span>
+        <em><PlanPrice inr={Number(p.monthly_price_inr)} per="month"/></em>
        </label>)}
       </fieldset>
       <label>Your name *<input name="adminName" required autoComplete="name"/></label>

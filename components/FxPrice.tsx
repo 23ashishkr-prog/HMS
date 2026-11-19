@@ -2,10 +2,10 @@
 import {useEffect,useState,ComponentProps} from 'react'
 import Link from 'next/link'
 import {withBase} from '@/lib/basePath'
-import {convertInr,fxParamFromSearch,hrefWithFx,DisplayCurrency} from '@/lib/fx'
+import {convertInr,FALLBACK_PER_INR,fxParamFromSearch,hrefWithFx,DisplayCurrency,FxCurrency} from '@/lib/fx'
 
 const KEY='hms.fx'
-type Quote={currency:DisplayCurrency;perInr:number|null;fx:'live'|'fallback'|'unavailable';via:string}
+type Quote={currency:DisplayCurrency;perInr:number|null;fx:'live'|'fallback'|'unavailable'|'inr';via:string}
 
 let quote:Quote|null=null
 let quoteKey=''
@@ -27,7 +27,8 @@ function load(search:string){
   pending=fetch(withBase('/api/pricing'+qs),{cache:'no-store'})
    .then(r=>r.json())
    .then(j=>{
-    const next:Quote={currency:j.currency==='GBP'||j.currency==='EUR'?j.currency:'USD',perInr:typeof j.perInr==='number'?j.perInr:null,fx:j.fx==='live'||j.fx==='fallback'?j.fx:'unavailable',via:String(j.via||'')}
+    const cur:DisplayCurrency=j.currency==='INR'||j.currency==='GBP'||j.currency==='EUR'||j.currency==='USD'?j.currency:'USD'
+    const next:Quote={currency:cur,perInr:typeof j.perInr==='number'?j.perInr:null,fx:j.fx==='live'||j.fx==='fallback'||j.fx==='inr'?j.fx:'unavailable',via:String(j.via||'')}
     quote=next
     listeners.forEach(fn=>fn(next))
     return next
@@ -50,27 +51,36 @@ export function useFx(){
   load(location.search).then(setQ)
   return ()=>{listeners.delete(on)}
  },[])
- const approx=(inr:number)=>{
-  const n=convertInr(inr,q?.perInr??null)
-  if(n==null||!q)return null
-  return new Intl.NumberFormat('en-GB',{style:'currency',currency:q.currency,maximumFractionDigits:n>=100?0:2}).format(n)
- }
- return {quote:q,approx}
+ return {quote:q}
 }
 
-/** Reference amount next to the rupee price. Renders nothing when rates are unavailable. */
-export function Approx({inr,per,mode='list'}:{inr:number;per?:string;mode?:'list'|'pay'|'paid'}){
- const {approx}=useFx()
- const a=approx(inr)
- if(!a)return null
- const rupee='₹'+Number(inr).toLocaleString('en-IN')
- const unit=per?` / ${per}`:''
- const text=mode==='paid'
-  ?`Razorpay charged ${rupee}. About ${a} · approximate, for reference only.`
-  :mode==='pay'
-   ?`About ${a}${unit} · approximate. Razorpay will charge ${rupee}.`
-   :`About ${a}${unit} · approximate. Billed in INR (${rupee}).`
- return <small className="fxApprox" data-fx="1">{text}</small>
+function localAmount(inr:number,q:Quote|null){
+ if(!q||q.currency==='INR')return null
+ const rate=q.perInr??FALLBACK_PER_INR[q.currency as FxCurrency]
+ return convertInr(inr,rate)
+}
+function money(n:number,currency:string){
+ return new Intl.NumberFormat('en-GB',{style:'currency',currency,maximumFractionDigits:n>=100?0:2}).format(n)
+}
+function rupee(n:number){return '₹'+Number(n).toLocaleString('en-IN')}
+
+/** India shows rupees only. Everywhere else shows the local currency only. */
+export function PlanPrice({inr,per,prefix}:{inr:number;per?:string;prefix?:string}){
+ const {quote}=useFx()
+ const unit=per?`/${per}`:''
+ const lead=prefix||''
+ if(!quote)return <b className="priceWait" data-fx="0">…</b>
+ if(quote.currency==='INR')return <b data-fx="INR">{lead}{rupee(inr)}<small>{unit}</small></b>
+ const n=localAmount(inr,quote)
+ if(n==null)return <b data-fx="0">…</b>
+ return <b data-fx={quote.currency}>{lead}{money(n,quote.currency)}<small>{unit}</small></b>
+}
+
+/** Shown only on the pay button, and only when the screen is not in rupees. Razorpay orders are created in INR. */
+export function InrChargeNote({inr}:{inr:number}){
+ const {quote}=useFx()
+ if(!quote||quote.currency==='INR')return null
+ return <small className="fxCharge">Your card is charged the equivalent in INR ({rupee(inr)}).</small>
 }
 
 /** Keeps ?currency= or ?country= on links such as /onboarding?plan=basic. */

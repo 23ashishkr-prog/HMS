@@ -6,11 +6,12 @@ import {PLAN_ANNUAL_INR,PLAN_PRICE_INR} from '../lib/plans'
 
 test('display currency: query, country, geo, then USD',()=>{
  assert.deepEqual(resolveDisplay({currency:'gbp',country:'DE',geo:'US'}),{currency:'GBP',via:'currency',country:null})
- assert.deepEqual(resolveDisplay({currency:'INR',country:'DE'}),{currency:'EUR',via:'country',country:'DE'})
+ assert.deepEqual(resolveDisplay({currency:'INR',country:'DE'}),{currency:'INR',via:'currency',country:null})
  assert.equal(resolveDisplay({country:'GB'}).currency,'GBP')
  assert.equal(resolveDisplay({country:'uk'}).currency,'GBP')
  assert.equal(resolveDisplay({country:'fr'}).currency,'EUR')
- assert.equal(resolveDisplay({country:'IN'}).currency,'USD')
+ assert.equal(resolveDisplay({country:'IN'}).currency,'INR')
+ assert.equal(resolveDisplay({geo:'IN'}).currency,'INR')
  assert.deepEqual(resolveDisplay({geo:'DE'}),{currency:'EUR',via:'geo',country:'DE'})
  assert.deepEqual(resolveDisplay({}),{currency:'USD',via:'default',country:null})
  assert.equal(currencyForCountry('NO'),'EUR')
