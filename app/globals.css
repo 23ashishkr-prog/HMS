@@ -1425,4 +1425,4 @@ html[data-theme=dark] .agentNarr{background:rgba(96,165,250,.1)}html[data-theme=
 .publicBar{padding:16px 6vw 0}
 .publicLegal{padding:18px 6vw 28px}
 .publicShell{position:relative}
-@media(max-width:860px){.backGnLong{display:none}.backGnShort{display:inline}main.publicShell,.publicShell:has(> main.authPremium){padding-top:68px}}
+@media(max-width:860px){.backGnLong{display:none}.backGnShort{display:inline}main.publicShell,.publicShell:has(> main.authPremium){padding-top:68px}.mkNav{padding:12px 14px;gap:8px}.mkBrand{gap:8px}.mkNav .mkLinks .mkBtn{white-space:nowrap;padding:8px 12px}}
