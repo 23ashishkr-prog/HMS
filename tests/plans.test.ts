@@ -1,7 +1,7 @@
 import {test} from 'node:test';import assert from 'node:assert/strict'
 import {freshDb,tenant} from './helpers'
 import {onboardHospital,getSubscription,requireModule} from '../lib/services/tenancy'
-import {PLAN_PRICE_INR,TRIAL_DAYS,TRIAL_PLAN,canonicalPlan,showTrialCountdown} from '../lib/plans'
+import {PLAN_PRICE_INR,TRIAL_DAYS,TRIAL_PLAN,canonicalPlan,planForNewSale,showTrialCountdown} from '../lib/plans'
 const DAY=86400000
 test('trial countdown is hidden once a plan is active',()=>{
  assert.equal(showTrialCountdown('active',12),false)
@@ -12,14 +12,23 @@ test('trial countdown is hidden once a plan is active',()=>{
  assert.equal(showTrialCountdown('on_hold',1),false)
 })
 test('catalogue prices match Market PMS finals',()=>{
- assert.equal(PLAN_PRICE_INR.clinic,1999)
+ assert.equal(PLAN_PRICE_INR.clinic,1989)
  assert.equal(PLAN_PRICE_INR.basic,19999)
  assert.equal(PLAN_PRICE_INR.ai_engage,49999)
- assert.equal(TRIAL_PLAN,'basic')
+ assert.equal(PLAN_PRICE_INR.engage,49890)
+ assert.equal(PLAN_PRICE_INR.engage_support,89700)
+ assert.equal(TRIAL_PLAN,'clinic')
  assert.equal(TRIAL_DAYS(),30)
  assert.equal(canonicalPlan('pro'),'ai_engage')
  assert.equal(canonicalPlan('enterprise'),'ai_engage')
  assert.equal(canonicalPlan('clinic'),'clinic')
+ assert.equal(canonicalPlan('basic'),'basic')
+ assert.equal(canonicalPlan('ai_engage'),'ai_engage')
+ assert.equal(planForNewSale('basic'),'clinic')
+ assert.equal(planForNewSale('clinic'),'clinic')
+ assert.equal(planForNewSale('engage'),'engage')
+ assert.equal(planForNewSale('engage_support'),'engage_support')
+ assert.equal(planForNewSale('ai_engage'),'engage')
 })
 test('self-serve trial follows clinic or basic and rejects AI contact-sales', async()=>{
  const db=await freshDb()
@@ -30,9 +39,14 @@ test('self-serve trial follows clinic or basic and rejects AI contact-sales', as
  assert.ok(!cs.modules.includes('billing')&&!cs.modules.includes('ai'))
  const days=Math.round((new Date(cs.trial_ends_at).getTime()-Date.now())/DAY)
  assert.ok(days>=28&&days<=32,'got '+days)
- const basic=await onboardHospital(db,{hospitalName:'Basic Trial',adminName:'A',adminEmail:'a@basictrial.in',password:'S3cure-pass!',planCode:'nope'})
- assert.equal(basic.plan,'basic')
- await assert.rejects(onboardHospital(db,{hospitalName:'AI Sales',adminName:'A',adminEmail:'a@aisales.in',password:'S3cure-pass!',planCode:'ai_engage'}),(e:any)=>e.status===403&&/Contact Sales/.test(e.message))
+ const basic=await onboardHospital(db,{hospitalName:'Basic Trial',adminName:'A',adminEmail:'a@basictrial.in',password:'S3cure-pass!',planCode:'basic'})
+ assert.equal(basic.plan,'clinic')
+ const unknown=await onboardHospital(db,{hospitalName:'Unknown Trial',adminName:'A',adminEmail:'a@unknowntrial.in',password:'S3cure-pass!',planCode:'nope'})
+ assert.equal(unknown.plan,'clinic')
+ await assert.rejects(onboardHospital(db,{hospitalName:'AI Sales',adminName:'A',adminEmail:'a@aisales.in',password:'S3cure-pass!',planCode:'engage'}),(e:any)=>e.status===403&&/Contact Sales/.test(e.message))
+ await assert.rejects(onboardHospital(db,{hospitalName:'Support Sales',adminName:'A',adminEmail:'a@supportsales.in',password:'S3cure-pass!',planCode:'engage_support'}),(e:any)=>e.status===403&&/Contact Sales/.test(e.message))
+ const kept=await onboardHospital(db,{hospitalName:'Old Basic',adminName:'A',adminEmail:'a@oldbasic.in',password:'S3cure-pass!',planCode:'basic',paid:true})
+ assert.equal(kept.plan,'basic')
 })
 test('Clinic plan modules: booking only; paid upgrade unlocks', async()=>{
  const db=await freshDb();const {admin}=await tenant(db,'Clinic Co','clinic')

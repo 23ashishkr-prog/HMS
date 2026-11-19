@@ -219,5 +219,5 @@ test('paid HMS plans store currency INR and amount_in_inr, and events do not lea
   const converted=(await db.query('select plan_code,currency,amount_in_inr from subscriptions where hospital_id=$1',[admin.hospitalId])).rows[0]
   assert.equal(converted.plan_code,'clinic')
   assert.equal(converted.currency,'INR')
-  assert.equal(Number(converted.amount_in_inr),1999)
+  assert.equal(Number(converted.amount_in_inr),1989)
 })

@@ -69,7 +69,7 @@ export default function HospitalDetail(){
     </div>}
     {!tail&&<form className="platForm" style={{marginTop:16,maxWidth:'100%',boxShadow:'none',padding:0}} onSubmit={async e=>{e.preventDefault();setMsg('');setOk('');try{await call('/api/platform/hospitals/'+id,'PATCH',formObj(e));load();setOk('Plan and status saved.')}catch(er:any){setMsg(er.message)}}}>
      <div className="platFilters" style={{marginBottom:0}}>
-      <label>Plan<select name="planCode" defaultValue={h.plan_code||'basic'}><option value="clinic">clinic</option><option value="basic">basic</option><option value="ai_engage">ai_engage</option></select></label>
+      <label>Plan<select name="planCode" defaultValue={h.plan_code||'clinic'}><option value="clinic">Clinic (Basic)</option><option value="engage">Customer Engagement</option><option value="engage_support">Engagement + support</option><option value="basic">Basic (kept)</option><option value="ai_engage">AI+ (kept)</option></select></label>
       <label>Status<select name="status" defaultValue={h.sub_status||'trialing'}>{['trialing','active','on_hold','past_due','cancelled','expired'].map(s=><option key={s}>{s}</option>)}</select></label>
       <div className="platFilterBtns"><button type="submit" className="primary">Save plan / status</button></div>
      </div>

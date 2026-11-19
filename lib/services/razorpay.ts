@@ -2,7 +2,7 @@
  *  Credentials: platform_settings (encrypted) preferred, else RAZORPAY_* env. */
 import {createHmac,timingSafeEqual} from 'crypto'
 import {Db,HttpError} from '@/lib/services/core'
-import {PLAN_ANNUAL_INR,PLAN_NAME,PLAN_PRICE_INR,PlanCode,canonicalPlan} from '@/lib/plans'
+import {PLAN_ANNUAL_INR,PLAN_NAME,PLAN_PRICE_INR,PlanCode,planForNewSale} from '@/lib/plans'
 import {envPaymentsConfigured,getRazorpayCreds,RzpCreds} from '@/lib/services/platformGateway'
 
 export type BillingPeriod='monthly'|'annual'
@@ -30,7 +30,7 @@ async function rzp(creds:RzpCreds,path:string,method:'GET'|'POST',body?:unknown)
 export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode:string;planCode:string;period:BillingPeriod;adminEmail?:string|null}){
  const creds=await getRazorpayCreds(db)
  if(!creds.configured)throw new HttpError(503,'Online payments are not configured yet. Ask the platform owner to set Razorpay keys in /platform/settings, or renew offline.')
- const plan=canonicalPlan(opts.planCode)
+ const plan=planForNewSale(opts.planCode)
  const period=opts.period==='annual'?'annual':'monthly'
  const amountInr=planAmountInr(plan,period)
  const amount=Math.round(amountInr*100) // paise
