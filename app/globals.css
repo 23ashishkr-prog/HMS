@@ -1286,6 +1286,26 @@ html body .chips .chip.on.offDoc:not(#_){opacity:1;background:#b45309!important;
 .dsFoot{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}.dsFoot div{border-top:1px solid #94a3b8;padding-top:6px;min-width:220px}.dsFoot small{color:#64748b}
 @media (max-width:640px){.dsSheet{padding:18px}.dsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{.noPrint{display:none!important}.dsPage{padding:0;max-width:none;background:#fff}.dsSheet{border:0;border-radius:0;padding:0}}
+/* Platform leads, and reference prices next to the INR charge */
+.platLeadBoard{margin-top:22px}
+.platLeadBoard .sheetHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.platLeadBoard h2{margin:0;font-size:1.35rem}
+.platLeadTable{width:100%;border-collapse:collapse;min-width:760px}
+.platLeadTable th,.platLeadTable td{text-align:left;padding:12px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap;font-size:15px}
+.platLeadTable th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#64748b;font-weight:650}
+.platLeadTable tbody tr:hover{background:#f8fafc}
+.pill-new{background:#e0f2fe;color:#075985}
+.pill-contacted,.pill-demo,.pill-trial{background:#ffedd5;color:#9a3412}
+.pill-won{background:#dcfce7;color:#166534}
+.pill-lost{background:#e2e8f0;color:#475569}
+.fxApprox{display:block;margin-top:4px;color:#64748b;font-size:13px;font-weight:550;line-height:1.35}
+.fxPaid{margin-top:12px;padding:12px 14px;border-radius:14px;background:#ecfdf5;color:#065f46}
+.planOpt .fxApprox{white-space:normal}
+html body .plat .platProduct button:not(#_){min-height:32px!important;padding:6px 14px!important;background:transparent!important;color:#475569!important;border:0!important;border-radius:999px!important;box-shadow:none!important;font-size:13px!important;font-weight:800!important}
+html body .plat .platProduct button.on:not(#_){background:#0f172a!important;color:#fff!important}
+html body .plat button.platSignOut:not(#_){min-height:36px!important;padding:0 12px!important;background:#fff!important;color:#0f172a!important;border:1.5px solid #cbd5e1!important;border-radius:999px!important;box-shadow:none!important;font-size:13px!important;font-weight:700!important}
+html body .plat .platTabsInline button:not(#_){min-height:32px!important;background:#fff!important;color:#0f172a!important;border:1px solid #e2e8f0!important;border-radius:999px!important;box-shadow:none!important}
+html body .plat .platTabsInline button.on:not(#_){background:#0f172a!important;color:#fff!important;border-color:#0f172a!important}
 /* Ward chart: eMAR, notes */
 .marList{display:flex;flex-direction:column;gap:10px}.marRow{display:grid;grid-template-columns:minmax(180px,1.1fr) 3fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#fff}.marRow.stopped{opacity:.6}
 .marMed b{display:block}.marMed small{color:#64748b}.marDoses{display:flex;flex-wrap:wrap;gap:6px}

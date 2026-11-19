@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react'
 import {call} from '@/lib/client'
 import {PLAN_ANNUAL_INR,PLAN_CATALOGUE,PLAN_NAME,PLAN_PRICE_INR,PlanCode} from '@/lib/plans'
+import {Approx} from '@/components/FxPrice'
 
 declare global{interface Window{Razorpay?:any}}
 
@@ -23,6 +24,7 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
  const[msg,setMsg]=useState('')
  const[enabled,setEnabled]=useState<boolean|null>(null)
  const[role,setRole]=useState('admin')
+ const[paid,setPaid]=useState<{name:string;inr:number;period:'monthly'|'annual'}|null>(null)
  useEffect(()=>{call('/api/subscription/status').then(x=>{setEnabled(!!x.paymentsEnabled);setRole(x.role||'admin')}).catch(()=>setEnabled(false))},[])
 
  const pay=async(planCode:PlanCode)=>{
@@ -43,7 +45,8 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
        await call('/api/subscription/confirm','POST',{
         razorpay_order_id:resp.razorpay_order_id,razorpay_payment_id:resp.razorpay_payment_id,razorpay_signature:resp.razorpay_signature,planCode,
        })
-       setMsg('Payment successful — '+PLAN_NAME[planCode]+' is active.')
+       setPaid({name:PLAN_NAME[planCode],inr:order.amount,period})
+       setMsg(PLAN_NAME[planCode]+' is active.')
        onPaid?.();resolve()
       }catch(e:any){reject(e)}
      },
@@ -62,9 +65,11 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
   {enabled===false&&<p className="banner warn">Online payment is not set up yet (Razorpay keys missing on the server). Your admin can still be activated offline by the platform team — never treat this screen as a successful payment.</p>}
   <div className="payGrid">{PLAN_CATALOGUE.map(p=>{
    const price=period==='annual'?PLAN_ANNUAL_INR[p.code]:PLAN_PRICE_INR[p.code]
-   return <article key={p.code} className={p.code==='basic'?'hot':''}>
+   return <article key={p.code} className={p.code==='engage_support'?'hot':''}>
     <h3>{p.name}</h3>
+    {p.supportAdmins>0&&<small className="fxApprox">Dedicated support admin included</small>}
     <b>{inr(price)}<small>/{period==='annual'?'year':'month'}</small></b>
+    <Approx inr={price} per={period==='annual'?'year':'month'} mode="pay"/>
     <p>{p.blurb}</p>
     <button type="button" className="primary" disabled={!!busy||enabled===false||role!=='admin'} onClick={()=>pay(p.code)}>
      {busy===p.code?'Opening Razorpay…':enabled===false?'Payments unavailable':('Pay '+inr(price))}
@@ -72,6 +77,7 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
    </article>
   })}</div>
   <p className="muted"><small>Prices exclude GST. This pays for your hospital&apos;s software plan only — not patient bills. Plan activates only after Razorpay confirms payment.</small></p>
-  {msg&&<p className={/success|active/i.test(msg)?'ok':'err'} role="status">{msg}</p>}
+  {paid&&<div className="fxPaid" role="status"><b>{paid.name} is active.</b><Approx inr={paid.inr} mode="paid"/></div>}
+  {msg&&!paid&&<p className={/active/i.test(msg)?'ok':'err'} role="status">{msg}</p>}
  </div>
 }

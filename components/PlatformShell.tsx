@@ -12,6 +12,7 @@ const TABS:[string,string,((p:string)=>boolean)?][]=[
  ['/platform/payments','Payments',p=>p.startsWith('/platform/payments')],
  ['/platform/settings','Gateway',p=>p.startsWith('/platform/settings')],
  ['/platform/incidents','Incidents',p=>p.startsWith('/platform/incidents')],
+ ['/platform/leads','Leads',p=>p.startsWith('/platform/leads')],
 ]
 
 export function PlatformSignIn({title='Platform sign-in',hint}:{title?:string;hint?:string}){
@@ -69,7 +70,6 @@ export default function PlatformShell({title,eyebrow,description,children,action
      })}
     </nav>
     <div className="platTopActions">
-     <Link className="platTab ghostish" href="/platform/leads">Leads</Link>
      <button type="button" className="platSignOut" disabled={busy} onClick={signOut}>{busy?'…':'Sign out'}</button>
     </div>
    </header>

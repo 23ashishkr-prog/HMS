@@ -60,9 +60,11 @@ export default function HospitalsPage(){
      <select value={plan} onChange={e=>setPlan(e.target.value)}>
       <option value="">All</option>
       {tail?(d.plan_counts||[]).map((p:any)=><option key={p.code} value={p.code}>{p.name||p.code}</option>):<>
-       <option value="clinic">Clinic</option>
-       <option value="basic">Basic</option>
-       <option value="ai_engage">AI+</option>
+       <option value="clinic">Clinic (Basic)</option>
+       <option value="engage">Customer Engagement</option>
+       <option value="engage_support">Engagement + support</option>
+       <option value="basic">Basic (kept)</option>
+       <option value="ai_engage">AI+ (kept)</option>
       </>}
      </select>
     </label>

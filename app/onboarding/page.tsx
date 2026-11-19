@@ -1,28 +1,29 @@
 'use client'
 import {useEffect,useState} from 'react';import Link from 'next/link';import {call,formObj} from '@/lib/client';import Logo from '@/components/Logo';import {withBase} from '@/lib/basePath'
-import {trialPlanFromParam} from '@/lib/plans'
+import {isContactSalesPlan,trialPlanFromParam} from '@/lib/plans'
+import {Approx,FxLink} from '@/components/FxPrice'
 import EmailCode from '@/components/EmailCode'
 const inr=(n:any)=>'₹'+Number(n||0).toLocaleString('en-IN')
 const BLURB:Record<string,string>={
  clinic:'Online + token booking · 30-day free trial',
- basic:'Full hospital operations · 30-day free trial',
- ai_engage:'AI assistant and WhatsApp engagement · Contact Sales',
+ engage:'Full hospital, AI assistant and WhatsApp · Contact Sales',
+ engage_support:'Customer Engagement plus a dedicated support admin · Contact Sales',
 }
 const FALLBACK=[
- {code:'clinic',name:'Clinic',monthly_price_inr:1999},
- {code:'basic',name:'Basic',monthly_price_inr:19999},
- {code:'ai_engage',name:'AI + Engagement',monthly_price_inr:49999},
+ {code:'clinic',name:'Clinic (Basic)',monthly_price_inr:1989,included_support_admins:0},
+ {code:'engage',name:'Customer Engagement',monthly_price_inr:49890,included_support_admins:0},
+ {code:'engage_support',name:'Customer Engagement + 1 Support Admin',monthly_price_inr:89700,included_support_admins:1},
 ]
 export default function Page(){
  const[plans,setPlans]=useState<any[]>([]),[days,setDays]=useState(30),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false),[plan,setPlan]=useState('basic'),[done,setDone]=useState<any>(null),[leadOk,setLeadOk]=useState(false),[pending,setPending]=useState<{email:string;password:string;code:string}|null>(null)
  useEffect(()=>{
   const q=new URLSearchParams(window.location.search).get('plan')
-  if(q==='ai_engage')setPlan('ai_engage')
+  if(isContactSalesPlan(q))setPlan(q==='engage_support'?'engage_support':'engage')
   else setPlan(trialPlanFromParam(q))
   call('/api/onboarding').then(x=>{setPlans(x.plans||[]);setDays(x.trialDays||30)}).catch(e=>setMsg(e.message))
  },[])
  const list=plans.length?plans:FALLBACK
- const sales=plan==='ai_engage'
+ const sales=plan==='engage'||plan==='engage_support'
  return (
   <main className="authPage authPremium onbPage">
    <aside className="authSide" aria-hidden>
@@ -30,8 +31,8 @@ export default function Page(){
      <Link className="mkLogo" href="/welcome"><Logo size={36}/> HMS</Link>
      <h2>Your hospital, live in an afternoon.</h2>
      <ul>
-      <li>{days}-day free trial on Clinic or Basic — no card</li>
-      <li>AI + Customer Engagement is Contact Sales</li>
+      <li>{days}-day free trial on Clinic (Basic) — no card</li>
+      <li>Customer Engagement is Contact Sales</li>
       <li>Indian defaults: services, departments, OPD timings</li>
      </ul>
     </div>
@@ -52,9 +53,9 @@ export default function Page(){
      <>
       <div className="authBrand"><Logo size={36}/><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
       <span className="overline">CONTACT SALES</span>
-      <h1>AI + Customer Engagement</h1>
-      <p className="onbLead">This plan has no self-serve trial. Tell us about your hospital and we will call you. Clinic and Basic still include a {days}-day trial.</p>
-      {leadOk?<p className="banner ok">Thanks. We will contact you on the next working day. <Link href="/onboarding?plan=basic">Or start a Basic trial</Link>.</p>:
+      <h1>{plan==='engage_support'?'Customer Engagement + 1 Support Admin':'Customer Engagement'}</h1>
+      <p className="onbLead">This plan has no self-serve trial. Tell us about your hospital and we will call you. Clinic (Basic) still includes a {days}-day trial.{plan==='engage_support'&&' This plan includes one dedicated support admin.'}</p>
+      {leadOk?<p className="banner ok">Thanks. We will contact you on the next working day. <FxLink href="/onboarding?plan=basic">Or start a Basic trial</FxLink>.</p>:
       <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);setMsg('');try{await call('/api/public/lead','POST',{...formObj(e),source:'onboarding-ai_engage'});setLeadOk(true)}catch(er:any){setMsg(er.message)}finally{setBusy(false)}}}>
        <label>Your name *<input name="name" required autoComplete="name"/></label>
        <label>Hospital name *<input name="hospitalName" required autoComplete="organization"/></label>
@@ -64,13 +65,13 @@ export default function Page(){
        <button className="primary full" disabled={busy}>{busy?'Sending…':'Contact sales'}</button>
        {msg&&<div className="authMessage" role="alert">{msg}</div>}
       </form>}
-      <div className="authNote"><button type="button" className="ghost" onClick={()=>setPlan('basic')}>Start a Basic trial instead</button> · <a href={withBase('/welcome#pricing')}>Pricing</a></div>
+      <div className="authNote"><button type="button" className="ghost" onClick={()=>setPlan('clinic')}>Start a Clinic trial instead</button> · <a href={withBase('/welcome#pricing')}>Pricing</a></div>
      </>
     ):(<>
      <div className="authBrand"><Link href="/welcome"><Logo size={36}/></Link><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
      <span className="overline">{days}-DAY FREE TRIAL</span>
      <h1>Register your hospital</h1>
-     <p className="onbLead">Creates your workspace and admin login. Hospital code is generated automatically. Clinic and Basic each include a {days}-day trial on the plan you choose. AI + Customer Engagement is Contact Sales.</p>
+     <p className="onbLead">Creates your workspace and admin login. Hospital code is generated automatically. Clinic (Basic) includes a {days}-day trial. Both Customer Engagement plans are Contact Sales.</p>
      <form className="authForm" onSubmit={async e=>{e.preventDefault();setBusy(true);setMsg('');const fields=formObj(e);const body={...fields,planCode:plan};try{const x=await call('/api/onboarding','POST',body);if(x.needsEmailVerification)setPending({email:String(fields.adminEmail||'').trim().toLowerCase(),password:String(fields.password||''),code:x.code});else setDone(x)}catch(er:any){setMsg(er.message+(er.data?.pricingPath?' You can compare plans and buy from the pricing page.':''))}finally{setBusy(false)}}}>
       <label>Hospital name *<input name="hospitalName" required autoComplete="organization" placeholder="e.g. Sunrise Multispeciality Hospital"/></label>
       <div className="onb2"><label>Phone<input name="phone" inputMode="tel" autoComplete="tel"/></label><label>GSTIN<input name="gstin" autoCapitalize="characters"/></label></div>
@@ -78,13 +79,13 @@ export default function Page(){
       <fieldset className="planPick"><legend>Choose a plan</legend>
        {list.map(p=><label key={p.code} className={'planOpt'+(plan===p.code?' on':'')}>
         <input type="radio" name="plan" value={p.code} checked={plan===p.code} onChange={()=>setPlan(p.code)}/>
-        <span><b>{p.name}</b><small>{BLURB[p.code]||''}</small></span>
+        <span><b>{p.name}</b><small>{BLURB[p.code]||''}</small>{Number(p.included_support_admins)>0&&<small>Dedicated support admin included</small>}<Approx inr={Number(p.monthly_price_inr)} per="month"/></span>
         <em>{inr(p.monthly_price_inr)}<small>/mo</small></em>
        </label>)}
       </fieldset>
       <label>Your name *<input name="adminName" required autoComplete="name"/></label>
       <div className="onb2"><label>Your email *<input name="adminEmail" type="email" required autoComplete="email"/></label><label>Password (10+) *<input name="password" type="password" minLength={10} required autoComplete="new-password"/></label></div>
-      <button className="primary full" disabled={busy}>{busy?'Creating…':`Start ${days}-day ${plan==='clinic'?'Clinic':'Basic'} trial`}</button>
+      <button className="primary full" disabled={busy}>{busy?'Creating…':`Start ${days}-day Clinic trial`}</button>
       {msg&&<div className="authMessage" role="alert">{msg} {/already used|paid plan|pricing/i.test(msg)&&<a href={withBase('/welcome#pricing')}>See pricing</a>}</div>}
      </form>
      <div className="authNote">Already registered? <Link href="/auth/login">Sign in</Link> · <a href={withBase('/welcome#pricing')}>Compare plans</a></div>
