@@ -3,6 +3,7 @@
 import {createHmac,timingSafeEqual} from 'crypto'
 import {Db,HttpError} from '@/lib/services/core'
 import {PLAN_ANNUAL_INR,PLAN_NAME,PLAN_PRICE_INR,PlanCode,planForNewSale} from '@/lib/plans'
+import {TERMS_VERSION} from '@/lib/terms'
 import {envPaymentsConfigured,getRazorpayCreds,RzpCreds} from '@/lib/services/platformGateway'
 
 export type BillingPeriod='monthly'|'annual'
@@ -27,7 +28,7 @@ async function rzp(creds:RzpCreds,path:string,method:'GET'|'POST',body?:unknown)
  return j
 }
 
-export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode:string;planCode:string;period:BillingPeriod;adminEmail?:string|null}){
+export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode:string;planCode:string;period:BillingPeriod;adminEmail?:string|null;termsVersion?:string|null;termsAgreedAt?:Date|null}){
  const creds=await getRazorpayCreds(db)
  if(!creds.configured)throw new HttpError(503,'Online payments are not configured yet. Ask the platform owner to set Razorpay keys in /platform/settings, or renew offline.')
  const plan=planForNewSale(opts.planCode)
@@ -41,9 +42,9 @@ export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode
  // Ledger row (created) so platform Payment check shows the attempt before capture
  try{
   await db.query(
-   `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,amount_in_inr,currency,status,provider,provider_order_id,raw)
-    values($1,$2,$3,$4,$4,'INR','created','razorpay',$5,$6)`,
-   [opts.hospitalId,plan,period,amountInr,order.id,JSON.stringify({order,notes})]
+   `insert into subscription_payments(hospital_id,plan_code,billing_period,amount_inr,amount_in_inr,currency,status,provider,provider_order_id,raw,terms_version,terms_agreed_at)
+    values($1,$2,$3,$4,$4,'INR','created','razorpay',$5,$6,$7,$8)`,
+   [opts.hospitalId,plan,period,amountInr,order.id,JSON.stringify({order,notes}),opts.termsVersion||TERMS_VERSION,opts.termsAgreedAt||null]
   )
  }catch{/* non-fatal */}
  return {

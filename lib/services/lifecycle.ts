@@ -12,13 +12,34 @@ export const HOLD_MONTHS=()=>Number(process.env.HOLD_MONTHS||6)
 export const WARN_DAYS=[7,3,1]
 const addMonths=(d:Date,m:number)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x}
 const DAY=86400000
-export function purgeAt(s:any){if(!s.hold_started_at)return null;const p=addMonths(new Date(s.hold_started_at),HOLD_MONTHS());const e=s.hold_extended_until?new Date(s.hold_extended_until):null;return e&&e>p?e:p}
-export function lifecycleView(s:any,now=new Date()){if(!s)return null;const st=s.status;const trialEnd=s.trial_ends_at?new Date(s.trial_ends_at):null;const pAt=purgeAt(s)
- const onHold=st==='on_hold'||(st==='trialing'&&!!trialEnd&&trialEnd<=now)||['past_due','cancelled','expired'].includes(st)
- const paid=st==='active'
+export function purgeAt(s:any){if(!s.hold_started_at)return null;const p=s.renewal_policy?new Date(new Date(s.hold_started_at).getTime()+30*DAY):addMonths(new Date(s.hold_started_at),HOLD_MONTHS());const e=s.hold_extended_until?new Date(s.hold_extended_until):null;return e&&e>p?e:p}
+/** Clock for payments taken under RENEWAL_POLICY. Null means the older hold/purge rules. */
+export function policyClock(s:any,now=new Date()){
+ if(!s?.renewal_policy||s.purged_at)return null
+ if(s.status==='trialing')return null
+ const end=s.current_period_end?new Date(s.current_period_end):null
+ const failed=s.payment_failed_at?new Date(s.payment_failed_at):null
+ if(s.cancel_at_period_end&&end&&now>=end){
+  const holdAt=end
+  return {phase:'export' as const,onHold:true,readOnly:false,holdAt,purgeAt:new Date(holdAt.getTime()+30*DAY)}
+ }
+ if(end&&now<end)return {phase:'current' as const,onHold:false,readOnly:false,holdAt:null,purgeAt:null}
+ const anchor=end&&now>=end?end:(failed||null)
+ if(!anchor)return {phase:'current' as const,onHold:false,readOnly:false,holdAt:null,purgeAt:null}
+ const days=(now.getTime()-anchor.getTime())/DAY
+ if(days<7)return {phase:'reminder' as const,onHold:false,readOnly:false,holdAt:null,purgeAt:null}
+ if(days<30)return {phase:'readonly' as const,onHold:false,readOnly:true,holdAt:null,purgeAt:null}
+ const holdAt=new Date(anchor.getTime()+30*DAY)
+ return {phase:'suspended' as const,onHold:true,readOnly:false,holdAt,purgeAt:new Date(holdAt.getTime()+30*DAY)}
+}
+export function lifecycleView(s:any,now=new Date()){if(!s)return null;const st=s.status;const trialEnd=s.trial_ends_at?new Date(s.trial_ends_at):null;const policy=policyClock(s,now)
+ const onHold=!!policy?.onHold||st==='on_hold'||(st==='trialing'&&!!trialEnd&&trialEnd<=now)||['past_due','cancelled','expired'].includes(st)
+ const readOnly=!!policy?.readOnly&&!onHold
+ const paid=st==='active'&&!onHold
  const daysLeft=!paid&&st==='trialing'&&trialEnd&&!onHold?trialDaysRemaining(trialEnd,now):null
+ const pAt=policy?.purgeAt||purgeAt(s)
  const daysToPurge=onHold&&pAt&&!s.purged_at?Math.max(0,Math.ceil((pAt.getTime()-now.getTime())/DAY)):null
- return {status:onHold?'on_hold':st,onHold,paid,trialEndsAt:paid?null:trialEnd,trialDaysLeft:daysLeft,holdStartedAt:s.hold_started_at,purgeAt:pAt,daysToPurge,purgedAt:s.purged_at}}
+ return {status:onHold?'on_hold':st,onHold,readOnly,paid,phase:policy?.phase||null,trialEndsAt:paid?null:trialEnd,trialDaysLeft:daysLeft,holdStartedAt:s.hold_started_at,purgeAt:pAt,daysToPurge,purgedAt:s.purged_at}}
 const emailConfigured=()=>!!(process.env.RESEND_API_KEY||process.env.SMTP_URL)
 async function notice(db:Db,h:string,kind:string,days:number,cycle:Date){const r=await db.query('insert into lifecycle_notices(hospital_id,kind,days_left,channel,cycle_start) values($1,$2,$3,$4,$5) on conflict do nothing returning id',[h,kind,days,emailConfigured()?'in_app+email':'in_app',cycle]);return r.rows.length}
 /** Email via the existing outbox (cron sends it). Dedupe key makes a replay a no-op. */
@@ -44,9 +65,27 @@ export async function purgeHospital(db:Db,h:string){
  const admin=(await db.query("select id from users where hospital_id=$1 and role='admin' order by created_at limit 1",[h])).rows[0]
  await db.query('update users set active=false,updated_at=now() where hospital_id=$1 and id<>$2',[h,admin?.id||'00000000-0000-0000-0000-000000000000'])
  await db.query("update subscriptions set purged_at=now(),updated_at=now() where hospital_id=$1",[h])}
+async function queueRenewalReminder(db:Db,hospitalId:string,when:Date){
+ const row=(await db.query(`select h.name, coalesce(nullif(trim(h.contact_email),''), a.email) as to_addr
+  from hospitals h
+  left join lateral (select email from users where hospital_id=h.id and role='admin' and active order by created_at limit 1) a on true
+  where h.id=$1`,[hospitalId])).rows[0]
+ if(!row?.to_addr)return 0
+ const key=`renewal_due:${hospitalId}:${new Date(when).toISOString().slice(0,10)}`
+ const body=`${row.name}: a Hospital Cloud renewal payment has not come through. You can keep working for 7 days. After that the account becomes read-only, and after 30 days it is suspended. Pay from ${appUrl()}/admin/settings`
+ const r=await db.query(`insert into notification_outbox(hospital_id,patient_id,channel,kind,to_address,subject,body,dedupe_key)
+  values($1,null,'email','renewal_due',$2,$3,$4,$5) on conflict(dedupe_key) do nothing returning id`,[hospitalId,row.to_addr,'HMS renewal payment needed',body,key])
+ return r.rows.length
+}
 export async function runLifecycle(db:Db,now=new Date()){const out={held:0,purged:0,notices:0}
  const subs=(await db.query("select s.* from subscriptions s join hospitals h on h.id=s.hospital_id where coalesce(h.status,'active')='active'")).rows
- for(const s of subs){const v=lifecycleView(s,now)!
+ for(const s of subs){
+  const clock=s.renewal_policy?policyClock(s,now):null
+  if(clock&&(clock.phase==='suspended'||clock.phase==='export')&&s.status==='active'&&!s.hold_started_at&&clock.holdAt){
+   await db.query("update subscriptions set status='on_hold',hold_started_at=$2,updated_at=now() where hospital_id=$1 and status='active' and hold_started_at is null",[s.hospital_id,clock.holdAt])
+   s.status='on_hold';s.hold_started_at=clock.holdAt;out.held++;out.notices+=await notice(db,s.hospital_id,'on_hold',0,clock.holdAt)
+  }else if(clock?.phase==='reminder')out.notices+=await queueRenewalReminder(db,s.hospital_id,s.payment_failed_at||s.current_period_end||now)
+  const v=lifecycleView(s,now)!
   if(v.onHold&&!s.hold_started_at){await db.query("update subscriptions set status='on_hold',hold_started_at=$2,updated_at=now() where hospital_id=$1 and hold_started_at is null",[s.hospital_id,now]);s.hold_started_at=now;s.status='on_hold';out.held++;out.notices+=await notice(db,s.hospital_id,'on_hold',0,now)}
   if(s.status==='trialing'&&v.trialDaysLeft!=null)for(const d of TRIAL_REMINDER_DAYS)if(v.trialDaysLeft<=d){const n=await notice(db,s.hospital_id,'trial_ending',d,new Date(s.trial_ends_at));out.notices+=n;if(n)await queueTrialReminder(db,s.hospital_id,d,new Date(s.trial_ends_at))}
   if(s.status==='on_hold'&&!s.purged_at){const p=purgeAt(s)!;const left=Math.ceil((p.getTime()-now.getTime())/DAY);for(const d of WARN_DAYS)if(left<=d&&left>0)out.notices+=await notice(db,s.hospital_id,'purge_pending',d,new Date(s.hold_started_at));if(p<=now){await tx(db,d=>purgeHospital(d,s.hospital_id));out.purged++;out.notices+=await notice(db,s.hospital_id,'purged',0,new Date(s.hold_started_at))}}}

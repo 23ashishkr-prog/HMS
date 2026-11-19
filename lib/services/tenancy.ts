@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import {Ctx,Db,HttpError,audit,opt,required,requireRole} from './core'
 import {canonicalPlan,TRIAL_DAYS,upgradeLabel,PlanCode,PLAN_CODES,PLAN_PRICE_INR,PLAN_ANNUAL_INR,PLAN_SUPPORT_ADMINS,isContactSalesPlan,trialPlanFromParam,aiFeaturesFor} from '../plans'
 import {assertTrialAvailable,recordTrialClaim} from './trialIdentity'
+import {RENEWAL_POLICY} from '../terms'
 import {applyNewUserVerification} from './emailverify'
 export {canonicalPlan,upgradeLabel}
 export const MODULES=['patients','appointments','queue','opd','billing','lab','pharmacy','ipd','insurance','audit','bulk','ai','engagement'] as const
@@ -11,7 +12,7 @@ import {envPaymentsConfigured,paymentsConfiguredAsync} from './platformGateway'
 /** Per-request memo so the api() gate and requireModule() share one subscription lookup. */
 const subMemo=new WeakMap<object,any>()
 export function memoSubscription(ctx:object,sub:any){subMemo.set(ctx,sub)}
-export async function getSubscription(db:Db,hospitalId:string){const r=await db.query('select s.*,p.name plan_name,p.modules,p.max_users,p.max_patients,p.included_support_admins from subscriptions s join plans p on p.code=s.plan_code where s.hospital_id=$1',[hospitalId]);const s=r.rows[0];if(!s)return null;const lc=lifecycleView(s)!;return {...s,usable:!lc.onHold&&['active','trialing'].includes(s.status),trialOver:lc.onHold,lifecycle:lc}}
+export async function getSubscription(db:Db,hospitalId:string){const r=await db.query('select s.*,p.name plan_name,p.modules,p.max_users,p.max_patients,p.included_support_admins from subscriptions s join plans p on p.code=s.plan_code where s.hospital_id=$1',[hospitalId]);const s=r.rows[0];if(!s)return null;const lc=lifecycleView(s)!;return {...s,usable:!lc.onHold&&['active','trialing'].includes(s.status),readOnly:!!lc.readOnly,trialOver:lc.onHold,lifecycle:lc}}
 export function entitlements(s:any){const mods:string[]=s?.modules||[];const has=(m:string)=>mods.includes(m);const code=((PLAN_CODES as readonly string[]).includes(s?.plan_code)?s.plan_code:'clinic') as PlanCode;const ai=code==='ai_engage'||code==='engage'||code==='engage_support';return {planCode:code,planName:s?.plan_name,modules:mods,has,clinic:code==='clinic',basicOps:code!=='clinic',aiEngage:ai,supportAdmins:Number(s?.included_support_admins??PLAN_SUPPORT_ADMINS[code]??0),aiFeatures:aiFeaturesFor(code),upgradeFor:upgradeLabel}}
 /** Central feature gate: every module API calls this with the session's hospital. */
 export async function requireModule(db:Db,ctx:Ctx,module:Module){const s=subMemo.has(ctx)?subMemo.get(ctx):await getSubscription(db,ctx.hospitalId);if(!s||!s.usable)throw new HttpError(402,'Account on hold: subscription inactive or trial ended. Renew to continue.');if(!s.modules.includes(module))throw new HttpError(402,`${upgradeLabel(module)} (your plan: ${s.plan_name}).`);return s}
@@ -107,8 +108,12 @@ export async function activatePaidPlan(db:Db,opts:{hospitalId:string;planCode:st
    last_order_id=coalesce($6,last_order_id),
    currency='INR',
    amount_in_inr=$7,
+   renewal_policy=$8,
+   auto_renew=true,
+   cancel_at_period_end=false,
+   payment_failed_at=null,
    updated_at=now()
-  where hospital_id=$1 returning *`,[opts.hospitalId,plan,period,String(months),opts.paymentId||null,opts.orderId||null,amount])
+  where hospital_id=$1 returning *`,[opts.hospitalId,plan,period,String(months),opts.paymentId||null,opts.orderId||null,amount,RENEWAL_POLICY])
  if(!r.rows[0])throw new HttpError(404,'Hospital subscription not found')
  await db.query(`update hospitals set status='active',updated_at=now() where id=$1 and status<>'active'`,[opts.hospitalId])
  return {ok:true,subscription:r.rows[0]}
@@ -196,6 +201,8 @@ export async function platformHospitalDetail(db:Db,hospitalId:string){
 
 export async function applyProviderEvent(db:Db,hospitalId:string,event:{type:string;planCode?:string;period?:string;periodEnd?:string;periodStart?:string;subscriptionId?:string;customerId?:string;paymentId?:string;orderId?:string;amountInr?:number},raw:unknown){
  if(event.type==='payment.failed'){
+  const pol=(await db.query('select renewal_policy from subscriptions where hospital_id=$1',[hospitalId])).rows[0]
+  if(pol?.renewal_policy)await db.query('update subscriptions set payment_failed_at=coalesce(payment_failed_at,now()),updated_at=now() where hospital_id=$1',[hospitalId])
   if(event.orderId){
    await db.query(`update subscription_payments set status='failed',provider_payment_id=coalesce($2,provider_payment_id),raw=$3,paid_at=now()
     where provider='razorpay' and provider_order_id=$1 and status in ('created','authorized')`,[event.orderId,event.paymentId||null,JSON.stringify(raw)])
@@ -211,6 +218,10 @@ export async function applyProviderEvent(db:Db,hospitalId:string,event:{type:str
  await db.query('insert into subscription_events(hospital_id,provider,event_type,payload) values($1,$2,$3,$4)',[hospitalId,'razorpay',event.type,JSON.stringify(raw)])
  const map:Record<string,string>={'subscription.activated':'active','subscription.charged':'active','subscription.pending':'past_due','subscription.halted':'past_due','subscription.cancelled':'cancelled','subscription.completed':'expired'}
  const status=map[event.type];if(!status)return
+ if((event.type==='subscription.pending'||event.type==='subscription.halted')){
+  const pol=(await db.query('select renewal_policy from subscriptions where hospital_id=$1',[hospitalId])).rows[0]
+  if(pol?.renewal_policy){await db.query('update subscriptions set payment_failed_at=coalesce(payment_failed_at,now()),updated_at=now() where hospital_id=$1',[hospitalId]);return}
+ }
  await db.query(`update subscriptions set status=$2,
   hold_started_at=case when $2='active' then null else hold_started_at end,
   hold_extended_until=case when $2='active' then null else hold_extended_until end,

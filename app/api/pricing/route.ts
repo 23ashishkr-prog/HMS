@@ -13,11 +13,14 @@ export async function GET(req:Request){
   country:url.searchParams.get('country'),
   geo:req.headers.get('x-vercel-ip-country'),
  })
+ if(pick.currency==='INR'){
+  return NextResponse.json({currency:'INR',via:pick.via,country:pick.country,approximate:false,fx:'inr',perInr:null,asOf:new Date().toISOString().slice(0,10)},{headers:NO_STORE})
+ }
  let perInr:number|null=null
  let fx:'live'|'fallback'|'unavailable'='unavailable'
  try{
   const rates=await dailyRates()
-  const n=rates.rates[pick.currency]
+  const n=rates.rates[pick.currency as 'USD'|'GBP'|'EUR']
   if(n>0){perInr=n;fx=rates.fx}
  }catch{perInr=null;fx='unavailable'}
  return NextResponse.json({

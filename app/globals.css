@@ -1299,6 +1299,12 @@ html body .chips .chip.on.offDoc:not(#_){opacity:1;background:#b45309!important;
 .pill-won{background:#dcfce7;color:#166534}
 .pill-lost{background:#e2e8f0;color:#475569}
 .fxApprox{display:block;margin-top:4px;color:#64748b;font-size:13px;font-weight:550;line-height:1.35}
+.fxCharge{display:block;margin-top:6px;color:#64748b;font-size:13px;line-height:1.35}
+.moneyBack{margin:8px 0;color:#0f6b3d;font-weight:650}
+.termsAgree{display:flex;gap:10px;align-items:flex-start;margin:14px 0;font-size:15px}
+.termsAgree input{margin-top:3px;width:18px;height:18px}
+.legalPage{max-width:760px;margin:28px auto;padding:8px 20px 48px}
+.legalDoc ol{padding-left:1.2rem}.legalDoc li{margin:12px 0;line-height:1.45}
 .fxPaid{margin-top:12px;padding:12px 14px;border-radius:14px;background:#ecfdf5;color:#065f46}
 .planOpt .fxApprox{white-space:normal}
 html body .plat .platProduct button:not(#_){min-height:32px!important;padding:6px 14px!important;background:transparent!important;color:#475569!important;border:0!important;border-radius:999px!important;box-shadow:none!important;font-size:13px!important;font-weight:800!important}

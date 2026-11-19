@@ -13,7 +13,8 @@ export const GET=api(async(c,db)=>{
  const cap=(await db.query('select ai_monthly_token_cap from hospitals where id=$1',[c.hospitalId])).rows[0]
  return {
   plan:s?.plan_name,planCode:s?.plan_code,status:s?.lifecycle?.status||s?.status,lifecycle:s?.lifecycle,
-  usable:!!s?.usable,role:c.role,access:await accessFor(db,c),notices:await activeNotices(db,c.hospitalId),modules:e.modules,entitlements:e,
+  usable:!!s?.usable,readOnly:!!s?.readOnly,role:c.role,access:await accessFor(db,c),notices:await activeNotices(db,c.hospitalId),modules:e.modules,entitlements:e,
+  renewalPolicy:s?.renewal_policy||null,cancelAtPeriodEnd:!!s?.cancel_at_period_end,termsVersion:s?.terms_version||null,termsAgreedAt:s?.terms_agreed_at||null,
   trialDays:TRIAL_DAYS(),
   plans:(await db.query('select code,name,monthly_price_inr,modules from plans where active order by sort')).rows,
   catalogue:PLAN_CATALOGUE,
