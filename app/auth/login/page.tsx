@@ -7,6 +7,7 @@ import {safeAppPath} from '@/lib/safeRedirect'
 import {withBase} from '@/lib/basePath'
 import {useI18n} from '@/components/I18n'
 import {LangSwitch} from '@/components/StaffEase'
+import {BackToGreyNova,PublicLegal} from '@/components/PublicChrome'
 
 export default function LoginPage(){const {t}=useI18n()
  const[email,setEmail]=useState('')
@@ -28,7 +29,7 @@ export default function LoginPage(){const {t}=useI18n()
  async function confirm(code:string){setBusy(true);setMessage('');try{await post({code})}catch(err){setMessage(err instanceof Error?err.message:'Login failed')}finally{setBusy(false)}}
  async function resend(){setMessage('');try{const r=await fetch(withBase('/api/auth/email-code'),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,hospitalCode:hosp||undefined})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not resend');if(data.skipped){setOtp(false);await post({});return 30}return Number(data.resendIn||30)}catch(err){setMessage(err instanceof Error?err.message:'Could not resend');throw err}}
  async function changeEmail(next:string){setBusy(true);setMessage('');try{const r=await fetch(withBase('/api/auth/email-code'),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,hospitalCode:hosp||undefined,nextEmail:next})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not update email');if(data.email)setEmail(data.email);if(data.skipped){setOtp(false);await post({})}}catch(err){setMessage(err instanceof Error?err.message:'Could not update email')}finally{setBusy(false)}}
- return <main className="authPage authPremium">
+ return <div className="publicShell"><BackToGreyNova float/><main className="authPage authPremium">
   <aside className="authSide" aria-hidden><div className="authSideIn"><Link className="mkLogo" href="/welcome"><Logo size={36}/> HMS</Link><h2>Every patient, every bed, every rupee — in one place.</h2><ul><li>Voice notes & e-prescriptions</li><li>WhatsApp reminders & reports</li><li>GST billing, lab & pharmacy</li></ul></div></aside>
   <section className="authCard">
    <div className="authBrand"><Logo size={36}/><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
@@ -49,4 +50,5 @@ export default function LoginPage(){const {t}=useI18n()
    </>}
   </section>
  </main>
+ <PublicLegal compact/></div>
 }

@@ -4,8 +4,10 @@ import {HttpError} from './services/core'
 export const TERMS_VERSION='2026-11-19'
 export const REFUND_POLICY_URL='https://greynova.in/refund-policy.html'
 export const RENEWAL_POLICY='2026-11-19'
+export const COMPANY_LEGAL_NAME='GREYNOVA TECH SOLUTIONS PRIVATE LIMITED'
+export const COMPANY_CIN='U63990JH2026PTC029571'
 
-export const TERMS_TITLE='Refund & Payment Terms — Hospital Cloud and TailDesk (GreyNova Private Limited)'
+export const TERMS_TITLE='Refund & Payment Terms — Hospital Cloud and TailDesk (GREYNOVA TECH SOLUTIONS PRIVATE LIMITED)'
 export const TERMS_STANDFIRST='Approved by Ashish Kumar on 19 Nov 2026. Last updated: 19 November 2026.'
 
 /** Verbatim clauses. Do not paraphrase. */
@@ -21,7 +23,7 @@ export const TERMS_CLAUSES=[
  'Price changes. We give at least 30 days\' notice before any price change; it applies from your next renewal.',
  'Account owner responsibility. The organisation is responsible for its users, the accuracy of data it enters, and keeping login details secure.',
  'Liability. The service is provided "as is"; our total liability is limited to the fees paid in the 3 months before a claim.',
- 'Governing law. Indian law; courts of Jharkhand have jurisdiction. GreyNova Private Limited, CIN U63990JH2026PTC029571. Contact: info@greynova.in.',
+ 'Governing law. Indian law; courts of Jharkhand have jurisdiction. GREYNOVA TECH SOLUTIONS PRIVATE LIMITED, CIN U63990JH2026PTC029571. Contact: info@greynova.in.',
 ]
 
 export function assertTermsAgreed(b:any){
