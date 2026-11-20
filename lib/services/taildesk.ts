@@ -50,6 +50,29 @@ export function taildeskCreds(): TailDeskCreds | null {
   return {base: url.origin + (path === '/' ? '' : path), key}
 }
 
+/** Owner-support calls for Smart Shop only (list shop owners / set a one-time temporary password). TailDesk stays read-only. */
+export async function partnerSend(path: string, method: 'GET' | 'POST', payload?: unknown) {
+  const creds = taildeskCreds()
+  if (!creds) throw new HttpError(400, `${partnerLabel()} is not configured. Set ${partnerEnv().url} and ${partnerEnv().key}.`)
+  let res: Response
+  try {
+    res = await fetch(new URL(joinUrl(creds.base, path)), {
+      method,
+      cache: 'no-store',
+      headers: {Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${creds.key}`, 'X-Platform-Api-Key': creds.key},
+      body: method === 'POST' ? JSON.stringify(payload || {}) : undefined,
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (e) {
+    throw new HttpError(502, scrub(e instanceof Error ? e.message : `${partnerLabel()} unreachable`, creds.key))
+  }
+  const data: any = await res.json().catch(() => ({}))
+  if (!res.ok) throw new HttpError(res.status === 401 || res.status === 403 ? 502 : res.status, scrub(String(data?.error?.message || data?.error || `${partnerLabel()} returned ${res.status}`), creds.key))
+  return data
+}
+export function smartshopAdmins(id: string) { return partnerSend(`/api/platform/v1/tenants/${encodeURIComponent(id)}/admins`, 'GET') }
+export function smartshopResetAdmin(id: string, payload: unknown) { return partnerSend(`/api/platform/v1/tenants/${encodeURIComponent(id)}/reset-admin-password`, 'POST', payload) }
+
 export function taildeskConfigured() { return taildeskCreds() != null }
 
 function scrub(message: string, key: string) {
@@ -168,18 +191,6 @@ function datesOf(row: any, sub?: any) {
   }
 }
 
-/** Product-specific usage numbers (Smart Shop: products, orders, sales). Null when the partner doesn't send any. */
-function activityOf(row: any) {
-  const keys = ['products', 'orders_total', 'orders_30d', 'revenue_total', 'revenue_30d', 'last_order_at', 'days_left', 'storefront_url']
-  const out: Record<string, any> = {}
-  let any = false
-  for (const k of keys) {
-    const v = row?.[k] ?? row?.subscription?.[k]
-    if (v != null && v !== '') { out[k] = v; any = true }
-  }
-  return any ? out : null
-}
-
 export function normalizeTenant(row: any) {
   const sub = row?.subscription && typeof row.subscription === 'object' ? row.subscription : (row?.plan_subscription || {})
   const admin = row?.admin || row?.owner || {}
@@ -212,7 +223,6 @@ export function normalizeTenant(row: any) {
     patients: Number(pick(row, ['patients', 'pets', 'pet_count', 'petCount']) ?? 0) || 0,
     address: pick(row, ['address']) || null,
     gstin: pick(row, ['gstin', 'gst']) || null,
-    activity: activityOf(row),
   }
 }
 

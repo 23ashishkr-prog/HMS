@@ -23,7 +23,6 @@ export default function PlatformOverview(){
  const rev=d.revenue||{}
  const tail=product!=='hms'
  const label=PRODUCT_LABEL[product]
- const act=(d.hospitals||[]).reduce((a:any,h:any)=>{const x=h.activity||{};return {products:a.products+Number(x.products||0),orders30d:a.orders30d+Number(x.orders_30d||0),sales30d:a.sales30d+Number(x.revenue_30d||0)}},{products:0,orders30d:0,sales30d:0})
  const plans=tail?(d.plan_counts||[]):[
   {code:'clinic',name:'Clinic (Basic)',count:s.plan_clinic||0},
   {code:'engage',name:'Customer Engagement',count:s.plan_engage||0},
@@ -49,11 +48,6 @@ export default function PlatformOverview(){
     <div className="platStat"><b>{s.expired||0}</b><small>Expired / cancelled</small></div>
     <div className="platStat"><b>{s.past_due||0}</b><small>Past due</small></div>
     {plans.map((p:any)=><div key={p.code} className="platStat"><b>{p.count||0}</b><small>{p.name}</small></div>)}
-    {product==='smartshop'&&<>
-     <div className="platStat"><b>{act.orders30d}</b><small>Shop orders (30 days)</small></div>
-     <div className="platStat"><b>₹{Number(act.sales30d).toLocaleString('en-IN')}</b><small>Shop sales (30 days)</small></div>
-     <div className="platStat"><b>{act.products}</b><small>Products listed</small></div>
-    </>}
     <Link className="platStat platStatLink" href="/platform/payments"><b>₹{Number(rev.paid_inr||0).toLocaleString('en-IN')}</b><small>Revenue (INR equivalent)</small></Link>
     {!tail&&<Link className="platStat platStatLink" href="/platform/payments"><b>{s.paid_via_razorpay||0}</b><small>Paid via Razorpay</small></Link>}
    </div>

@@ -20,7 +20,7 @@ export default function HospitalDetail(){
  const[tempPw,setTempPw]=useState<any>(null)
  const[resetBusy,setResetBusy]=useState(false)
  const load=()=>call(productPath(product,'/api/platform/hospitals/'+id)).then(setD).catch((e:any)=>setErr(e.message))
- const loadAdmins=()=>{if(tail)return;call('/api/platform/hospitals/'+id+'/reset-admin-password').then((r:any)=>setAdmins(r.admins||[])).catch(()=>{})}
+ const loadAdmins=()=>{if(tail&&product!=='smartshop')return;call(productPath(product,'/api/platform/hospitals/'+id+'/reset-admin-password')).then((r:any)=>setAdmins(r.admins||[])).catch(()=>{})}
  useEffect(()=>{if(!ready||!id)return;setD(null);setErr('');load();loadAdmins()},[id,ready,product])
 
  if(err&&!d)return <PlatformSignIn title="Hospital" hint="Sign in as platform owner, then open this hospital again."/>
@@ -48,23 +48,11 @@ export default function HospitalDetail(){
     <div className="platStat"><b>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at):'—'}</b><small>Trial days left</small></div>
     <div className="platStat"><b>{dt(h.current_period_end)||dt(h.trial_ends_at)}</b><small>Expiry / trial end</small></div>
     <div className="platStat"><b>{h.users}</b><small>{product==='smartshop'?'Staff':'Users'}</small></div>
-    <div className="platStat"><b>{h.patients}</b><small>{product==='smartshop'?'Orders (all time)':'Patients'}</small></div>
+    {product!=='smartshop'&&<div className="platStat"><b>{h.patients}</b><small>Patients</small></div>}
     <div className="platStat"><b>{h.billing_period||'—'}</b><small>Billing period</small></div>
     <div className="platStat"><b>{h.provider||'—'}</b><small>Provider</small></div>
     <div className="platStat"><b><MoneyCell row={h}/></b><small>{(h.currency||'INR')} · INR equivalent</small></div>
    </div>
-
-   {product==='smartshop'&&h.activity&&<section className="panel modulePanel" style={{marginBottom:24}}>
-    <h2>Shop activity</h2>
-    <div className="platStats">
-     <div className="platStat"><b>{h.activity.products??0}</b><small>Products listed</small></div>
-     <div className="platStat"><b>{h.activity.orders_30d??0}</b><small>Orders (30 days)</small></div>
-     <div className="platStat"><b>₹{Number(h.activity.revenue_30d||0).toLocaleString('en-IN')}</b><small>Sales (30 days)</small></div>
-     <div className="platStat"><b>₹{Number(h.activity.revenue_total||0).toLocaleString('en-IN')}</b><small>Sales (all time)</small></div>
-     <div className="platStat"><b>{dt(h.activity.last_order_at)||'—'}</b><small>Last order</small></div>
-     <div className="platStat"><b>{h.activity.days_left??'—'}</b><small>Days left in plan/trial</small></div>
-    </div>
-   </section>}
 
    <section className="panel modulePanel">
     <h2>Admin contact</h2>
@@ -119,17 +107,17 @@ export default function HospitalDetail(){
     <PlatformEvents events={d.events||[]}/>
    </section>
 
-   {!tail&&<section id="reset-admin" className="panel modulePanel" style={{marginTop:24}}>
-    <h2>Reset hospital admin password</h2>
-    <p className="muted"><small>Sets a temporary password for an admin of <b>this</b> hospital only. Shown once below — copy it and share privately. They must change it at next hospital login. The password is never e-mailed from this screen and is not written to audit logs.</small></p>
+   {(!tail||product==='smartshop')&&<section id="reset-admin" className="panel modulePanel" style={{marginTop:24}}>
+    <h2>{product==='smartshop'?'Reset shop owner password':'Reset hospital admin password'}</h2>
+    <p className="muted"><small>Sets a temporary password for the owner of <b>this</b> {product==='smartshop'?'shop':'hospital'} only. Shown once below — copy it and share privately. They must change it at next login. The password is never e-mailed from this screen and is not written to audit logs.</small></p>
     {(admins.length?admins:[{id:'',email:h.admin_email,full_name:h.admin_name||'Primary admin',active:true}]).map((a:any)=>(
      <div key={a.id||'primary'} className="actionRow" style={{marginBottom:8,alignItems:'center'}}>
-      <div style={{flex:1}}><b>{a.full_name||'—'}</b><br/><small>{a.email||'—'}</small>{a.must_change_password&&<> · <small className="muted">temp password pending</small></>}{a.active===false&&<> · <small className="err">inactive</small></>}</div>
+      <div style={{flex:1}}><b>{a.full_name||a.name||'—'}</b><br/><small>{a.email||'—'}</small>{a.must_change_password&&<> · <small className="muted">temp password pending</small></>}{a.active===false&&<> · <small className="err">inactive</small></>}</div>
       <button type="button" className="primary" disabled={resetBusy||a.active===false} onClick={async()=>{
         if(!window.confirm('Generate a temporary password for '+((a.full_name||a.email)||'this admin')+'? They will be forced to change it at next login.'))return
         setResetBusy(true);setTempPw(null);setMsg('')
         try{
-          const r=await call('/api/platform/hospitals/'+id+'/reset-admin-password','POST',a.id?{userId:a.id}:{})
+          const r=await call(productPath(product,'/api/platform/hospitals/'+id+'/reset-admin-password'),'POST',a.id?{userId:a.id}:{})
           setTempPw(r);loadAdmins()
         }catch(e:any){setMsg(e.message)}
         finally{setResetBusy(false)}
@@ -143,7 +131,7 @@ export default function HospitalDetail(){
        <code id="plat-temp-pw">{tempPw.temporaryPassword}</code>
        <button type="button" className="chip" onClick={()=>{navigator.clipboard?.writeText(tempPw.temporaryPassword);setMsg('Copied temporary password')}}>Copy</button>
       </div>
-      <p className="muted"><small>Hospital code: <code>{tempPw.hospitalCode}</code> · Login e-mail: <code>{tempPw.email}</code></small></p>
+      <p className="muted"><small>{product==='smartshop'?'Shop login page':'Hospital code'}: <code>{product==='smartshop'?(tempPw.loginUrl||tempPw.hospitalCode):tempPw.hospitalCode}</code> · Login e-mail: <code>{tempPw.email}</code></small></p>
      </div>
     )}
    </section>}

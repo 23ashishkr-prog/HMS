@@ -1,14 +1,14 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {partnerOf,runPartner,taildeskCreds,taildeskHospitalDetail,taildeskHospitalList,taildeskPayments} from '../lib/services/taildesk'
+import {partnerOf,runPartner,smartshopAdmins,smartshopResetAdmin,taildeskCreds,taildeskHospitalDetail,taildeskHospitalList,taildeskPayments} from '../lib/services/taildesk'
 
 const KEY='ss_live_test_key_1234567890abcdef'
 
 const TENANTS={product:'smartshop',tenants:[
   {id:'shop_1',name:'Sharma Sweets',code:'sharma-sweets',status:'active',created_at:'2026-11-01T00:00:00Z',contact_email:'owner@sharma.test',
-   admin_name:'Anita',admin_email:'owner@sharma.test',admin_phone:'+9199',users:4,patients:120,products:32,orders_total:120,orders_30d:80,revenue_total:54000,revenue_30d:41000,last_order_at:'2026-11-20T08:00:00Z',
-   subscription:{id:'sub_1',status:'trialing',plan_code:'STANDARD',plan_name:'Smart Shop Standard',billing_period:'monthly',trial_started_at:'2026-11-01T00:00:00Z',trial_ends_at:'2026-12-01T00:00:00Z',amount:2489,currency:'INR',amount_in_inr:2489,days_left:11}},
-  {id:'shop_2',name:'Gupta Bakery',code:'gupta-bakery',status:'active',admin_name:'Ravi',users:2,patients:10,products:12,orders_total:10,orders_30d:10,revenue_total:3000,revenue_30d:3000,
+   admin_name:'Anita',admin_email:'owner@sharma.test',admin_phone:'+9199',users:4,
+   subscription:{id:'sub_1',status:'trialing',plan_code:'STANDARD',plan_name:'Smart Shop Standard',billing_period:'monthly',trial_started_at:'2026-11-01T00:00:00Z',trial_ends_at:'2026-12-01T00:00:00Z',amount:2489,currency:'INR',amount_in_inr:2489}},
+  {id:'shop_2',name:'Gupta Bakery',code:'gupta-bakery',status:'active',admin_name:'Ravi',users:2,
    subscription:{id:'sub_2',status:'active',plan_code:'STANDARD',plan_name:'Smart Shop Standard',billing_period:'monthly',current_period_start:'2026-11-05T00:00:00Z',current_period_end:'2026-12-05T00:00:00Z',amount:2489,currency:'INR',amount_in_inr:2489}},
 ]}
 const SUBS={product:'smartshop',subscriptions:[],events:[{id:'ev1',tenant_id:'shop_2',tenant_name:'Gupta Bakery',tenant_code:'gupta-bakery',event_type:'payment_confirmed',received_at:'2026-11-05T10:00:00Z',plan_code:'STANDARD',currency:'INR',amount:2489,amount_in_inr:2489}]}
@@ -56,7 +56,7 @@ test('smartshop credentials come from SMARTSHOP_* env, not TAILDESK_*',async()=>
   }
 })
 
-test('shops list: subscriptions, trial/active stats and live activity are tracked',async()=>{
+test('shops list: subscriptions and trial/active stats are tracked, with no shop activity',async()=>{
   const {result:d,calls}=await withSmartShop(()=>runPartner('smartshop',()=>taildeskHospitalList(new URLSearchParams())))
   assert.equal((d as any).configured,true)
   assert.equal((d as any).product,'smartshop')
@@ -66,7 +66,7 @@ test('shops list: subscriptions, trial/active stats and live activity are tracke
   assert.equal(a.name,'Sharma Sweets');assert.equal(a.code,'sharma-sweets')
   assert.equal(a.sub_status,'trialing');assert.equal(a.plan_name,'Smart Shop Standard');assert.equal(a.amount_in_inr,2489)
   assert.equal(a.admin_email,'owner@sharma.test')
-  assert.equal(a.activity.orders_30d,80);assert.equal(a.activity.revenue_30d,41000);assert.equal(a.activity.products,32)
+  assert.equal('activity' in a,false,'shop activity is not part of the console')
   const b=rows.find((r:any)=>r.id==='shop_2')
   assert.equal(b.sub_status,'active');assert.ok(b.current_period_end)
   assert.equal((d as any).stats.total,2);assert.equal((d as any).stats.trial,1);assert.equal((d as any).stats.active,1)
@@ -89,4 +89,33 @@ test('unconfigured Smart Shop says so by name and names its env vars',async()=>{
   assert.equal((d as any).configured,false)
   assert.match(String((d as any).message),/Smart Shop is not configured/)
   assert.match(String((d as any).message),/SMARTSHOP_API_URL/)
+})
+
+test('owner password reset goes to Smart Shop with the bearer key; TailDesk is not touched',async()=>{
+  const prev={url:process.env.SMARTSHOP_API_URL,key:process.env.SMARTSHOP_PLATFORM_API_KEY,fetch:globalThis.fetch}
+  const seen:{method:string;path:string;auth:string|null;body:any}[]=[]
+  process.env.SMARTSHOP_API_URL='https://smart-shop.example.test';process.env.SMARTSHOP_PLATFORM_API_KEY=KEY
+  globalThis.fetch=(async(input:any,init:any)=>{
+    const u=new URL(String(input))
+    seen.push({method:init?.method||'GET',path:u.pathname,auth:init?.headers?.Authorization||null,body:init?.body?JSON.parse(init.body):null})
+    const out=u.pathname.endsWith('/admins')?{admins:[{id:'u1',full_name:'Anita',email:'owner@sharma.test',active:true}]}:{ok:true,email:'owner@sharma.test',fullName:'Anita',temporaryPassword:'Ss-temp123',loginUrl:'/login/sharma'}
+    return new Response(JSON.stringify(out),{status:200,headers:{'content-type':'application/json'}})
+  }) as any
+  try{
+    const list:any=await runPartner('smartshop',()=>smartshopAdmins('shop_1'))
+    assert.equal(list.admins[0].full_name,'Anita')
+    const r:any=await runPartner('smartshop',()=>smartshopResetAdmin('shop_1',{userId:'u1'}))
+    assert.equal(r.temporaryPassword,'Ss-temp123')
+    assert.deepEqual(seen.map(x=>x.method+' '+x.path),['GET /api/platform/v1/tenants/shop_1/admins','POST /api/platform/v1/tenants/shop_1/reset-admin-password'])
+    assert.ok(seen.every(x=>x.auth===`Bearer ${KEY}`))
+    assert.deepEqual(seen[1].body,{userId:'u1'})
+  }finally{
+    globalThis.fetch=prev.fetch
+    if(prev.url===undefined)delete process.env.SMARTSHOP_API_URL;else process.env.SMARTSHOP_API_URL=prev.url
+    if(prev.key===undefined)delete process.env.SMARTSHOP_PLATFORM_API_KEY;else process.env.SMARTSHOP_PLATFORM_API_KEY=prev.key
+  }
+})
+
+test('reset without configuration fails clearly and never leaks the key',async()=>{
+  await assert.rejects(()=>runPartner('smartshop',()=>smartshopResetAdmin('shop_1',{})),/Smart Shop is not configured/)
 })
