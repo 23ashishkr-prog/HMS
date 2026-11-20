@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 import {call,dt} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
-import {CurrencyTotals,MoneyCell,TailDeskState,productPath,tenantHref,usePlatformProduct} from '@/components/PlatformProduct'
+import {CurrencyTotals,MoneyCell,PRODUCT_LABEL,TailDeskState,productPath,tenantHref,usePlatformProduct} from '@/components/PlatformProduct'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
 const ST:Record<string,string>={created:'Created',authorized:'Authorized',captured:'Paid',failed:'Failed',refunded:'Refunded'}
@@ -12,7 +12,7 @@ const ST:Record<string,string>={created:'Created',authorized:'Authorized',captur
 function PaymentsInner(){
  const sp=useSearchParams()
  const {product,ready}=usePlatformProduct()
- const tail=product==='taildesk'
+ const tail=product!=='hms'
  const[q,setQ]=useState(sp.get('q')||'')
  const[status,setStatus]=useState(sp.get('status')||'')
  const[after,setAfter]=useState(sp.get('after')||'')
@@ -41,8 +41,8 @@ function PaymentsInner(){
  return (
   <PlatformShell
    title={tail?'Revenue':'Payment check'}
-   eyebrow={tail?'SAAS OWNER · TAILDESK':'SAAS OWNER · PAYMENTS'}
-   description={tail?'TailDesk subscription revenue in the original currency, with an INR-equivalent total.':<>All hospital <b>plan</b> payment confirmations (Clinic / Basic / AI+). Not patient bills.</>}
+   eyebrow={tail?'SAAS OWNER · '+PRODUCT_LABEL[product].toUpperCase():'SAAS OWNER · PAYMENTS'}
+   description={tail?PRODUCT_LABEL[product]+' subscription revenue in the original currency, with an INR-equivalent total.':<>All hospital <b>plan</b> payment confirmations (Clinic / Basic / AI+). Not patient bills.</>}
   >
    <TailDeskState d={d}/>
    <div className="platStats">

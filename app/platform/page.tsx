@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react'
 import Link from 'next/link'
 import {call} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
-import {CurrencyTotals,PlatformEvents,TailDeskState,productPath,usePlatformProduct} from '@/components/PlatformProduct'
+import {CurrencyTotals,PlatformEvents,PRODUCT_LABEL,TailDeskState,productPath,usePlatformProduct} from '@/components/PlatformProduct'
 
 export default function PlatformOverview(){
  const {product,ready}=usePlatformProduct()
@@ -21,7 +21,9 @@ export default function PlatformOverview(){
  if(!d)return <PlatformShell title="Overview"><p>Loading…</p></PlatformShell>
  const s=d.stats||{}
  const rev=d.revenue||{}
- const tail=product==='taildesk'
+ const tail=product!=='hms'
+ const label=PRODUCT_LABEL[product]
+ const act=(d.hospitals||[]).reduce((a:any,h:any)=>{const x=h.activity||{};return {products:a.products+Number(x.products||0),orders30d:a.orders30d+Number(x.orders_30d||0),sales30d:a.sales30d+Number(x.revenue_30d||0)}},{products:0,orders30d:0,sales30d:0})
  const plans=tail?(d.plan_counts||[]):[
   {code:'clinic',name:'Clinic (Basic)',count:s.plan_clinic||0},
   {code:'engage',name:'Customer Engagement',count:s.plan_engage||0},
@@ -33,20 +35,25 @@ export default function PlatformOverview(){
  return (
   <PlatformShell
    title="Overview"
-   eyebrow={tail?'SAAS OWNER · TAILDESK':'SAAS OWNER · DASHBOARD'}
+   eyebrow={tail?'SAAS OWNER · '+label.toUpperCase():'SAAS OWNER · DASHBOARD'}
    description={tail
-    ?'TailDesk tenants, plan subscriptions, trial and expiry, revenue and events. HMS data is unchanged.'
+    ?label+' tenants, plan subscriptions, trial and expiry, revenue and events. HMS data is unchanged.'
     :'Hospital tenants, plan subscriptions, and platform health. Use the tabs above for hospitals, payments, gateway, and incidents.'}
   >
    <TailDeskState d={d}/>
    <div className="platStats">
-    <Link className="platStat platStatLink" href="/platform/hospitals"><b>{s.total||0}</b><small>{tail?'Total tenants':'Total hospitals'}</small></Link>
+    <Link className="platStat platStatLink" href="/platform/hospitals"><b>{s.total||0}</b><small>{tail?(product==='smartshop'?'Total shops':'Total tenants'):'Total hospitals'}</small></Link>
     <div className="platStat"><b>{s.trial||0}</b><small>Trial</small></div>
     <div className="platStat"><b>{s.active||0}</b><small>Active (paid)</small></div>
     <div className="platStat"><b>{s.held||0}</b><small>On hold</small></div>
     <div className="platStat"><b>{s.expired||0}</b><small>Expired / cancelled</small></div>
     <div className="platStat"><b>{s.past_due||0}</b><small>Past due</small></div>
     {plans.map((p:any)=><div key={p.code} className="platStat"><b>{p.count||0}</b><small>{p.name}</small></div>)}
+    {product==='smartshop'&&<>
+     <div className="platStat"><b>{act.orders30d}</b><small>Shop orders (30 days)</small></div>
+     <div className="platStat"><b>₹{Number(act.sales30d).toLocaleString('en-IN')}</b><small>Shop sales (30 days)</small></div>
+     <div className="platStat"><b>{act.products}</b><small>Products listed</small></div>
+    </>}
     <Link className="platStat platStatLink" href="/platform/payments"><b>₹{Number(rev.paid_inr||0).toLocaleString('en-IN')}</b><small>Revenue (INR equivalent)</small></Link>
     {!tail&&<Link className="platStat platStatLink" href="/platform/payments"><b>{s.paid_via_razorpay||0}</b><small>Paid via Razorpay</small></Link>}
    </div>

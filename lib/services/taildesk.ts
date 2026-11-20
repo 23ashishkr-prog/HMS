@@ -7,11 +7,29 @@
  *  Accepted shapes (snake or camel, bare array, or {data}): tenants/subscriptions/revenue
  *  with plan, status, trial/period, currency, amount, amount_in_inr, and events.
  */
+import {AsyncLocalStorage} from 'node:async_hooks'
 import {moneyNumber, currencyCode} from '../money'
 import {HttpError} from './core'
 
 const SUB_STATES = new Set(['trialing', 'active', 'past_due', 'cancelled', 'expired', 'on_hold'])
 const PAID = new Set(['captured', 'authorized', 'paid', 'succeeded'])
+
+export type Partner = 'taildesk' | 'smartshop'
+const partnerStore = new AsyncLocalStorage<Partner>()
+
+/** Which read-only partner product a request is for (TailDesk or Smart Shop); null means HMS itself. */
+export function partnerOf(value: unknown): Partner | null {
+  const x = String(value || '').trim().toLowerCase()
+  return x === 'taildesk' || x === 'smartshop' ? x : null
+}
+export function runPartner<T>(partner: Partner, fn: () => T): T { return partnerStore.run(partner, fn) }
+export function currentPartner(): Partner { return partnerStore.getStore() || 'taildesk' }
+export function partnerLabel(p: Partner = currentPartner()) { return p === 'smartshop' ? 'Smart Shop' : 'TailDesk' }
+function partnerEnv(p: Partner = currentPartner()) {
+  return p === 'smartshop'
+    ? {url: 'SMARTSHOP_API_URL', key: 'SMARTSHOP_PLATFORM_API_KEY'}
+    : {url: 'TAILDESK_API_URL', key: 'TAILDESK_PLATFORM_API_KEY'}
+}
 
 export function isTailDeskProduct(value: unknown) {
   return String(value || '').trim().toLowerCase() === 'taildesk'
@@ -20,8 +38,9 @@ export function isTailDeskProduct(value: unknown) {
 export type TailDeskCreds = {base: string; key: string}
 
 export function taildeskCreds(): TailDeskCreds | null {
-  const raw = (process.env.TAILDESK_API_URL || '').trim()
-  const key = (process.env.TAILDESK_PLATFORM_API_KEY || '').trim()
+  const env = partnerEnv()
+  const raw = (process.env[env.url] || '').trim()
+  const key = (process.env[env.key] || '').trim()
   if (!raw || !key) return null
   let url: URL
   try { url = new URL(raw) } catch { return null }
@@ -52,7 +71,7 @@ function joinUrl(base: string, path: string) {
 
 async function tdGet(path: string, query: URLSearchParams) {
   const creds = taildeskCreds()
-  if (!creds) throw new TailDeskError('TailDesk is not configured.')
+  if (!creds) throw new TailDeskError(`${partnerLabel()} is not configured.`)
   const url = new URL(joinUrl(creds.base, path))
   // Date windows only. Search, plan, and status stay local so totals match HMS:
   // stats are the full book, and the table is the filtered slice.
@@ -73,15 +92,15 @@ async function tdGet(path: string, query: URLSearchParams) {
       signal: AbortSignal.timeout(12000),
     })
   } catch (e) {
-    throw new TailDeskError(scrub(e instanceof Error ? e.message : 'TailDesk platform API unreachable', creds.key))
+    throw new TailDeskError(scrub(e instanceof Error ? e.message : `${partnerLabel()} platform API unreachable`, creds.key))
   }
   const text = await res.text()
   let body: any
   try { body = text ? JSON.parse(text) : {} } catch {
-    throw new TailDeskError(`TailDesk platform API returned ${res.status} without JSON`, res.status)
+    throw new TailDeskError(`${partnerLabel()} platform API returned ${res.status} without JSON`, res.status)
   }
   if (!res.ok) {
-    const msg = typeof body?.error === 'string' ? body.error : (typeof body?.message === 'string' ? body.message : `TailDesk platform API returned ${res.status}`)
+    const msg = typeof body?.error === 'string' ? body.error : (typeof body?.message === 'string' ? body.message : `${partnerLabel()} platform API returned ${res.status}`)
     throw new TailDeskError(scrub(msg, creds.key), res.status)
   }
   return body
@@ -149,6 +168,18 @@ function datesOf(row: any, sub?: any) {
   }
 }
 
+/** Product-specific usage numbers (Smart Shop: products, orders, sales). Null when the partner doesn't send any. */
+function activityOf(row: any) {
+  const keys = ['products', 'orders_total', 'orders_30d', 'revenue_total', 'revenue_30d', 'last_order_at', 'days_left', 'storefront_url']
+  const out: Record<string, any> = {}
+  let any = false
+  for (const k of keys) {
+    const v = row?.[k] ?? row?.subscription?.[k]
+    if (v != null && v !== '') { out[k] = v; any = true }
+  }
+  return any ? out : null
+}
+
 export function normalizeTenant(row: any) {
   const sub = row?.subscription && typeof row.subscription === 'object' ? row.subscription : (row?.plan_subscription || {})
   const admin = row?.admin || row?.owner || {}
@@ -181,6 +212,7 @@ export function normalizeTenant(row: any) {
     patients: Number(pick(row, ['patients', 'pets', 'pet_count', 'petCount']) ?? 0) || 0,
     address: pick(row, ['address']) || null,
     gstin: pick(row, ['gstin', 'gst']) || null,
+    activity: activityOf(row),
   }
 }
 
@@ -379,14 +411,14 @@ function overlaySubs(tenants: ReturnType<typeof normalizeTenant>[], subs: Return
   })
 }
 
-const NOT_CONFIGURED = 'TailDesk is not configured. Set TAILDESK_API_URL and TAILDESK_PLATFORM_API_KEY.'
+const notConfiguredMessage = () => `${partnerLabel()} is not configured. Set ${partnerEnv().url} and ${partnerEnv().key}.`
 
 function notConfigured(extra: {hospital?: null} = {}) {
   return {
     ...extra,
-    product: 'taildesk' as const,
+    product: currentPartner(),
     configured: false,
-    message: NOT_CONFIGURED,
+    message: notConfiguredMessage(),
     hospitals: [],
     stats: {total: 0, trial: 0, active: 0, held: 0, expired: 0, past_due: 0, plan_clinic: 0, plan_basic: 0, plan_ai: 0, paid_via_razorpay: 0},
     plan_counts: [],
@@ -398,15 +430,15 @@ function notConfigured(extra: {hospital?: null} = {}) {
 }
 
 async function bundle(query: URLSearchParams) {
-  if (!taildeskCreds()) return {configured: false as const, error: NOT_CONFIGURED}
+  if (!taildeskCreds()) return {configured: false as const, error: notConfiguredMessage()}
   const [tenantsR, subsR, revR] = await Promise.allSettled([
     tdGet('/api/platform/v1/tenants', query),
     tdGet('/api/platform/v1/subscriptions', query),
     tdGet('/api/platform/v1/revenue', query),
   ])
-  const errors = [tenantsR, subsR, revR].flatMap(r => r.status === 'rejected' ? [scrub(r.reason instanceof Error ? r.reason.message : 'TailDesk request failed', taildeskCreds()?.key || '')] : [])
+  const errors = [tenantsR, subsR, revR].flatMap(r => r.status === 'rejected' ? [scrub(r.reason instanceof Error ? r.reason.message : `${partnerLabel()} request failed`, taildeskCreds()?.key || '')] : [])
   if (tenantsR.status === 'rejected' && subsR.status === 'rejected' && revR.status === 'rejected') {
-    return {configured: true as const, error: errors[0] || 'TailDesk platform API unreachable', tenants: [], subs: [], payments: [], events: [], revenueRaw: null}
+    return {configured: true as const, error: errors[0] || `${partnerLabel()} platform API unreachable`, tenants: [], subs: [], payments: [], events: [], revenueRaw: null}
   }
   const tenantsRaw = tenantsR.status === 'fulfilled' ? tenantsR.value : null
   const subsRaw = subsR.status === 'fulfilled' ? subsR.value : null
@@ -450,9 +482,9 @@ export async function taildeskHospitalList(query: URLSearchParams) {
   const hospitals = filterTenants(all, {q: query.get('q') || '', status: query.get('status') || '', plan: query.get('plan') || ''})
   const revenue = data.revenueRaw ? explicitRollup(data.revenueRaw, data.payments) : rollupPayments(data.payments)
   return {
-    product: 'taildesk' as const,
+    product: currentPartner(),
     configured: true,
-    message: data.error ? undefined : 'TailDesk data loaded.',
+    message: data.error ? undefined : `${partnerLabel()} data loaded.`,
     upstreamError: data.error || undefined,
     hospitals,
     stats,
@@ -468,13 +500,13 @@ export async function taildeskHospitalDetail(id: string) {
   const data = await bundle(new URLSearchParams())
   if (!data.configured || !('tenants' in data)) return {...notConfigured(), hospital: null}
   if (data.error && data.tenants.length === 0) {
-    return {product: 'taildesk' as const, configured: true, upstreamError: data.error, hospital: null, payments: [], events: []}
+    return {product: currentPartner(), configured: true, upstreamError: data.error, hospital: null, payments: [], events: []}
   }
   const hospital = data.tenants.find(t => t.id === id)
-  if (!hospital) throw new HttpError(404, 'TailDesk tenant not found')
+  if (!hospital) throw new HttpError(404, `${partnerLabel()} tenant not found`)
   const payments = data.payments.filter(p => p.hospital_id === id)
   const events = data.events.filter(e => e.hospital_id === id)
-  return {product: 'taildesk' as const, configured: true, upstreamError: data.error || undefined, hospital, payments, events}
+  return {product: currentPartner(), configured: true, upstreamError: data.error || undefined, hospital, payments, events}
 }
 
 function asPaymentView(base: ReturnType<typeof notConfigured>, paymentsConfigured = false) {
@@ -487,7 +519,7 @@ export async function taildeskPayments(query: URLSearchParams) {
   const all = data.payments
   const revenue = data.revenueRaw ? explicitRollup(data.revenueRaw, all) : rollupPayments(all)
   return {
-    product: 'taildesk' as const,
+    product: currentPartner(),
     configured: true,
     upstreamError: data.error || undefined,
     payments: filterPayments(all, query),
@@ -498,10 +530,10 @@ export async function taildeskPayments(query: URLSearchParams) {
 }
 
 export async function taildeskEvents(query: URLSearchParams) {
-  if (!taildeskCreds()) return {product: 'taildesk' as const, configured: false, message: NOT_CONFIGURED, events: []}
+  if (!taildeskCreds()) return {product: currentPartner(), configured: false, message: notConfiguredMessage(), events: []}
   const data = await bundle(query)
-  if (!data.configured || !('events' in data)) return {product: 'taildesk' as const, configured: false, message: NOT_CONFIGURED, events: []}
+  if (!data.configured || !('events' in data)) return {product: currentPartner(), configured: false, message: notConfiguredMessage(), events: []}
   const hid = query.get('hospitalId') || query.get('tenantId') || ''
   const events = hid ? data.events.filter(e => e.hospital_id === hid) : data.events
-  return {product: 'taildesk' as const, configured: true, upstreamError: data.error || undefined, events: events.slice(0, 100)}
+  return {product: currentPartner(), configured: true, upstreamError: data.error || undefined, events: events.slice(0, 100)}
 }

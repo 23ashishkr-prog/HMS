@@ -3,14 +3,16 @@ import {useEffect,useState} from 'react'
 import Link from 'next/link'
 import {call,dt} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
-import {MoneyCell,TailDeskState,productPath,tenantHref,usePlatformProduct} from '@/components/PlatformProduct'
+import {MoneyCell,PRODUCT_LABEL,TailDeskState,productPath,tenantHref,usePlatformProduct} from '@/components/PlatformProduct'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
 function trialLeft(iso?:string|null){if(!iso)return '—';const ms=new Date(iso).getTime()-Date.now();if(ms<=0)return '0';return String(Math.ceil(ms/86400000))}
 
 export default function HospitalsPage(){
  const {product,ready}=usePlatformProduct()
- const tail=product==='taildesk'
+ const tail=product!=='hms'
+ const label=PRODUCT_LABEL[product]
+ const shop=product==='smartshop'
  const[d,setD]=useState<any>(null)
  const[err,setErr]=useState('')
  const[q,setQ]=useState('')
@@ -30,7 +32,7 @@ export default function HospitalsPage(){
  useEffect(()=>{if(!ready)return;setD(null);setErr('');load()},[ready,product])
 
  if(err&&!d)return <PlatformSignIn title="Hospitals" hint="Sign in as platform owner to manage tenants."/>
- if(!d)return <PlatformShell title={tail?'Tenants':'Hospitals'}><p>Loading…</p></PlatformShell>
+ if(!d)return <PlatformShell title={tail?(shop?'Shops':'Tenants'):'Hospitals'}><p>Loading…</p></PlatformShell>
 
  const act=async(id:string,body:any)=>{
   setMsg('');setOpenMenu(null)
@@ -42,9 +44,9 @@ export default function HospitalsPage(){
 
  return (
   <PlatformShell
-   title={tail?'Tenants':'Hospitals'}
-   eyebrow={tail?'SAAS OWNER · TAILDESK':'SAAS OWNER · TENANTS'}
-   description={tail?'TailDesk businesses — plan, status, trial, expiry and amount. Read-only.':'Live hospital tenants — open a hospital for payment ledger and plan/status changes.'}
+   title={tail?(shop?'Shops':'Tenants'):'Hospitals'}
+   eyebrow={tail?'SAAS OWNER · '+label.toUpperCase():'SAAS OWNER · TENANTS'}
+   description={tail?(shop?'Smart Shop stores — plan, status, trial, expiry, amount and live activity. Read-only.':'TailDesk businesses — plan, status, trial, expiry and amount. Read-only.'):'Live hospital tenants — open a hospital for payment ledger and plan/status changes.'}
   >
    <TailDeskState d={d}/>
    {msg&&<p className="err">{msg}</p>}
@@ -78,10 +80,10 @@ export default function HospitalsPage(){
    <div className="platTableWrap platDesktopOnly">
     <table className="dataTable platHospTable">
      <thead><tr>
-      <th>{tail?'Tenant':'Hospital'}</th><th>Code</th><th>Plan</th><th>Status</th><th>Start</th><th>Expiry</th><th>Amount</th><th>Admin</th><th></th>
+      <th>{tail?(shop?'Shop':'Tenant'):'Hospital'}</th><th>Code</th><th>Plan</th><th>Status</th><th>Start</th><th>Expiry</th><th>Amount</th>{shop&&<th>Activity (30 days)</th>}<th>Admin</th><th></th>
      </tr></thead>
      <tbody>
-      {rows.length===0&&<tr><td colSpan={9}>{tail?'No tenants match.':'No hospitals match.'}</td></tr>}
+      {rows.length===0&&<tr><td colSpan={shop?10:9}>{tail?'No tenants match.':'No hospitals match.'}</td></tr>}
       {rows.map((h:any)=>(
        <tr key={h.id}>
         <td><Link href={tenantHref(product,h.id)}><b>{h.name}</b></Link>{h.status!=='active'&&<div><small className="err">tenant off</small></div>}</td>
@@ -91,6 +93,7 @@ export default function HospitalsPage(){
         <td>{dt(h.current_period_start)||dt(h.created_at)}</td>
         <td>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at)+'d · ':''}{dt(h.current_period_end)||dt(h.trial_ends_at)||'—'}</td>
         <td><MoneyCell row={h}/></td>
+        {shop&&<td><small>{h.activity?.orders_30d??0} orders · ₹{Number(h.activity?.revenue_30d||0).toLocaleString('en-IN')}<br/>{h.activity?.products??0} products · last order {dt(h.activity?.last_order_at)||'—'}</small></td>}
         <td className="platAdmin"><b>{h.admin_name||'—'}</b><small>{h.admin_email||h.contact_email||'—'}</small></td>
         <td className="platRowActions">
          <Link className="chip" href={tenantHref(product,h.id)}>Open</Link>
@@ -136,6 +139,7 @@ export default function HospitalsPage(){
        <div><dt>Trial days</dt><dd>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at):'—'}</dd></div>
        <div><dt>Expiry</dt><dd>{dt(h.current_period_end)||dt(h.trial_ends_at)||'—'}</dd></div>
        <div><dt>Amount</dt><dd><MoneyCell row={h}/></dd></div>
+       {shop&&<div><dt>Activity (30d)</dt><dd>{h.activity?.orders_30d??0} orders · ₹{Number(h.activity?.revenue_30d||0).toLocaleString('en-IN')}<br/><small>{h.activity?.products??0} products</small></dd></div>}
        <div><dt>Admin</dt><dd>{h.admin_name||'—'}<br/><small>{h.admin_email||h.contact_email||'—'}</small></dd></div>
       </dl>
       {!tail&&<details className="platHospMore">

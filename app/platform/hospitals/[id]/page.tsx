@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {useParams} from 'next/navigation'
 import {call,dt,formObj} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
-import {MoneyCell,PlatformEvents,TailDeskState,productPath,usePlatformProduct} from '@/components/PlatformProduct'
+import {MoneyCell,PlatformEvents,PRODUCT_LABEL,TailDeskState,productPath,usePlatformProduct} from '@/components/PlatformProduct'
 
 const PLAN:Record<string,string>={clinic:'Clinic',basic:'Basic',ai_engage:'AI + Engagement'}
 function trialLeft(iso?:string|null){if(!iso)return '—';const ms=new Date(iso).getTime()-Date.now();if(ms<=0)return '0';return String(Math.ceil(ms/86400000))}
@@ -12,7 +12,7 @@ function trialLeft(iso?:string|null){if(!iso)return '—';const ms=new Date(iso)
 export default function HospitalDetail(){
  const {id}=useParams<{id:string}>()
  const {product,ready}=usePlatformProduct()
- const tail=product==='taildesk'
+ const tail=product!=='hms'
  const[d,setD]=useState<any>(null)
  const[err,setErr]=useState('')
  const[msg,setMsg]=useState('');const[ok,setOk]=useState('')
@@ -33,7 +33,7 @@ export default function HospitalDetail(){
  return (
   <PlatformShell
    title={h.name}
-   eyebrow={tail?'SAAS OWNER · TAILDESK':'SAAS OWNER · HOSPITAL'}
+   eyebrow={tail?'SAAS OWNER · '+PRODUCT_LABEL[product].toUpperCase():'SAAS OWNER · HOSPITAL'}
    description={<>Live tenant · code <code>{h.code}</code>{h.status!=='active'&&<> · <span className="err">tenant deactivated</span></>}</>}
    actions={<Link className="chip" href="/platform/hospitals">{tail?'← All tenants':'← All hospitals'}</Link>}
   >
@@ -47,12 +47,24 @@ export default function HospitalDetail(){
     <div className="platStat"><b>{dt(h.trial_started_at)||dt(h.created_at)}</b><small>Trial start</small></div>
     <div className="platStat"><b>{h.sub_status==='trialing'?trialLeft(h.trial_ends_at):'—'}</b><small>Trial days left</small></div>
     <div className="platStat"><b>{dt(h.current_period_end)||dt(h.trial_ends_at)}</b><small>Expiry / trial end</small></div>
-    <div className="platStat"><b>{h.users}</b><small>Users</small></div>
-    <div className="platStat"><b>{h.patients}</b><small>Patients</small></div>
+    <div className="platStat"><b>{h.users}</b><small>{product==='smartshop'?'Staff':'Users'}</small></div>
+    <div className="platStat"><b>{h.patients}</b><small>{product==='smartshop'?'Orders (all time)':'Patients'}</small></div>
     <div className="platStat"><b>{h.billing_period||'—'}</b><small>Billing period</small></div>
     <div className="platStat"><b>{h.provider||'—'}</b><small>Provider</small></div>
     <div className="platStat"><b><MoneyCell row={h}/></b><small>{(h.currency||'INR')} · INR equivalent</small></div>
    </div>
+
+   {product==='smartshop'&&h.activity&&<section className="panel modulePanel" style={{marginBottom:24}}>
+    <h2>Shop activity</h2>
+    <div className="platStats">
+     <div className="platStat"><b>{h.activity.products??0}</b><small>Products listed</small></div>
+     <div className="platStat"><b>{h.activity.orders_30d??0}</b><small>Orders (30 days)</small></div>
+     <div className="platStat"><b>₹{Number(h.activity.revenue_30d||0).toLocaleString('en-IN')}</b><small>Sales (30 days)</small></div>
+     <div className="platStat"><b>₹{Number(h.activity.revenue_total||0).toLocaleString('en-IN')}</b><small>Sales (all time)</small></div>
+     <div className="platStat"><b>{dt(h.activity.last_order_at)||'—'}</b><small>Last order</small></div>
+     <div className="platStat"><b>{h.activity.days_left??'—'}</b><small>Days left in plan/trial</small></div>
+    </div>
+   </section>}
 
    <section className="panel modulePanel">
     <h2>Admin contact</h2>

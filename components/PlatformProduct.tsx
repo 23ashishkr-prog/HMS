@@ -3,7 +3,8 @@ import {createContext,useContext,useEffect,useState,ReactNode} from 'react'
 import {dt} from '@/lib/client'
 import {formatMoney,moneyPair} from '@/lib/money'
 
-export type PlatformProduct='hms'|'taildesk'
+export type PlatformProduct='hms'|'taildesk'|'smartshop'
+export const PRODUCT_LABEL:Record<PlatformProduct,string>={hms:'HMS',taildesk:'TailDesk',smartshop:'Smart Shop'}
 const KEY='hms.platform.product'
 
 type Ctx={product:PlatformProduct;ready:boolean;setProduct:(p:PlatformProduct)=>void}
@@ -12,8 +13,9 @@ const C=createContext<Ctx>({product:'hms',ready:false,setProduct:()=>{}})
 function stored():PlatformProduct{
  if(typeof window==='undefined')return 'hms'
  const q=new URLSearchParams(window.location.search).get('product')
- if(q==='taildesk'||q==='hms')return q
- return localStorage.getItem(KEY)==='taildesk'?'taildesk':'hms'
+ if(q==='taildesk'||q==='smartshop'||q==='hms')return q
+ const k=localStorage.getItem(KEY)
+ return k==='taildesk'||k==='smartshop'?k:'hms'
 }
 
 export function PlatformProductProvider({children}:{children:ReactNode}){
@@ -29,7 +31,7 @@ export function PlatformProductProvider({children}:{children:ReactNode}){
   setProductState(p)
   localStorage.setItem(KEY,p)
   const u=new URL(window.location.href)
-  if(p==='taildesk')u.searchParams.set('product','taildesk')
+  if(p!=='hms')u.searchParams.set('product',p)
   else u.searchParams.delete('product')
   history.replaceState(null,'',u.pathname+u.search+u.hash)
  }
@@ -43,19 +45,20 @@ export function ProductSwitch(){
  return <div className="platProduct" role="group" aria-label="Product">
   <button type="button" className={product==='hms'?'on':''} aria-pressed={product==='hms'} onClick={()=>setProduct('hms')}>HMS</button>
   <button type="button" className={product==='taildesk'?'on':''} aria-pressed={product==='taildesk'} onClick={()=>setProduct('taildesk')}>TailDesk</button>
+  <button type="button" className={product==='smartshop'?'on':''} aria-pressed={product==='smartshop'} onClick={()=>setProduct('smartshop')}>Smart Shop</button>
  </div>
 }
 
 export function productPath(product:PlatformProduct,path:string,params?:Record<string,string>){
  const qs=new URLSearchParams()
- if(product==='taildesk')qs.set('product','taildesk')
+ if(product!=='hms')qs.set('product',product)
  if(params)for(const[k,v]of Object.entries(params))if(v)qs.set(k,v)
  const s=qs.toString()
  return path+(s?'?'+s:'')
 }
 
 export function tenantHref(product:PlatformProduct,id:string){
- return product==='taildesk'?`/platform/hospitals/${id}?product=taildesk`:`/platform/hospitals/${id}`
+ return product==='hms'?`/platform/hospitals/${id}`:`/platform/hospitals/${id}?product=${product}`
 }
 
 export function MoneyCell({row}:{row:any}){
@@ -67,16 +70,17 @@ export function MoneyCell({row}:{row:any}){
 
 export function TailDeskState({d}:{d:any}){
  const {product}=usePlatformProduct()
- if(product!=='taildesk')return null
- if(d?.configured===false)return <div className="platNote" role="status"><b>TailDesk is not configured.</b><div>{d.message||'Set TAILDESK_API_URL and TAILDESK_PLATFORM_API_KEY. HMS keeps using its own database.'}</div></div>
- if(d?.upstreamError)return <div className="platNote" role="alert"><b>TailDesk data is unavailable.</b><div>{d.upstreamError}</div></div>
- return <p className="muted"><small>Read-only. Tenants, subscriptions and revenue come from TailDesk’s own database through its platform API.</small></p>
+ if(product==='hms')return null
+ const name=PRODUCT_LABEL[product]
+ if(d?.configured===false)return <div className="platNote" role="status"><b>{name} is not configured.</b><div>{d.message||'Set the product API URL and platform key. HMS keeps using its own database.'}</div></div>
+ if(d?.upstreamError)return <div className="platNote" role="alert"><b>{name} data is unavailable.</b><div>{d.upstreamError}</div></div>
+ return <p className="muted"><small>Read-only. Tenants, subscriptions and revenue come from {name}’s own database through its platform API.</small></p>
 }
 
 export function HmsOnlyNote(){
  const {product}=usePlatformProduct()
- if(product!=='taildesk')return null
- return <div className="platNote"><b>This page is HMS.</b> Gateway settings, incidents and leads stay in the HMS database. Use the HMS | TailDesk switch for TailDesk tenants, subscriptions, revenue and events.</div>
+ if(product==='hms')return null
+ return <div className="platNote"><b>This page is HMS.</b> Gateway settings, incidents and leads stay in the HMS database. Use the HMS | TailDesk | Smart Shop switch for each product’s tenants, subscriptions, revenue and events.</div>
 }
 
 export function PlatformEvents({events}:{events:any[]}){

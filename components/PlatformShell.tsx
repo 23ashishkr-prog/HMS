@@ -4,7 +4,7 @@ import {usePathname,useRouter} from 'next/navigation'
 import {ReactNode,useState} from 'react'
 import {call} from '@/lib/client'
 import {ViewSwap} from '@/components/Tabs'
-import {ProductSwitch,usePlatformProduct} from '@/components/PlatformProduct'
+import {ProductSwitch,PRODUCT_LABEL,usePlatformProduct} from '@/components/PlatformProduct'
 
 const TABS:[string,string,((p:string)=>boolean)?][]=[
  ['/platform','Overview',p=>p==='/platform'],
@@ -60,12 +60,12 @@ export default function PlatformShell({title,eyebrow,description,children,action
     <ProductSwitch/>
     <div className="platTopBrand">
      <span className="overline">SAAS OWNER</span>
-     <b>{product==='taildesk'?'TailDesk':'HMS'} platform</b>
+     <b>{PRODUCT_LABEL[product]} platform</b>
     </div>
     <nav className="platTabs" aria-label="Platform sections">
      {TABS.map(([href,label,match])=>{
       const on=(match||(p=>p===href||p.startsWith(href+'/')))(path)
-      const text=product==='taildesk'&&href==='/platform/hospitals'?'Tenants':product==='taildesk'&&href==='/platform/payments'?'Revenue':label
+      const text=product!=='hms'&&href==='/platform/hospitals'?(product==='smartshop'?'Shops':'Tenants'):product!=='hms'&&href==='/platform/payments'?'Revenue':label
       return <Link key={href} href={href} className={on?'platTab on':'platTab'}>{text}</Link>
      })}
     </nav>
