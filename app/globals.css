@@ -1433,7 +1433,10 @@ html body .mkNav .mkBtn{height:36px;padding:0 16px}
 .backGnLight:hover{border-color:#fff;color:#fff;background:rgba(255,255,255,.12)}
 html[data-theme=dark] .backGn:not(.backGnLight){border-color:#64748b;color:#e2e8f0}
 html[data-theme=dark] .backGn:not(.backGnLight):hover{border-color:#5eead4;color:#5eead4;background:transparent}
-.authSide .backGn{margin:0 0 20px}
+.authSide{position:relative}
+.authSide>.authSideIn::before{content:"";display:block;height:36px;margin:0 0 20px}
+.authSide>.authSideIn>.backGn{position:absolute;top:56px;left:56px;margin:0}
+html body .onbPage .authSide>.authSideIn>.backGn{top:clamp(28px,5vw,56px);left:clamp(28px,5vw,56px)}
 .authCard>.backGn{display:none}
 .accountFrame{width:min(430px,calc(100% - 32px));margin:32px auto 0;display:flex;flex-direction:column;gap:14px}
 .accountHead{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px}
