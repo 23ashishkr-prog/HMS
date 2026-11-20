@@ -29,9 +29,10 @@ export default function LoginPage(){const {t}=useI18n()
  async function confirm(code:string){setBusy(true);setMessage('');try{await post({code})}catch(err){setMessage(err instanceof Error?err.message:'Login failed')}finally{setBusy(false)}}
  async function resend(){setMessage('');try{const r=await fetch(withBase('/api/auth/email-code'),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,hospitalCode:hosp||undefined})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not resend');if(data.skipped){setOtp(false);await post({});return 30}return Number(data.resendIn||30)}catch(err){setMessage(err instanceof Error?err.message:'Could not resend');throw err}}
  async function changeEmail(next:string){setBusy(true);setMessage('');try{const r=await fetch(withBase('/api/auth/email-code'),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,hospitalCode:hosp||undefined,nextEmail:next})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not update email');if(data.email)setEmail(data.email);if(data.skipped){setOtp(false);await post({})}}catch(err){setMessage(err instanceof Error?err.message:'Could not update email')}finally{setBusy(false)}}
- return <div className="publicShell"><BackToGreyNova float/><main className="authPage authPremium">
-  <aside className="authSide" aria-hidden><div className="authSideIn"><Link className="mkLogo" href="/welcome"><Logo size={36}/> HMS</Link><h2>Every patient, every bed, every rupee — in one place.</h2><ul><li>Voice notes & e-prescriptions</li><li>WhatsApp reminders & reports</li><li>GST billing, lab & pharmacy</li></ul></div></aside>
+ return <div className="publicShell"><main className="authPage authPremium">
+  <aside className="authSide"><div className="authSideIn"><BackToGreyNova tone="light"/><div aria-hidden="true"><Link className="mkLogo" href="/welcome"><Logo size={36}/> HMS</Link><h2>Every patient, every bed, every rupee — in one place.</h2><ul><li>Voice notes & e-prescriptions</li><li>WhatsApp reminders & reports</li><li>GST billing, lab & pharmacy</li></ul></div></div></aside>
   <section className="authCard">
+   <BackToGreyNova/>
    <div className="authBrand"><Logo size={36}/><div><b>HMS</b><small>HOSPITAL CLOUD</small></div></div>
    <LangSwitch/>
    {otp?<EmailCode email={email} busy={busy} error={message} onSubmit={confirm} onResend={resend} onChangeEmail={changeEmail}/>:<>

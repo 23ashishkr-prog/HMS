@@ -1,15 +1,29 @@
 import Link from 'next/link'
-import {withBase} from '@/lib/basePath'
+import type {ReactNode} from 'react'
+import Logo from '@/components/Logo'
 import {COMPANY_CIN,COMPANY_LEGAL_NAME,REFUND_POLICY_URL} from '@/lib/terms'
 
-/** Public pages only. Logged-in hospital screens do not render this. */
-export function BackToGreyNova({float}:{float?:boolean}){
- return <a className={'backGn'+(float?' backGnFloat':'')} href="https://greynova.in/" aria-label="Back to GreyNova">
+/** Outlined link back to greynova.in. `tone="light"` is for the dark brand panel. */
+export function BackToGreyNova({tone}:{tone?:'light'}){
+ return <a className={'backGn'+(tone==='light'?' backGnLight':'')} href="https://greynova.in/" aria-label="Back to GreyNova">
   <span className="backGnArrow" aria-hidden="true">←</span>
-  <img className="backGnMark" src={withBase('/greynova-logo.png')} alt="" width={22} height={22}/>
-  <span className="backGnLong">Back to GreyNova</span>
-  <span className="backGnShort">GreyNova</span>
+  <span>GreyNova</span>
  </a>
+}
+
+/** Public header. The logo leads; the pill sits in the right-hand group. */
+export function PublicHeader({links,end,narrow}:{links?:ReactNode;end?:ReactNode;narrow?:boolean}){
+ return <header className="mkNav pubHead">
+  <div className={'pubInner mkNavRow'+(narrow?' pubInnerNarrow':'')}>
+   <Link className="mkLogo" href="/welcome"><Logo size={32}/> HMS</Link>
+   <nav className="mkLinks" aria-label="Page">{links}<BackToGreyNova/>{end}</nav>
+  </div>
+ </header>
+}
+
+/** Logo and pill on one row, the same width as the card beneath. */
+export function AccountHead(){
+ return <div className="accountHead"><Link className="mkLogo" href="/welcome"><Logo size={28}/> HMS</Link><BackToGreyNova/></div>
 }
 
 export function PublicLegal({compact}:{compact?:boolean}){
