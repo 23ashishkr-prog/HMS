@@ -27,9 +27,11 @@ export default function Page(){
  const list=plans.length?plans:FALLBACK
  const sales=plan==='engage'||plan==='engage_support'
  return (
-  <div className="publicShell"><BackToGreyNova float/><main className="authPage authPremium onbPage">
-   <aside className="authSide" aria-hidden>
+  <div className="publicShell"><main className="authPage authPremium onbPage">
+   <aside className="authSide">
     <div className="authSideIn">
+     <BackToGreyNova tone="light"/>
+     <div aria-hidden="true">
      <Link className="mkLogo" href="/welcome"><Logo size={36}/> HMS</Link>
      <h2>Your hospital, live in an afternoon.</h2>
      <ul>
@@ -37,9 +39,11 @@ export default function Page(){
       <li>Customer Engagement is Contact Sales</li>
       <li>Indian defaults: services, departments, OPD timings</li>
      </ul>
+     </div>
     </div>
    </aside>
    <section className="authCard onbCard">
+    <BackToGreyNova/>
     {done?(
      <div className="onbDone">
       <span className="overline">WORKSPACE READY</span>
