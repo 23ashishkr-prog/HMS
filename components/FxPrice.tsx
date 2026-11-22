@@ -94,3 +94,36 @@ export function FxLink({href,...rest}:ComponentProps<typeof Link>){
  },[href])
  return <Link href={to} onMouseDown={()=>{remember(location.search);setTo(hrefWithFx(String(href),sessionStorage.getItem(KEY)))}} {...rest}/>
 }
+
+/** Today's HMS prices and offers from the platform console's public feed, fetched once per page. */
+type BookRow={monthlyInr:number;payInr:number;offer:null|{percent:number;label:string;endsOn:string}}
+let bookPending:Promise<Record<string,BookRow>>|null=null
+function loadBook(){
+ if(!bookPending)bookPending=fetch(withBase('/api/public/pricing')).then(r=>r.ok?r.json():null).then((x:any)=>{
+  const m:Record<string,BookRow>={}
+  for(const p of x?.products?.hms?.plans||[])if(Number(p.monthlyInr)>0)m[p.code]={monthlyInr:Number(p.monthlyInr),payInr:Number(p.payInr)||Number(p.monthlyInr),offer:p.offer||null}
+  return m
+ }).catch(()=>({}))
+ return bookPending
+}
+export function usePriceBook(){
+ const[book,setBook]=useState<Record<string,BookRow>|null>(null)
+ useEffect(()=>{let live=true;loadBook().then(b=>{if(live)setBook(b)});return()=>{live=false}},[])
+ return book
+}
+const endsOn=(d:string)=>new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+
+/** A plan's price as checkout charges it today: the console price, with the list price struck through and
+ *  the offer's end date while an offer runs. Annual is 10 months, the same as checkout. `inr` is the fallback. */
+export function LivePlanPrice({code,inr,per='month',prefix,annual,showOffer=true}:{code:string;inr:number;per?:string;prefix?:string;annual?:boolean;showOffer?:boolean}){
+ const book=usePriceBook()
+ const b=book?.[code]
+ const k=annual?10:1
+ const list=b?b.monthlyInr*k:inr
+ const pay=b?b.payInr*k:inr
+ const offer=b?.offer&&pay<list?b.offer:null
+ return <>
+  <PlanPrice inr={pay} wasInr={offer?list:null} per={per} prefix={prefix}/>
+  {offer&&showOffer&&<small className="offerEnds">{offer.label||`${offer.percent}% off`} · ends {endsOn(offer.endsOn)}</small>}
+ </>
+}
