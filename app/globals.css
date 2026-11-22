@@ -1445,3 +1445,65 @@ html body .onbPage .authSide>.authSideIn>.backGn{top:clamp(28px,5vw,56px);left:c
 @media(max-width:820px){.mkLinks{gap:8px}html body .mkNav .mkBtn{padding:0 12px}.backGn{padding:0 10px;font-size:13px}}
 @media(max-width:860px){html body .authPremium .authCard>.backGn{display:inline-flex;margin:0 0 16px}}
 @media(max-width:960px){html body .onbPage .authCard>.backGn{display:inline-flex;margin:0 0 16px}}
+/* Platform · Subscription pricing. Colours are tokens so the console's dark theme works. */
+.plat{--pr-card:#fff;--pr-ink:#0f172a;--pr-mut:#64748b;--pr-line:#e2e8f0;--pr-soft:#f8fafc;--pr-strike:#94a3b8;--pr-ok:#166534;--pr-okbg:#dcfce7;--pr-okline:#86efac;--pr-info:#3730a3;--pr-infobg:#e0e7ff;--pr-btn:#0f172a;--pr-btnink:#fff}
+html[data-theme=dark] .plat{--pr-card:#152033;--pr-ink:#e6ecf5;--pr-mut:#9aa8bc;--pr-line:#26344a;--pr-soft:#0f1a2b;--pr-strike:#6b7a90;--pr-ok:#86efac;--pr-okbg:#14532d;--pr-okline:#166534;--pr-info:#c7d2fe;--pr-infobg:#312e81;--pr-btn:#0d9488;--pr-btnink:#fff}
+.prSection{margin:8px 0 26px}
+.prSectionHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap;margin-bottom:12px}
+.prSection h2,.prPanel h2{font-size:1.05rem;margin:0;color:var(--pr-ink)}
+.plat .prMuted{color:var(--pr-mut);font-size:13px;margin:0}
+.prGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.prCard,.prPanel{background:var(--pr-card);color:var(--pr-ink);border:1px solid var(--pr-line);border-radius:18px;padding:18px;display:flex;flex-direction:column;min-width:0;box-shadow:0 8px 24px #0f172a0a}
+.prCard{gap:10px}.prPanel{gap:14px}
+.prCardOffer{border-color:var(--pr-okline)}
+.prCardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.prCardHead b{display:block;font-size:15px;color:var(--pr-ink)}.prCardHead code{font-size:11px;color:var(--pr-mut);background:none}
+.prBadge{flex:none;background:var(--pr-okbg);color:var(--pr-ok);font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prPrice{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.plat .prPrice strong{font-size:1.9rem;letter-spacing:-.02em;color:var(--pr-ink)}
+.prPrice s{color:var(--pr-strike);font-size:1.05rem;font-weight:600}
+.prPrice small{color:var(--pr-mut);font-weight:600}
+.plat .prOfferLine{margin:0;color:var(--pr-ok);font-size:13px;font-weight:600}
+.prEdit{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--pr-line);padding-top:12px;margin-top:auto}
+.plat .prEdit label,.plat .prPanel>label,.plat .prDates label,.plat .prFieldset legend{font-size:12px;font-weight:700;color:var(--pr-mut)}
+.prEditRow{display:flex;align-items:center;border:1.5px solid var(--pr-line);border-radius:12px;background:var(--pr-card);overflow:hidden}
+.prEditRow:focus-within{border-color:var(--pr-ink)}
+html body .plat .prEditRow input:not(#_){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;flex:1;min-width:0;border:0;outline:0;padding:0 10px;min-height:44px;font-size:16px;font-weight:700;background:transparent;color:var(--pr-ink)}
+.prEditRow .primary{border-radius:0;min-height:44px;padding:0 16px;justify-content:center}
+html body .plat .prBtn:not(#_){border:0;display:inline-flex;align-items:center;justify-content:center;background:var(--pr-btn)!important;color:var(--pr-btnink)!important;font-weight:800;font-size:14px;min-height:44px;padding:0 18px;border-radius:12px;cursor:pointer}
+.prEditRow .prBtn{border-radius:0}
+.prBtn:disabled{opacity:.4;cursor:not-allowed}
+html body .plat .prGhost:not(#_){border:1.5px solid var(--pr-line);background:transparent!important;color:var(--pr-ink)!important;font-weight:700;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;cursor:pointer;flex:none}
+html body .plat .prGhost:not(#_):hover{border-color:#ef4444;color:#ef4444!important}
+.prRupee{padding:0 0 0 12px;color:var(--pr-mut);font-weight:700}
+.prEditRow input+.prRupee{padding:0 12px 0 0}
+.prSplit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.prPanel>label,.prDates label{display:flex;flex-direction:column;gap:6px}
+.prPanel select,.prPanel>label>input,.prDates input{min-height:44px;border-radius:12px;border:1.5px solid var(--pr-line);padding:0 12px;background-color:var(--pr-card);color:var(--pr-ink);width:100%;font:inherit;font-size:15px}
+.prFieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+.prFieldset legend{padding:0;margin-bottom:6px}
+.prChips{display:flex;flex-wrap:wrap;gap:6px}
+html body .plat .prChip:not(#_){border:1.5px solid var(--pr-line);background:transparent;color:var(--pr-ink);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;min-height:34px}
+.prChip:hover{border-color:var(--pr-mut)}html body .plat .prChip.prOn:not(#_){background:var(--pr-btn)!important;border-color:var(--pr-btn)!important;color:var(--pr-btnink)!important}
+.prDates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prPreview{background:var(--pr-soft);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.plat .prPreview>b{font-size:12px;color:var(--pr-mut)}
+.prPreviewRow{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.prPreviewRow s{color:var(--pr-strike)}.plat .prPreviewRow strong{color:var(--pr-ok)}
+.prOffers,.prLog{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.plat .prOffers li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border:1px solid var(--pr-line);border-radius:14px;color:var(--pr-ink)}
+.prOffers li>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.prStatus{align-self:flex-start;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+.prStatus.live{background:var(--pr-okbg);color:var(--pr-ok)}.prStatus.soon{background:var(--pr-infobg);color:var(--pr-info)}
+.prLogHead{margin-top:8px!important}
+.plat .prLog li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--pr-line);color:var(--pr-ink)}
+.prLog li small{grid-column:1/-1}
+html body .plat .prPanel select:not(#_){background-repeat:no-repeat!important;background-position:right 14px center!important;padding-right:36px}
+@media(max-width:860px){.prSplit{grid-template-columns:1fr}}
+@media(max-width:420px){.prDates{grid-template-columns:1fr}.plat .prPrice strong{font-size:1.6rem}}
+/* Offer price on the hospital pay screen */
+.priceWas{font-size:.7em;font-weight:600;opacity:.6;margin-right:6px}
+.payGrid article.onOffer{outline:2px solid #22c55e}
+.offerBadge{align-self:flex-start;background:#dcfce7;color:#166534;font-weight:800;font-size:12px;padding:3px 10px;border-radius:999px}
+.offerEnds{color:#166534;font-weight:600}
+.payGrid article.hot .offerEnds{color:#bbf7d0}

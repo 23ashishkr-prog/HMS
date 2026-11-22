@@ -4,6 +4,7 @@ import {createHmac,timingSafeEqual} from 'crypto'
 import {Db,HttpError} from '@/lib/services/core'
 import {PLAN_ANNUAL_INR,PLAN_NAME,PLAN_PRICE_INR,PlanCode,planForNewSale} from '@/lib/plans'
 import {TERMS_VERSION} from '@/lib/terms'
+import {hmsMonthlyPayInr} from '@/lib/services/productPricing'
 import {envPaymentsConfigured,getRazorpayCreds,RzpCreds} from '@/lib/services/platformGateway'
 
 export type BillingPeriod='monthly'|'annual'
@@ -14,6 +15,12 @@ export async function razorpayKeyId(db:Db){return (await getRazorpayCreds(db)).k
 
 export function planAmountInr(plan:PlanCode,period:BillingPeriod){
  return period==='annual'?PLAN_ANNUAL_INR[plan]:PLAN_PRICE_INR[plan]
+}
+/** What checkout charges today: the platform price book with any running offer. Annual is 10× the month. */
+export async function planChargeInr(db:Db,plan:PlanCode,period:BillingPeriod,now=new Date()){
+ const m=await hmsMonthlyPayInr(db,plan,now)
+ const k=period==='annual'?10:1
+ return {amountInr:m.payInr*k,listInr:m.listInr*k,offer:m.offer}
 }
 export function periodEndIso(period:BillingPeriod,from=new Date()){
  const d=new Date(from);if(period==='annual')d.setFullYear(d.getFullYear()+1);else d.setMonth(d.getMonth()+1);return d.toISOString()
@@ -33,11 +40,13 @@ export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode
  if(!creds.configured)throw new HttpError(503,'Online payments are not configured yet. Ask the platform owner to set Razorpay keys in /platform/settings, or renew offline.')
  const plan=planForNewSale(opts.planCode)
  const period=opts.period==='annual'?'annual':'monthly'
- const amountInr=planAmountInr(plan,period)
+ const charge=await planChargeInr(db,plan,period)
+ const amountInr=charge.amountInr
  const amount=Math.round(amountInr*100) // paise
  if(amount<100)throw new HttpError(400,'Invalid amount')
  const receipt=('hms_'+opts.hospitalCode+'_'+Date.now()).slice(0,40)
- const notes={hospital_id:opts.hospitalId,hospital_code:opts.hospitalCode,plan_code:plan,billing_period:period,product:'hms_plan'}
+ const notes:Record<string,string|number>={hospital_id:opts.hospitalId,hospital_code:opts.hospitalCode,plan_code:plan,billing_period:period,product:'hms_plan'}
+ if(charge.offer)Object.assign(notes,{list_inr:charge.listInr,offer_percent:charge.offer.percent,offer_label:charge.offer.label.slice(0,40)})
  const order=await rzp(creds,'/orders','POST',{amount,currency:'INR',receipt,notes,payment_capture:1})
  // Ledger row (created) so platform Payment check shows the attempt before capture
  try{
@@ -50,6 +59,8 @@ export async function createPlanOrder(db:Db,opts:{hospitalId:string;hospitalCode
  return {
   orderId:order.id as string,
   amount:amountInr,
+  listAmount:charge.listInr,
+  offer:charge.offer,
   amountPaise:amount,
   currency:'INR',
   keyId:creds.keyId,

@@ -10,6 +10,7 @@ const TABS:[string,string,((p:string)=>boolean)?][]=[
  ['/platform','Overview',p=>p==='/platform'],
  ['/platform/hospitals','Hospitals',p=>p.startsWith('/platform/hospitals')],
  ['/platform/payments','Payments',p=>p.startsWith('/platform/payments')],
+ ['/platform/pricing','Pricing',p=>p.startsWith('/platform/pricing')],
  ['/platform/settings','Gateway',p=>p.startsWith('/platform/settings')],
  ['/platform/incidents','Incidents',p=>p.startsWith('/platform/incidents')],
  ['/platform/leads','Leads',p=>p.startsWith('/platform/leads')],
