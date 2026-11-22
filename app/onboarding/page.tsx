@@ -1,7 +1,7 @@
 'use client'
 import {useEffect,useState} from 'react';import Link from 'next/link';import {call,formObj} from '@/lib/client';import Logo from '@/components/Logo';import {withBase} from '@/lib/basePath'
 import {isContactSalesPlan,trialPlanFromParam} from '@/lib/plans'
-import {FxLink,PlanPrice} from '@/components/FxPrice'
+import {FxLink,LivePlanPrice} from '@/components/FxPrice'
 import {MoneyBack} from '@/components/TermsDocument'
 import {BackToGreyNova,PublicLegal} from '@/components/PublicChrome'
 import {REFUND_POLICY_URL} from '@/lib/terms'
@@ -86,7 +86,7 @@ export default function Page(){
        {list.map(p=><label key={p.code} className={'planOpt'+(plan===p.code?' on':'')}>
         <input type="radio" name="plan" value={p.code} checked={plan===p.code} onChange={()=>setPlan(p.code)}/>
         <span><b>{p.name}</b><small>{BLURB[p.code]||''}</small>{Number(p.included_support_admins)>0&&<small>Dedicated support admin included</small>}</span>
-        <em><PlanPrice inr={Number(p.monthly_price_inr)} per="month"/></em>
+        <em><LivePlanPrice code={p.code} inr={Number(p.monthly_price_inr)}/></em>
        </label>)}
       </fieldset>
       <label>Your name *<input name="adminName" required autoComplete="name"/></label>
