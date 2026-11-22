@@ -54,3 +54,11 @@ test('offline bill preview: items, discount, payment and cancel show before sync
  inv=applyOffline(inv,'discount',{discount:'50'});assert.equal(inv.totals.balance,450)
  inv=applyOffline(inv,'payment',{amount:'450',mode:'cash'});assert.equal(inv.totals.balance,0);assert.equal(inv.invoice.status,'paid')
  assert.equal(applyOffline(inv,'cancel',{}).invoice.status,'cancelled')})
+
+test('offline cycle follows the subscription: back-to-back 30-day cycles from the day it started',async()=>{
+ const {cycleUntil}=await import('../lib/offlineLicence')
+ const start=Date.UTC(2026,9,10)
+ assert.equal(cycleUntil(start,start),start+30*DAY);assert.equal(cycleUntil(start,start+45*DAY),start+60*DAY);assert.equal(cycleUntil(start,start+60*DAY),start+90*DAY);assert.equal(cycleUntil(null,start),start+30*DAY)
+ const a=ok(issueLicence({hospitalId:'h1',userId:'u1',usable:true,status:'active',cycleStart:start},start+45*DAY,key)),b=ok(issueLicence({hospitalId:'h1',userId:'u2',usable:true,status:'active',cycleStart:start},start+59*DAY,key))
+ assert.equal(a.licence.until,start+60*DAY);assert.equal(b.licence.until,start+60*DAY) // same boundary for every device
+ assert.equal(issueLicence({hospitalId:'h1',userId:'u1',usable:false,status:'on_hold',cycleStart:start},start+61*DAY,key).ok,false)})

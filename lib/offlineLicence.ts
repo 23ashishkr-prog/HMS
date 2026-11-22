@@ -64,6 +64,18 @@ export function verifyLicence(token: string | null | undefined, opts: { key?: Bu
   return { ok: true, licence };
 }
 
+/**
+ * End of the subscription's current offline cycle. Each subscription has its own 30-day cycles, back to back from
+ * the day it started (day 0–30, 30–60, …). A licence always runs to the end of the cycle it is issued in, so every
+ * device of a hospital must check the plan at the same cycle boundary, whenever it last connected.
+ */
+export function cycleUntil(start: number | null | undefined, now: number): number {
+  const period = OFFLINE_DAYS * DAY_MS;
+  if (start == null || !Number.isFinite(start)) return now + period;
+  if (start > now) return start + period;
+  return start + (Math.floor((now - start) / period) + 1) * period;
+}
+
 export type IssueResult =
   | { ok: true; token: string; licence: OfflineLicence; serverTime: number }
   | { ok: false; locked: true; status: string; serverTime: number }
@@ -71,15 +83,15 @@ export type IssueResult =
 
 /**
  * Only if the hospital's plan is usable (active or trialing, not on hold — getSubscription().usable, the same rule
- * as every other API) does it get a licence valid for the next 30 days, unless the admin chose "Live mode".
+ * as every other API) does it get a licence valid until the end of the subscription's current 30-day cycle, unless the admin chose "Live mode".
  * Otherwise offline mode stays locked until the plan is renewed.
  */
-export function issueLicence(input: { hospitalId: string; userId: string | null; usable: boolean; status: string; offlineEnabled?: boolean }, now = Date.now(), key: Buffer = licenceKey()): IssueResult {
+export function issueLicence(input: { hospitalId: string; userId: string | null; usable: boolean; status: string; offlineEnabled?: boolean; /** When the subscription started (ms); cycles count from here. */ cycleStart?: number | null }, now = Date.now(), key: Buffer = licenceKey()): IssueResult {
   const status = input.status || "none";
   if (!input.usable) return { ok: false, locked: true, status, serverTime: now };
   // Admin picked "Live mode" in Settings: no offline licence, staff screens need internet.
   if (input.offlineEnabled === false) return { ok: false, disabled: true, serverTime: now };
-  const licence: OfflineLicence = { v: VERSION, sid: input.hospitalId, uid: input.userId, plan: status, iat: now, until: now + OFFLINE_DAYS * DAY_MS };
+  const licence: OfflineLicence = { v: VERSION, sid: input.hospitalId, uid: input.userId, plan: status, iat: now, until: cycleUntil(input.cycleStart, now) };
   return { ok: true, token: signLicence(licence, key), licence, serverTime: now };
 }
 
