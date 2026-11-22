@@ -65,15 +65,17 @@ function money(n:number,currency:string){
 function rupee(n:number){return '₹'+Number(n).toLocaleString('en-IN')}
 
 /** India shows rupees only. Everywhere else shows the local currency only. */
-export function PlanPrice({inr,per,prefix}:{inr:number;per?:string;prefix?:string}){
+export function PlanPrice({inr,per,prefix,wasInr}:{inr:number;per?:string;prefix?:string;wasInr?:number|null}){
  const {quote}=useFx()
  const unit=per?`/${per}`:''
  const lead=prefix||''
  if(!quote)return <b className="priceWait" data-fx="0">…</b>
- if(quote.currency==='INR')return <b data-fx="INR">{lead}{rupee(inr)}<small>{unit}</small></b>
+ const was=wasInr&&wasInr>inr?wasInr:null
+ if(quote.currency==='INR')return <b data-fx="INR">{was!=null&&<s className="priceWas">{rupee(was)}</s>}{lead}{rupee(inr)}<small>{unit}</small></b>
  const n=localAmount(inr,quote)
  if(n==null)return <b data-fx="0">…</b>
- return <b data-fx={quote.currency}>{lead}{money(n,quote.currency)}<small>{unit}</small></b>
+ const w=was!=null?localAmount(was,quote):null
+ return <b data-fx={quote.currency}>{w!=null&&<s className="priceWas">{money(w,quote.currency)}</s>}{lead}{money(n,quote.currency)}<small>{unit}</small></b>
 }
 
 /** Shown only on the pay button, and only when the screen is not in rupees. Razorpay orders are created in INR. */

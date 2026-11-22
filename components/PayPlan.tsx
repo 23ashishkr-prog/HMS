@@ -27,6 +27,9 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
  const[paid,setPaid]=useState<{name:string;inr:number;period:'monthly'|'annual'}|null>(null)
  const[agreed,setAgreed]=useState(false)
  const[sub,setSub]=useState<any>(null)
+ // Today's prices and offers from the platform price book. The checkout order uses the same numbers.
+ const[book,setBook]=useState<Record<string,{monthlyInr:number;payInr:number;offer:null|{percent:number;label:string;endsOn:string}}>>({})
+ useEffect(()=>{call('/api/public/pricing').then((x:any)=>{const m:any={};for(const p of x?.products?.hms?.plans||[])m[p.code]=p;setBook(m)}).catch(()=>{})},[])
  useEffect(()=>{call('/api/subscription/status').then(x=>{setEnabled(!!x.paymentsEnabled);setRole(x.role||'admin');setSub(x);setAgreed(!!x.termsAgreedAt)}).catch(()=>setEnabled(false))},[])
 
  const pay=async(planCode:PlanCode)=>{
@@ -73,11 +76,16 @@ export default function PayPlan({compact,onPaid}:{compact?:boolean;onPaid?:()=>v
   <div className="payPeriod">{(['monthly','annual'] as const).map(p=><button key={p} type="button" className={period===p?'on':''} onClick={()=>setPeriod(p)}>{p==='monthly'?'Monthly':'Annual (10×)'}</button>)}</div>
   {enabled===false&&<p className="banner warn">Online payment is not set up yet (Razorpay keys missing on the server). Your admin can still be activated offline by the platform team — never treat this screen as a successful payment.</p>}
   <div className="payGrid">{PLAN_CATALOGUE.map(p=>{
-   const price=period==='annual'?PLAN_ANNUAL_INR[p.code]:PLAN_PRICE_INR[p.code]
-   return <article key={p.code} className={p.code==='engage_support'?'hot':''}>
+   const k=period==='annual'?10:1
+   const b=book[p.code]
+   const list=b?b.monthlyInr*k:(period==='annual'?PLAN_ANNUAL_INR[p.code]:PLAN_PRICE_INR[p.code])
+   const price=b?b.payInr*k:list
+   return <article key={p.code} className={(p.code==='engage_support'?'hot':'')+(b?.offer?' onOffer':'')}>
+    {b?.offer&&<span className="offerBadge">{b.offer.label||`${b.offer.percent}% off`}</span>}
     <h3>{p.name}</h3>
     {p.supportAdmins>0&&<small className="fxApprox">Dedicated support admin included</small>}
-    <PlanPrice inr={price} per={period==='annual'?'year':'month'}/>
+    <PlanPrice inr={price} wasInr={b?.offer?list:null} per={period==='annual'?'year':'month'}/>
+    {b?.offer&&<small className="offerEnds">{b.offer.percent}% off · offer ends {new Date(b.offer.endsOn+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</small>}
     <p>{p.blurb}</p>
     <button type="button" className="primary" disabled={!!busy||enabled===false||role!=='admin'||!agreed} onClick={()=>pay(p.code)}>
      {busy===p.code?'Opening Razorpay…':enabled===false?'Payments unavailable':'Pay'}

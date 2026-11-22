@@ -1,7 +1,8 @@
 /** Subscription lifecycle: trial (TRIAL_DAYS, default 30) → on_hold (read-only renew screen) → purge after HOLD_MONTHS,
  *  keeping only a minimal patient register (name, phone, address). Idempotent: safe to run any number of times. */
 import {Db,HttpError} from './core';import {tx} from './auth'
-import {TRIAL_DAYS,TRIAL_REMINDER_DAYS,trialDaysRemaining,canonicalPlan,PLAN_PRICE_INR,PLAN_ANNUAL_INR,PlanCode} from '../plans'
+import {TRIAL_DAYS,TRIAL_REMINDER_DAYS,trialDaysRemaining,canonicalPlan,PlanCode} from '../plans'
+import {hmsMonthlyPayInr} from './productPricing'
 import {appUrl} from './notify'
 import {resetTrialBlock} from './trialIdentity'
 export {TRIAL_DAYS}
@@ -114,7 +115,7 @@ export async function platformConvertPaid(db:Db,h:string,by:{id:string;email:str
  if(!existing)throw new HttpError(404,'Hospital not found')
  const plan=canonicalPlan(planCode||existing.plan_code) as PlanCode
  const period=existing.billing_period==='annual'?'annual':'monthly'
- const amount=period==='annual'?PLAN_ANNUAL_INR[plan]:PLAN_PRICE_INR[plan]
+ const amount=(await hmsMonthlyPayInr(db,plan)).payInr*(period==='annual'?10:1)
  const r=await db.query(`update subscriptions set status='active',plan_code=coalesce($2,plan_code),billing_period=coalesce(billing_period,'monthly'),
   current_period_start=now(),current_period_end=now()+interval '1 month',hold_started_at=null,hold_extended_until=null,provider=coalesce(provider,'manual'),
   currency='INR',amount_in_inr=$3,updated_at=now()
