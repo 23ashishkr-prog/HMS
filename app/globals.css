@@ -1516,3 +1516,4 @@ html body .plat .prPanel select:not(#_){background-repeat:no-repeat!important;ba
 .offerBadge{align-self:flex-start;background:#dcfce7;color:#166534;font-weight:800;font-size:12px;padding:3px 10px;border-radius:999px}
 .offerEnds{color:#166534;font-weight:600}
 .payGrid article.hot .offerEnds{color:#bbf7d0}
+.offlineBar b,.offlineBar strong,html[data-theme] body .offlineBar b,html[data-theme] body .offlineBar strong{color:inherit!important}.offlineBar.danger{background:#FDECEC;color:#8E1B1B;border:1px solid #F2B8B8}.offGate{position:relative}.offGateUnder{opacity:.25;pointer-events:none;user-select:none;filter:blur(1px)}.offGateCard{position:absolute;left:50%;top:24px;transform:translateX(-50%);max-width:520px;width:calc(100% - 32px);text-align:center;z-index:5}
