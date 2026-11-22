@@ -1,5 +1,5 @@
 'use client'
-import {useEffect,useMemo,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import {call,dt} from '@/lib/client'
 import PlatformShell,{PlatformSignIn} from '@/components/PlatformShell'
 import {PRODUCT_LABEL,usePlatformProduct} from '@/components/PlatformProduct'
@@ -7,6 +7,29 @@ import {PRODUCT_LABEL,usePlatformProduct} from '@/components/PlatformProduct'
 type Offer={id:string;product:string;planCode:string|null;percent:number;label:string;startsOn:string;endsOn:string;active:boolean}
 type Plan={code:string;name:string;monthlyInr:number;payInr:number;updatedAt:string|null;offer:null|{id:string;percent:number;label:string;endsOn:string;priceInr:number}}
 type Data={catalog:{today:string;products:Record<string,{name:string;plans:Plan[]}>};offers:Offer[];log:any[]}
+
+/** A question asked inside the page. The browser's own confirm() popup is blocked in some browsers
+ *  (and in embedded panes it silently answers "no"), so actions never rely on it. */
+type Ask={title:string;body:string;cta:string;danger?:boolean;run:()=>Promise<void>}
+
+function ConfirmBox({ask,onClose}:{ask:Ask;onClose:()=>void}){
+ const[busy,setBusy]=useState(false)
+ const btn=useRef<HTMLButtonElement>(null)
+ useEffect(()=>{btn.current?.focus()
+  const k=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!busy)onClose()}
+  window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k)},[busy,onClose])
+ const go=async()=>{setBusy(true);try{await ask.run()}finally{setBusy(false);onClose()}}
+ return <div className="prModalBack" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)onClose()}}>
+  <div className="prModal" role="dialog" aria-modal="true" aria-labelledby="prAskTitle" aria-describedby="prAskBody">
+   <h3 id="prAskTitle">{ask.title}</h3>
+   <p id="prAskBody">{ask.body}</p>
+   <div className="prModalBtns">
+    <button type="button" className="prGhost chip" onClick={onClose} disabled={busy}>Cancel</button>
+    <button ref={btn} type="button" className={'prBtn primary'+(ask.danger?' prDanger':'')} onClick={go} disabled={busy}>{busy?'Saving…':ask.cta}</button>
+   </div>
+  </div>
+ </div>
+}
 
 const inr=(n:number)=>'₹'+Math.round(Number(n)||0).toLocaleString('en-IN')
 const off=(list:number,pct:number)=>Math.max(1,Math.round(list*(100-pct)/100))
@@ -25,7 +48,7 @@ const SURFACES:Record<string,string>={
  smartshop:'Smart Shop billing page, greynova.in Smart Shop pages in every country',
 }
 
-function PlanCard({plan,product,onSaved,setErr}:{plan:Plan;product:string;onSaved:(d:Data,msg:string)=>void;setErr:(s:string)=>void}){
+function PlanCard({plan,product,onSaved,setErr,confirm}:{plan:Plan;product:string;onSaved:(d:Data,msg:string)=>void;setErr:(s:string)=>void;confirm:(a:Ask)=>void}){
  const[v,setV]=useState(String(plan.monthlyInr))
  const[busy,setBusy]=useState(false)
  useEffect(()=>{setV(String(plan.monthlyInr))},[plan.monthlyInr])
@@ -34,11 +57,14 @@ function PlanCard({plan,product,onSaved,setErr}:{plan:Plan;product:string;onSave
  const pct=plan.offer?.percent
  const save=async()=>{
   if(!dirty)return
-  if(!window.confirm(`Change ${plan.name} from ${inr(plan.monthlyInr)} to ${inr(n)} a month?\n\nNew payments and every price page use it within about a minute. Payments already made are not changed.`))return
-  setBusy(true);setErr('')
-  try{onSaved(await call('/api/platform/pricing','PUT',{product,planCode:plan.code,monthlyInr:n}),`${plan.name} is now ${inr(n)} a month.`)}
-  catch(e:any){setErr(e.message)}
-  finally{setBusy(false)}
+  confirm({title:`Change ${plan.name} to ${inr(n)} a month?`,cta:'Change price',
+   body:`Now ${inr(plan.monthlyInr)}. New payments and every price page use the new price within about a minute. Payments already made are not changed.`,
+   run:async()=>{
+    setBusy(true);setErr('')
+    try{onSaved(await call('/api/platform/pricing','PUT',{product,planCode:plan.code,monthlyInr:n}),`${plan.name} is now ${inr(n)} a month.`)}
+    catch(e:any){setErr(e.message)}
+    finally{setBusy(false)}
+   }})
  }
  return <article className={'prCard'+(plan.offer?' prCardOffer':'')}>
   <div className="prCardHead">
@@ -76,6 +102,7 @@ export default function PricingPage(){
  const[msg,setMsg]=useState('')
  const[denied,setDenied]=useState(false)
  const[busy,setBusy]=useState(false)
+ const[ask,setAsk]=useState<Ask|null>(null)
  // Offer form
  const[plan,setPlan]=useState('')
  const[pct,setPct]=useState('10')
@@ -104,20 +131,29 @@ export default function PricingPage(){
   e.preventDefault()
   if(!pctOk){setErr('Discount must be between 1% and 90%.');return}
   const who=plan?plans.find(p=>p.code===plan)?.name:`every ${PRODUCT_LABEL[product]} plan`
-  if(!window.confirm(`Start ${n}% off ${who} from ${day(range.startsOn)} to ${day(range.endsOn)}?\n\nCheckout charges the offer price on those days, and price pages show the old price struck through.`))return
-  setBusy(true);setErr('');setMsg('')
-  try{
-   saved(await call('/api/platform/pricing/offers','POST',{product,planCode:plan||null,percent:n,label,...range}),`${n}% offer saved for ${who}.`)
-   setLabel('')
-  }catch(ex:any){setErr(ex.message)}
-  finally{setBusy(false)}
+  if(range.endsOn<range.startsOn){setErr('The end date is before the start date.');return}
+  const body={product,planCode:plan||null,percent:n,label,...range}
+  setAsk({title:`Start ${n}% off ${who}?`,cta:'Start offer',
+   body:`${day(range.startsOn)} to ${day(range.endsOn)}. Checkout charges the offer price on those days, and price pages show the old price struck through.`,
+   run:async()=>{
+    setBusy(true);setErr('');setMsg('')
+    try{
+     saved(await call('/api/platform/pricing/offers','POST',body),`${n}% offer saved for ${who}.`)
+     setLabel('')
+    }catch(ex:any){setErr(ex.message)}
+    finally{setBusy(false)}
+   }})
  }
  const endNow=async(o:Offer)=>{
-  if(!window.confirm(`End the ${o.percent}% offer now? Customers go back to the list price within about a minute.`))return
-  setBusy(true);setErr('');setMsg('')
-  try{saved(await call('/api/platform/pricing/offers/'+o.id,'DELETE'),'Offer ended.')}
-  catch(ex:any){setErr(ex.message)}
-  finally{setBusy(false)}
+  const live=o.startsOn<=today&&today<=o.endsOn
+  setAsk({title:live?`End the ${o.percent}% offer now?`:`Cancel the ${o.percent}% offer?`,cta:live?'End offer':'Cancel offer',danger:true,
+   body:live?'Customers go back to the list price within about a minute.':`It was due to start on ${day(o.startsOn)}. It won't run.`,
+   run:async()=>{
+    setBusy(true);setErr('');setMsg('')
+    try{saved(await call('/api/platform/pricing/offers/'+o.id,'DELETE'),live?'Offer ended.':'Offer cancelled.')}
+    catch(ex:any){setErr(ex.message)}
+    finally{setBusy(false)}
+   }})
  }
  const planName=(c:string|null)=>c?(plans.find(p=>p.code===c)?.name||c):'All plans'
 
@@ -138,7 +174,7 @@ export default function PricingPage(){
 
   <section className="prSection">
    <div className="prSectionHead"><h2>Plans and prices</h2><small className="prMuted">Shown on: {SURFACES[product]}</small></div>
-   <div className="prGrid">{plans.map(p=><PlanCard key={p.code} plan={p} product={product} onSaved={saved} setErr={setErr}/>)}</div>
+   <div className="prGrid">{plans.map(p=><PlanCard key={p.code} plan={p} product={product} onSaved={saved} setErr={setErr} confirm={setAsk}/>)}</div>
   </section>
 
   <section className="prSection prSplit">
@@ -205,5 +241,6 @@ export default function PricingPage(){
      </li>)}</ul>}
    </div>
   </section>
+  {ask&&<ConfirmBox ask={ask} onClose={()=>setAsk(null)}/>}
  </PlatformShell>
 }
