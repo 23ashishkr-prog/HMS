@@ -14,7 +14,7 @@ test('withBase prefixes root-relative paths once', () => {
   assert.equal(withBase('/api/auth/me'), '/hms/api/auth/me')
   assert.equal(withBase('/api/invoices/1/pdf?download=1'), '/hms/api/invoices/1/pdf?download=1')
   assert.equal(withBase('/hms/welcome'), '/hms/welcome')
-  assert.equal(withBase('https://greynova.in/hms/'), 'https://greynova.in/hms/')
+  assert.equal(withBase('https://www.greynova.in/hms/'), 'https://www.greynova.in/hms/')
   assert.equal(withBase('//greynova.in/hms'), '//greynova.in/hms')
   assert.equal(withBase('#pricing'), '#pricing')
   assert.equal(withBase('welcome'), 'welcome')
@@ -29,8 +29,8 @@ test('public links include /hms and do not double it', () => {
     assert.equal(publicOriginUrl(), 'https://hms.example/hms')
     process.env.APP_BASE_URL = 'https://hms.example/hms'
     assert.equal(publicOriginUrl(), 'https://hms.example/hms')
-    process.env.APP_BASE_URL = 'https://greynova.in/'
-    assert.equal(publicOriginUrl(), 'https://greynova.in/hms')
+    process.env.APP_BASE_URL = 'https://www.greynova.in/'
+    assert.equal(publicOriginUrl(), 'https://www.greynova.in/hms')
   } finally {
     if (prev === undefined) delete process.env.APP_BASE_URL
     else process.env.APP_BASE_URL = prev
@@ -86,7 +86,7 @@ test('router paths drop one /hms prefix so next/navigation does not double it', 
   assert.equal(toRouterPath('/hms/platform/hospitals'), '/platform/hospitals')
   assert.equal(toRouterPath('/frontdesk'), '/frontdesk')
   assert.equal(toRouterPath('/'), '/dashboard')
-  assert.equal(toRouterPath('https://greynova.in/hms'), 'https://greynova.in/hms')
+  assert.equal(toRouterPath('https://www.greynova.in/hms'), 'https://www.greynova.in/hms')
 })
 
 test('old bookmarks redirect onto /hms without matching /hms itself', () => {
@@ -145,7 +145,7 @@ test('boot script maps bare / and /hms onto the dashboard', () => {
   assert.equal(fix('/auth/login'), '/hms/auth/login')
   assert.equal(fix('/hms/opd'), '/hms/opd')
   assert.equal(fix('/hms/dashboard'), '/hms/dashboard')
-  assert.equal(fix('https://greynova.in/hms'), 'https://greynova.in/hms')
+  assert.equal(fix('https://www.greynova.in/hms'), 'https://www.greynova.in/hms')
   assert.equal(fix('//greynova.in/hms'), '//greynova.in/hms')
   const auth = readFileSync(new URL('../lib/auth.ts', import.meta.url), 'utf8')
   assert.match(auth, /admin:'\/dashboard'/)

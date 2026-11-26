@@ -9,8 +9,8 @@ export const metadata:Metadata={
   title,
   description,
   robots:{index:false,follow:true},
-  alternates:{canonical:'https://greynova.in/hms'},
-  openGraph:{type:'website',url:'https://greynova.in/hms',siteName:'GreyNova',title,description,images:[{url:'https://greynova.in/assets/og-share.png',width:1200,height:630}]},
+  alternates:{canonical:'https://www.greynova.in/hms'},
+  openGraph:{type:'website',url:'https://www.greynova.in/hms',siteName:'GreyNova',title,description,images:[{url:'https://www.greynova.in/assets/og-share.png',width:1200,height:630}]},
 }
 
 export default function OnboardingLayout({children}:{children:React.ReactNode}){return children}

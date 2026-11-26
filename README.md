@@ -2,7 +2,7 @@
 
 A Next.js 16 + Postgres SaaS HMS (Hospital Cloud). Many hospitals share one deployment; each hospital is a tenant with its own users and data.
 
-**Staff open HMS at [https://greynova.in/hms/](https://greynova.in/hms/).** GreyNova reverse-proxies that path to this app, so the address bar stays on greynova.in and the sign-in cookie is first-party. The Vercel host is for the owner and development; hospital staff do not need it. On that host the app is at [/hms](https://hms-dun-delta.vercel.app/hms).
+**Staff open HMS at [https://www.greynova.in/hms/](https://www.greynova.in/hms/).** GreyNova reverse-proxies that path to this app, so the address bar stays on greynova.in and the sign-in cookie is first-party. The Vercel host is for the owner and development; hospital staff do not need it. On that host the app is at [/hms](https://hms-dun-delta.vercel.app/hms).
 
 Modules: registration (UHID + ABHA), appointments, OPD token queue, consultation EMR (vitals, ICD-10, Rx, orders), lab/radiology worklist, pharmacy inventory and dispensing, billing and payments, IPD beds/admission/discharge, insurance/TPA, audit log, live dashboard, plans/subscriptions, and a platform super-admin console.
 See `docs/WORKFLOW_GAP_ANALYSIS.md` for what's built and what's left.
@@ -193,11 +193,11 @@ Each hospital configures **its own** Razorpay keys under **Billing → Payment g
 
 ## Staff URL
 
-Hospital staff sign in at **https://greynova.in/hms/auth/login**. GreyNova reverse-proxies `/hms` to this deployment **without stripping the prefix**, so the browser only talks to greynova.in. Session cookies (`hms_session`, `hms_platform`, `hms_patient`) are `Path=/hms`, `Secure` in production, and `SameSite=Lax` (platform owner: `Strict`). They are not framed in from another host.
+Hospital staff sign in at **https://www.greynova.in/hms/auth/login**. GreyNova reverse-proxies `/hms` to this deployment **without stripping the prefix**, so the browser only talks to greynova.in. Session cookies (`hms_session`, `hms_platform`, `hms_patient`) are `Path=/hms`, `Secure` in production, and `SameSite=Lax` (platform owner: `Strict`). They are not framed in from another host.
 
-The owner platform is **https://greynova.in/hms/platform** (same proxy) or **https://hms-dun-delta.vercel.app/hms/platform**. A visit to the bare Vercel host (`/`) redirects to `/hms`. Older bookmarks on that host (`/platform`, `/auth/login`, `/welcome`, `/api/...`, and the other app routes) 307 to the same path under `/hms`. GreyNova does not proxy those bare paths — only `/hms`.
+The owner platform is **https://www.greynova.in/hms/platform** (same proxy) or **https://hms-dun-delta.vercel.app/hms/platform**. A visit to the bare Vercel host (`/`) redirects to `/hms`. Older bookmarks on that host (`/platform`, `/auth/login`, `/welcome`, `/api/...`, and the other app routes) 307 to the same path under `/hms`. GreyNova does not proxy those bare paths — only `/hms`.
 
-Set `APP_BASE_URL=https://greynova.in` in production so password-reset, booking, and QR links stay on greynova.in/hms instead of the Vercel host.
+Set `APP_BASE_URL=https://www.greynova.in` in production so password-reset, booking, and QR links stay on greynova.in/hms instead of the Vercel host.
 
 GreyNova `vercel.json` once this build is live (replace any strip-prefix or root `/_next` / `/api` proxies):
 
@@ -210,4 +210,4 @@ GreyNova `vercel.json` once this build is live (replace any strip-prefix or root
 }
 ```
 
-Update Razorpay, WhatsApp, and Google redirect URIs to the `/hms/api/...` paths on the deployment host (or on `https://greynova.in/hms/api/...` after the rewrite above is live). Cron paths are `/hms/api/cron/lifecycle` and `/hms/api/cron/outbox`.
+Update Razorpay, WhatsApp, and Google redirect URIs to the `/hms/api/...` paths on the deployment host (or on `https://www.greynova.in/hms/api/...` after the rewrite above is live). Cron paths are `/hms/api/cron/lifecycle` and `/hms/api/cron/outbox`.

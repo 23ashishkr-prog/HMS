@@ -5,7 +5,7 @@ import {COMPANY_CIN,COMPANY_LEGAL_NAME,REFUND_POLICY_URL} from '@/lib/terms'
 
 /** Outlined link back to greynova.in. `tone="light"` is for the dark brand panel. */
 export function BackToGreyNova({tone}:{tone?:'light'}){
- return <a className={'backGn'+(tone==='light'?' backGnLight':'')} href="https://greynova.in/" aria-label="Back to GreyNova">
+ return <a className={'backGn'+(tone==='light'?' backGnLight':'')} href="https://www.greynova.in/" aria-label="Back to GreyNova">
   <span className="backGnArrow" aria-hidden="true">←</span>
   <span>GreyNova</span>
  </a>
