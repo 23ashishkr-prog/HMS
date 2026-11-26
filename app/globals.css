@@ -1076,7 +1076,7 @@ html body .authPremium .authSideIn h2,html body .authPremium .authSide .mkLogo{c
 /* ---- Patient clearance (no dues) ---- */
 :root{--clr-ok:#15803d;--clr-ok-bg:#e7f6ec;--clr-warn:#a15c00;--clr-warn-bg:#fdf1df;--clr-bad:#b42318;--clr-bad-bg:#fdecea;--clr-na:#64748b;--clr-na-bg:#eef1f5}
 html[data-theme=dark]{--clr-ok:#5fd39a;--clr-ok-bg:#12301f;--clr-warn:#f0b257;--clr-warn-bg:#33270f;--clr-bad:#ff8a7d;--clr-bad-bg:#3a1a17;--clr-na:#9aa8bc;--clr-na-bg:#1c2636}
-@media (prefers-color-scheme:dark){html:not([data-theme]){--clr-ok:#5fd39a;--clr-ok-bg:#12301f;--clr-warn:#f0b257;--clr-warn-bg:#33270f;--clr-bad:#ff8a7d;--clr-bad-bg:#3a1a17;--clr-na:#9aa8bc;--clr-na-bg:#1c2636}}
+html[data-theme=dark]{--clr-ok:#5fd39a;--clr-ok-bg:#12301f;--clr-warn:#f0b257;--clr-warn-bg:#33270f;--clr-bad:#ff8a7d;--clr-bad-bg:#3a1a17;--clr-na:#9aa8bc;--clr-na-bg:#1c2636}
 .clr{display:grid;gap:14px;margin-top:14px}.clrHead{display:grid;gap:8px}.clrHead h2{margin:4px 0}.clrHead h2 small{font-weight:500;color:var(--p-mut,var(--mut))}
 .clrBar{height:6px;border-radius:99px;background:var(--clr-na-bg);overflow:hidden}.clrBar i{display:block;height:100%;background:var(--clr-ok);transition:width .3s}
 .clrList{list-style:none;margin:0;padding:0;display:grid;gap:8px}.clrDept{border:1px solid var(--p-line,var(--ln));border-left:4px solid var(--clr-na);border-radius:10px;padding:10px 12px;display:grid;gap:6px}
@@ -1328,17 +1328,17 @@ html[data-theme=dark] body .dsSheet{background:#fff}
 .rosterSum{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.rs_on_duty{background:#e3f6ec;color:#0f6b3d}.rs_on_leave{background:#fff3dc;color:#8a5a00}.rs_off_duty{background:#eef0f4;color:#4b5363}.rs_no_roster{background:#f6eef0;color:#8a2a3a}
 .rosterCard .roleTag,.roleTag{font-size:11px;color:var(--muted,#667);font-weight:500}.rosterTable td,.rosterTable th{white-space:nowrap;vertical-align:top}.rosterTable tr{cursor:pointer}.rosterTable tr.on td{background:rgba(16,65,118,.06)}.rosterTable .today{background:rgba(16,65,118,.05)}
 .shiftTag{display:block;font-size:12px;padding:2px 6px;margin:2px 0;border-radius:6px;background:#e8f0fb;color:#104176}.shiftTag.night{background:#2b2f4a;color:#e6e8ff}.tableScroll{overflow-x:auto}
-@media (prefers-color-scheme:dark){.rs_on_duty{background:#12372a;color:#8fe0b5}.rs_on_leave{background:#3d2e10;color:#f3cf86}.rs_off_duty{background:#262a33;color:#b5bccb}.rs_no_roster{background:#3a1d24;color:#f0a8b5}.shiftTag{background:#1c2c45;color:#b9d2f5}}
+html[data-theme=dark] .rs_on_duty{background:#12372a;color:#8fe0b5}html[data-theme=dark] .rs_on_leave{background:#3d2e10;color:#f3cf86}html[data-theme=dark] .rs_off_duty{background:#262a33;color:#b5bccb}html[data-theme=dark] .rs_no_roster{background:#3a1d24;color:#f0a8b5}html[data-theme=dark] .shiftTag{background:#1c2c45;color:#b9d2f5}
 .statGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:0 0 12px}.statTile{background:var(--card,#fff);border:1px solid var(--line,#e3e6eb);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}.statTile b{font-size:24px}.statTile small{color:var(--muted,#667)}
 .barTrack{display:block;height:6px;border-radius:3px;background:rgba(120,130,150,.18);margin-top:4px;min-width:60px;overflow:hidden}.barFill{display:block;height:100%;background:#2f7de1;border-radius:3px}.barFill.ok{background:#1f9d5b}.barFill.warn{background:#d79a12}.barFill.bad{background:#d0424f}
 td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad{color:#b3202e;font-weight:600}
 .flowJourney{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.jStep{border:1px solid var(--line,#e3e6eb);border-left:4px solid #9aa3b2;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:3px}.jStep b{font-size:20px}.jStep.ok{border-left-color:#1f9d5b}.jStep.warn{border-left-color:#d79a12}.jStep.bad{border-left-color:#d0424f}.jStep .muted{font-size:11px}
-@media (prefers-color-scheme:dark){td.ok{color:#7fdcaa}td.warn{color:#f0c96e}td.bad{color:#f39aa3}}
+html[data-theme=dark] td.ok{color:#7fdcaa}html[data-theme=dark] td.warn{color:#f0c96e}html[data-theme=dark] td.bad{color:#f39aa3}
 /* Settings → Roles & access matrix */
 .raScroll{overflow-x:auto;margin:10px 0}.raTable th,.raTable td{text-align:center;white-space:nowrap}.raTable tbody th[scope=row]{text-align:left;font-weight:500}.raTable tr.raGroup th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted,#667085);background:rgba(120,130,150,.08)}
 .raCell.ovr{background:rgba(245,166,35,.14)}.raToggle{display:inline-flex;align-items:center;gap:4px;cursor:pointer}.raToggle input{width:18px;height:18px;cursor:pointer}.raToggle input:disabled{cursor:not-allowed}.raMark{color:#d48806;font-size:11px}.raReset{display:block;margin:2px auto 0;font-size:11px;padding:1px 6px}
 .noAccess{text-align:center;padding:32px 16px}.noAccess .primary{display:inline-block;margin-top:8px;text-decoration:none}
-@media (prefers-color-scheme:dark){.raCell.ovr{background:rgba(245,166,35,.18)}.raMark{color:#f0c96e}}
+html[data-theme=dark] .raCell.ovr{background:rgba(245,166,35,.18)}html[data-theme=dark] .raMark{color:#f0c96e}
 /* Operation theatre board and case drawer */
 .otBoard{display:flex;flex-direction:column;gap:6px;overflow-x:auto;padding-bottom:6px}.otRow{display:grid;grid-template-columns:110px minmax(640px,1fr);gap:8px;align-items:stretch}.otRoom{display:flex;flex-direction:column;justify-content:center;font-size:13px}
 .otTrack{position:relative;min-height:74px;border:1px solid var(--line,#e3e6eb);border-radius:10px;background:rgba(127,127,127,.04)}.otHead .otTrack{min-height:20px;border:0;background:none}.otTick{position:absolute;top:2px;transform:translateX(-50%);font-size:11px;color:var(--muted,#747479)}
@@ -1352,7 +1352,7 @@ td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad
 .otDl{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;margin:12px 0}.otDl dt{color:var(--muted,#747479);font-size:13px}.otDl dd{margin:0}
 .otSteps{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px}.otSteps li{border:1px solid var(--line,#e3e6eb);border-left:4px solid #d79a12;border-radius:8px;padding:7px 10px;font-size:14px}.otSteps li.done{border-left-color:#1f9d5b}
 .otChecklist,.otNote{display:flex;flex-direction:column;gap:8px;margin-top:10px}.otItem{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 14px;padding:8px 10px;border:1px solid var(--line,#e3e6eb);border-left:4px solid #d79a12;border-radius:8px}.otItem.ok{border-left-color:#1f9d5b}.otOpts{display:flex;flex-wrap:wrap;gap:12px}
-@media (prefers-color-scheme:dark){.otCase{background:#1b2a40;color:#dbe7fb}.otCase.in_progress{background:#3a2e12;color:#f6dfa8}.otCase.completed{background:#143323;color:#bfeed3}.otCase.cancelled{background:#2a2a2a;color:#aaa}}
+html[data-theme=dark] .otCase{background:#1b2a40;color:#dbe7fb}html[data-theme=dark] .otCase.in_progress{background:#3a2e12;color:#f6dfa8}html[data-theme=dark] .otCase.completed{background:#143323;color:#bfeed3}html[data-theme=dark] .otCase.cancelled{background:#2a2a2a;color:#aaa}
 @media print{.otBoard .otNow{display:none}}
 /* Emergency board: colour triage cards */
 .erBoard{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px}.erCard{background:var(--card,#fff);border:1px solid var(--line,#e3e6eb);border-left:8px solid #9aa3b2;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}.erCard header{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.erCard p{margin:0}.erCard .actionRow{flex-wrap:wrap;gap:6px}
@@ -1361,7 +1361,7 @@ td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad
 .erStat{border-left:6px solid #9aa3b2}.erStat.er_red{border-left-color:#d0242f}.erStat.er_orange{border-left-color:#ea7a11}.erStat.er_yellow{border-left-color:#e2b500}.erStat.er_green{border-left-color:#1f9d5b}.erStat.er_black{border-left-color:#111}.erStat small{text-transform:capitalize}
 .erLevels{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}.erLevel{display:flex;gap:8px;align-items:center;border-radius:10px;padding:10px;border:2px solid transparent;cursor:pointer;font-weight:600}.erLevel:has(input:checked){border-color:#111}.erLevel.er_red{background:#fde2e2}.erLevel.er_orange{background:#ffe8d1}.erLevel.er_yellow{background:#fff4bf}.erLevel.er_green{background:#d9f3e4}.erLevel.er_black{background:#2a2a2d;color:#fff}
 .erCheck{justify-content:flex-end}.mlcRef{display:flex;justify-content:space-between;margin:14px 0!important}
-@media (prefers-color-scheme:dark){.erCard.er_red{background:#3a1416}.erCard.er_orange{background:#3a2412}.erCard.er_yellow{background:#36300e}.erCard.er_green{background:#12302a}.erCard.er_black{background:#1b1b1d}}
+html[data-theme=dark] .erCard.er_red{background:#3a1416}html[data-theme=dark] .erCard.er_orange{background:#3a2412}html[data-theme=dark] .erCard.er_yellow{background:#36300e}html[data-theme=dark] .erCard.er_green{background:#12302a}html[data-theme=dark] .erCard.er_black{background:#1b1b1d}
 /* Radiology */
 .radModFilter{margin:4px 0 12px}.radActs{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:6px}td.radActs{margin:0}.radPanel .sheetHead>span{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.radPanel form,.radPanel>div{margin-top:12px}
 .radField{display:flex;flex-direction:column;gap:4px;margin:8px 0}.radField textarea{width:100%;font:inherit;line-height:1.45}.radReport h4{margin:10px 0 2px}.radReport .pre,.dsSheet .pre{white-space:pre-wrap}tr.rowOn td{background:rgba(47,125,225,.08)}
@@ -1376,7 +1376,7 @@ td.ok{color:#127a44;font-weight:600}td.warn{color:#9a6a00;font-weight:600}td.bad
 .pkgHits button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 8px;cursor:pointer}
 .pkgHits button:hover{background:var(--hover,#f2f5f9)}
 html[data-theme=dark] .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html[data-theme=dark] .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}
-@media (prefers-color-scheme:dark){html:not([data-theme]) .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html:not([data-theme]) .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}}
+html[data-theme=dark] .nhcxBanner{background:#3a2f12;color:#f7dfa0;border-color:#7a6125}html[data-theme=dark] .nhcxBanner.live{background:#13301c;color:#b6e8c3;border-color:#2f6b40}
 
 /* ABDM: ABHA badge, OTP steps, Scan & Share, admin page */
 .abhaBadge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;white-space:nowrap}.abhaBadge.kyc{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
@@ -1403,7 +1403,7 @@ html body .app:not(.railOpen)>.side nav .navGroup>.navGo{display:flex}
 .flowTwo{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 .hourBars{display:flex;align-items:flex-end;gap:4px;height:140px;padding-top:6px}.hb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}.hb span{width:100%;min-height:2px;border-radius:4px 4px 0 0;background:#9cc0ee}.hb span.peak{background:#2f7de1}.hb small{font-size:10px;color:var(--muted,#667)}
 td b.bad{color:#b3202e}td b.ok{color:#127a44}td.small{font-size:12px;white-space:normal;min-width:160px}
-@media (prefers-color-scheme:dark){.chg.up{color:#7fdcaa}.chg.down{color:#f39aa3}.actItem.add .actTag{background:#3a1d24;color:#f0a8b5}.actItem.improve .actTag{background:#3d2e10;color:#f3cf86}.actItem.watch .actTag{background:#1c2c45;color:#b9d2f5}.actItem.info .actTag{background:#12372a;color:#8fe0b5}.hb span{background:#2b4a75}.hb span.peak{background:#5b9bf0}}
+html[data-theme=dark] .chg.up{color:#7fdcaa}html[data-theme=dark] .chg.down{color:#f39aa3}html[data-theme=dark] .actItem.add .actTag{background:#3a1d24;color:#f0a8b5}html[data-theme=dark] .actItem.improve .actTag{background:#3d2e10;color:#f3cf86}html[data-theme=dark] .actItem.watch .actTag{background:#1c2c45;color:#b9d2f5}html[data-theme=dark] .actItem.info .actTag{background:#12372a;color:#8fe0b5}html[data-theme=dark] .hb span{background:#2b4a75}html[data-theme=dark] .hb span.peak{background:#5b9bf0}
 .nowrap{white-space:nowrap}.svcTable td{vertical-align:middle}.svcTable .moduleInput{min-width:0;width:100%;padding:6px 8px}.svcTable .svcPrice{width:110px}.svcTable .svcSac{width:80px}.svcTable tr.svcEditing{background:rgba(37,99,235,.06)}.svcTable tr.svcOff td{opacity:.55}
 .raPick{margin-bottom:12px;flex-wrap:wrap}.raPick small{opacity:.7;margin-left:2px}.raSummary{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end;justify-content:space-between;margin:4px 0 12px}.raSummary h3{margin:0}.raSummary p{margin:2px 0 0}
 .raSec{border:1px solid var(--line,#e4e7ec);border-radius:10px;margin:10px 0;overflow:hidden}.raSec>header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;background:var(--soft,#f8fafc)}.raSec h4{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
@@ -1517,3 +1517,34 @@ html body .plat .prPanel select:not(#_){background-repeat:no-repeat!important;ba
 .offerEnds{color:#166534;font-weight:600}
 .payGrid article.hot .offerEnds{color:#bbf7d0}
 .offlineBar b,.offlineBar strong,html[data-theme] body .offlineBar b,html[data-theme] body .offlineBar strong{color:inherit!important}.offlineBar.danger{background:#FDECEC;color:#8E1B1B;border:1px solid #F2B8B8}.offGate{position:relative}.offGateUnder{opacity:.25;pointer-events:none;user-select:none;filter:blur(1px)}.offGateCard{position:absolute;left:50%;top:24px;transform:translateX(-50%);max-width:520px;width:calc(100% - 32px);text-align:center;z-index:5}
+/* ---- Dark theme readability (only when a person picks Dark; light is unchanged) ---- */
+html[data-theme=dark] .payGrid article:not(.hot){background:#152033!important;border:1px solid #26344A;box-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25)!important;color:#E6ECF5!important}
+html[data-theme=dark] .payGrid article:not(.hot) h3,html[data-theme=dark] .payGrid article:not(.hot) b{color:#F1F5FB!important}
+html[data-theme=dark] .payGrid article:not(.hot) p{color:#C9D3E1!important}
+html[data-theme=dark] .payGrid article:not(.hot) small{color:#A9B6C8!important}
+html[data-theme=dark] .payGrid article.hot h3,html[data-theme=dark] .payGrid article.hot b{color:#fff!important}
+html[data-theme=dark] .payGrid article.hot p,html[data-theme=dark] .payGrid article.hot small{color:#EEF2FF!important}
+html[data-theme=dark] body .tabs a.tabLink{background:#1B2940;border-color:#2C3B53;color:#C9D3E1}
+html[data-theme=dark] body .tabs a.tabLink:hover{background:#22344F;color:#fff}
+html[data-theme=dark] .offlineBar.online{background:#12233D;color:#BFD0EA;border:1px solid #26344A}
+html[data-theme=dark] .offlineBar.offline{background:#3A2A10;color:#F2C478;border-color:#7A6125}
+html[data-theme=dark] .offlineBar.danger{background:#3A1A17;color:#FFB4AB;border-color:#7A2E28}
+html[data-theme=dark] .tourCard{background:#152033!important;border:1px solid #26344A;color:#E6ECF5}
+html[data-theme=dark] .tourCard h2,html[data-theme=dark] .tourCard h3{color:#F1F5FB!important}
+html[data-theme=dark] .tourCard p{color:#C9D3E1!important}
+html[data-theme=dark] .tourBackdrop{background:rgba(0,0,0,.55)}
+html[data-theme=dark]{--accent:#0f766e}
+html[data-theme=dark] .steps li:not(.on):not(.done){background:#1B2940;color:#C9D3E1}
+html[data-theme=dark] .steps li:not(.on):not(.done) b{background:#2C3B53;color:#E6ECF5!important}
+html[data-theme=dark] .steps li.on{background:#0f766e}
+html[data-theme=dark] .steps li.done{background:#123524;color:#9BE3BC}
+html[data-theme=dark] .steps li.done b{background:#2F8A57;color:#fff!important}
+html[data-theme=dark] .steps li.on b{background:rgba(0,0,0,.28)}
+html[data-theme=dark] .coKpi span{color:#A9B6C8}
+html[data-theme=dark] .coKpi.good b{color:#5FD39A!important}
+html[data-theme=dark] .coKpi.warn b{color:#F0B257!important}
+html[data-theme=dark] .setupSteps li>i{background:rgba(143,180,232,.16);color:#BFD0EA}
+html[data-theme=dark] .setupSteps li.done>i{background:#2F8A57;color:#fff}
+html[data-theme=dark] .wBig b i{color:#9AA8BC}
+html[data-theme=dark] .coRow span,html[data-theme=dark] .coFields label,html[data-theme=dark] body .featList small{color:#A9B6C8}
+html[data-theme=dark] body .side .sideBrand small,html[data-theme=dark] body .side small,html[data-theme=dark] body .side kbd,html[data-theme=dark] body .favLabel{color:#9AA8BC!important}
