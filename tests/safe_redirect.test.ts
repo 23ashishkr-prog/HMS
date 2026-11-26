@@ -8,7 +8,7 @@ test('safeAppPath allows relative app paths and never returns the bare app root'
   assert.equal(safeAppPath('/hms/'),'/dashboard')
   assert.equal(safeAppPath('/hms/opd'),'/opd')
   assert.equal(safeAppPath('/admin/users'),'/admin/users')
-  assert.equal(safeAppPath('https://greynova.in/hms/'),'/dashboard')
+  assert.equal(safeAppPath('https://www.greynova.in/hms/'),'/dashboard')
   assert.equal(safeAppPath('//greynova.in/hms'),'/dashboard')
   assert.equal(safeAppPath('https://evil.example/'),'/dashboard')
   assert.equal(safeAppPath('/\\evil'),'/dashboard')

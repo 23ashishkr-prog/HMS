@@ -2,7 +2,7 @@ import {HttpError} from './services/core'
 
 /** Version stored with each agreement. Matches the approved text dated 19 November 2026. */
 export const TERMS_VERSION='2026-11-19'
-export const REFUND_POLICY_URL='https://greynova.in/refund-policy.html'
+export const REFUND_POLICY_URL='https://www.greynova.in/refund-policy.html'
 export const RENEWAL_POLICY='2026-11-19'
 export const COMPANY_LEGAL_NAME='GREYNOVA TECH SOLUTIONS PRIVATE LIMITED'
 export const COMPANY_CIN='U63990JH2026PTC029571'

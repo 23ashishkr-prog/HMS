@@ -10,7 +10,7 @@ test('platform webhook hint includes the /hms base path',()=>{
  assert.equal(PLATFORM_WEBHOOK_PATH,'/hms/api/subscription/razorpay/webhook')
  assert.equal(withBase('/api/subscription/razorpay/webhook'),PLATFORM_WEBHOOK_PATH)
  assert.equal(withBase(PLATFORM_WEBHOOK_PATH),PLATFORM_WEBHOOK_PATH)
- assert.equal('https://greynova.in'+withBase(PLATFORM_WEBHOOK_PATH),'https://greynova.in/hms/api/subscription/razorpay/webhook')
+ assert.equal('https://www.greynova.in'+withBase(PLATFORM_WEBHOOK_PATH),'https://www.greynova.in/hms/api/subscription/razorpay/webhook')
 })
 
 test('mask shows last 4 only',()=>{

@@ -1,5 +1,5 @@
-/** Public URL prefix. GreyNova reverse-proxies https://greynova.in/hms/:path+ to this app.
- *  The bare path https://greynova.in/hms is GreyNova's marketing page, not HMS.
+/** Public URL prefix. GreyNova reverse-proxies https://www.greynova.in/hms/:path+ to this app.
+ *  The bare path https://www.greynova.in/hms is GreyNova's marketing page, not HMS.
  *  In-app links must never resolve to exactly /hms. */
 export const basePath = '/hms'
 /** Staff home. With basePath this is /hms/dashboard, which the proxy forwards. */
