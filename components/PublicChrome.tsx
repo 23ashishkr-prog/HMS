@@ -1,13 +1,17 @@
+import {withBase} from '@/lib/basePath'
 import Link from 'next/link'
 import type {ReactNode} from 'react'
 import Logo from '@/components/Logo'
 import {COMPANY_CIN,COMPANY_LEGAL_NAME,REFUND_POLICY_URL} from '@/lib/terms'
 
-/** Outlined link back to greynova.in. `tone="light"` is for the dark brand panel. */
+/** Outlined link back to greynova.in, with the GreyNova lockup (purple mark + GREYNOVA letters).
+ *  `tone="light"` is for the dark brand panel. The light-text logo also shows in dark theme. */
 export function BackToGreyNova({tone}:{tone?:'light'}){
  return <a className={'backGn'+(tone==='light'?' backGnLight':'')} href="https://www.greynova.in/" aria-label="Back to GreyNova">
   <span className="backGnArrow" aria-hidden="true">←</span>
-  <span>GreyNova</span>
+  <span className="backGnTo" aria-hidden="true">Back to</span>
+  <img className="backGnLogo backGnLogoDark" src={withBase('/greynova-logo.svg')} alt="" width={123} height={16}/>
+  <img className="backGnLogo backGnLogoLight" src={withBase(tone==='light'?'/greynova-logo-white.svg':'/greynova-logo-light.svg')} alt="" width={123} height={16}/>
  </a>
 }
 
